@@ -176,6 +176,47 @@ class RecruitmentFlightReminder {
   }
 }
 
+class RecruitmentFlightSegment {
+  final String origin;
+  final String destination;
+  final String flightNumber;
+  final DateTime departureAt;
+  final DateTime? arrivalAt;
+
+  const RecruitmentFlightSegment({
+    required this.origin,
+    required this.destination,
+    required this.flightNumber,
+    required this.departureAt,
+    required this.arrivalAt,
+  });
+
+  Map<String, dynamic> toPayload() => <String, dynamic>{
+    'origin': origin.trim(),
+    'destination': destination.trim(),
+    'flight_number': flightNumber.trim().toUpperCase(),
+    'departure_at': departureAt.toUtc().toIso8601String(),
+    'arrival_at': arrivalAt?.toUtc().toIso8601String(),
+  };
+
+  factory RecruitmentFlightSegment.fromMap(Map<String, dynamic> map) {
+    DateTime parseDate(dynamic value) =>
+        DateTime.tryParse(value?.toString() ?? '')?.toLocal() ?? DateTime.now();
+    DateTime? optionalDate(dynamic value) {
+      final text = value?.toString().trim() ?? '';
+      return text.isEmpty ? null : DateTime.tryParse(text)?.toLocal();
+    }
+
+    return RecruitmentFlightSegment(
+      origin: map['origin']?.toString() ?? '',
+      destination: map['destination']?.toString() ?? '',
+      flightNumber: map['flight_number']?.toString() ?? '',
+      departureAt: parseDate(map['departure_at']),
+      arrivalAt: optionalDate(map['arrival_at']),
+    );
+  }
+}
+
 class RecruitmentFlight {
   final String id;
   final String companyId;
@@ -187,6 +228,7 @@ class RecruitmentFlight {
   final String origin;
   final String destination;
   final String flightNumber;
+  final List<RecruitmentFlightSegment> segments;
   final String status;
   final bool remindDayBefore;
   final bool remindThreeHours;
@@ -213,6 +255,7 @@ class RecruitmentFlight {
     required this.origin,
     required this.destination,
     required this.flightNumber,
+    this.segments = const <RecruitmentFlightSegment>[],
     required this.status,
     required this.remindDayBefore,
     required this.remindThreeHours,
@@ -236,9 +279,31 @@ class RecruitmentFlight {
       !isCancelled && departureAt.isAfter(DateTime.now());
 
   String get routeTitle {
+    final routeSegments = segments
+        .where((segment) =>
+            segment.origin.trim().isNotEmpty ||
+            segment.destination.trim().isNotEmpty)
+        .toList(growable: false);
+    if (routeSegments.isNotEmpty) {
+      final stops = <String>[];
+      void addStop(String value) {
+        final clean = value.trim();
+        if (clean.isNotEmpty && (stops.isEmpty || stops.last != clean)) {
+          stops.add(clean);
+        }
+      }
+
+      addStop(routeSegments.first.origin);
+      for (final segment in routeSegments) {
+        addStop(segment.destination);
+      }
+      if (stops.isNotEmpty) return stops.join(' → ');
+    }
     final cleanOrigin = origin.trim();
     final cleanDestination = destination.trim();
-    if (cleanOrigin.isEmpty && cleanDestination.isEmpty) return 'Маршрут не указан';
+    if (cleanOrigin.isEmpty && cleanDestination.isEmpty) {
+      return 'Маршрут не указан';
+    }
     if (cleanOrigin.isEmpty) return cleanDestination;
     if (cleanDestination.isEmpty) return cleanOrigin;
     return '$cleanOrigin → $cleanDestination';
@@ -273,17 +338,42 @@ class RecruitmentFlight {
     }
 
     final createdAt = parseDate(map['created_at']);
+    final legacyDepartureAt = parseDate(map['departure_at']);
+    final legacyArrivalAt = optionalDate(map['arrival_at']);
+    final rawSegments = map['segments'];
+    final parsedSegments = rawSegments is List
+        ? rawSegments
+            .whereType<Map>()
+            .map(
+              (item) => RecruitmentFlightSegment.fromMap(
+                Map<String, dynamic>.from(item),
+              ),
+            )
+            .toList(growable: false)
+        : const <RecruitmentFlightSegment>[];
+    final segments = parsedSegments.isNotEmpty
+        ? parsedSegments
+        : <RecruitmentFlightSegment>[
+            RecruitmentFlightSegment(
+              origin: map['origin']?.toString() ?? '',
+              destination: map['destination']?.toString() ?? '',
+              flightNumber: map['flight_number']?.toString() ?? '',
+              departureAt: legacyDepartureAt,
+              arrivalAt: legacyArrivalAt,
+            ),
+          ];
     return RecruitmentFlight(
       id: map['id']?.toString() ?? '',
       companyId: map['company_id']?.toString() ?? '',
       applicationId: map['application_id']?.toString() ?? '',
       employeeId: map['employee_id']?.toString() ?? '',
       objectId: map['object_id']?.toString() ?? '',
-      departureAt: parseDate(map['departure_at']),
-      arrivalAt: optionalDate(map['arrival_at']),
-      origin: map['origin']?.toString() ?? '',
-      destination: map['destination']?.toString() ?? '',
-      flightNumber: map['flight_number']?.toString() ?? '',
+      departureAt: segments.first.departureAt,
+      arrivalAt: segments.last.arrivalAt,
+      origin: segments.first.origin,
+      destination: segments.last.destination,
+      flightNumber: segments.first.flightNumber,
+      segments: List<RecruitmentFlightSegment>.unmodifiable(segments),
       status: map['status']?.toString() ?? 'scheduled',
       remindDayBefore: map['remind_day_before'] != false,
       remindThreeHours: map['remind_three_hours'] != false,

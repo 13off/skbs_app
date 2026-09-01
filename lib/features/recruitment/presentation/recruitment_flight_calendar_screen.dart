@@ -665,6 +665,47 @@ class _RecruitmentFlightCalendarScreenState
   }
 }
 
+class _FlightSegmentDraft {
+  final TextEditingController originController;
+  final TextEditingController destinationController;
+  final TextEditingController flightNumberController;
+  DateTime departureAt;
+  DateTime? arrivalAt;
+
+  _FlightSegmentDraft({
+    required String origin,
+    required String destination,
+    required String flightNumber,
+    required this.departureAt,
+    required this.arrivalAt,
+  })  : originController = TextEditingController(text: origin),
+        destinationController = TextEditingController(text: destination),
+        flightNumberController = TextEditingController(text: flightNumber);
+
+  factory _FlightSegmentDraft.fromSegment(RecruitmentFlightSegment segment) =>
+      _FlightSegmentDraft(
+        origin: segment.origin,
+        destination: segment.destination,
+        flightNumber: segment.flightNumber,
+        departureAt: segment.departureAt,
+        arrivalAt: segment.arrivalAt,
+      );
+
+  RecruitmentFlightSegment toSegment() => RecruitmentFlightSegment(
+        origin: originController.text.trim(),
+        destination: destinationController.text.trim(),
+        flightNumber: flightNumberController.text.trim(),
+        departureAt: departureAt,
+        arrivalAt: arrivalAt,
+      );
+
+  void dispose() {
+    originController.dispose();
+    destinationController.dispose();
+    flightNumberController.dispose();
+  }
+}
+
 class RecruitmentFlightEditorScreen extends StatefulWidget {
   final AppUserProfile profile;
   final List<RecruitmentFlightCandidate> candidates;
@@ -685,11 +726,7 @@ class RecruitmentFlightEditorScreen extends StatefulWidget {
 class _RecruitmentFlightEditorScreenState
     extends State<RecruitmentFlightEditorScreen> {
   RecruitmentFlightCandidate? candidate;
-  late DateTime departureAt;
-  DateTime? arrivalAt;
-  late final TextEditingController originController;
-  late final TextEditingController destinationController;
-  late final TextEditingController flightNumberController;
+  late final List<_FlightSegmentDraft> flightSegments;
   late final TextEditingController notesController;
   late List<RecruitmentFlightReminder> reminders;
   final List<RecruitmentFlightTicketUpload> pendingTickets =
@@ -703,17 +740,33 @@ class _RecruitmentFlightEditorScreenState
     candidate =
         entry?.candidate ??
         (widget.candidates.length == 1 ? widget.candidates.first : null);
-    departureAt =
-        entry?.flight.departureAt ??
-        DateTime.now().add(const Duration(days: 1, hours: 3));
-    arrivalAt = entry?.flight.arrivalAt;
-    originController = TextEditingController(text: entry?.flight.origin ?? '');
-    destinationController = TextEditingController(
-      text: entry?.flight.destination ?? '',
-    );
-    flightNumberController = TextEditingController(
-      text: entry?.flight.flightNumber ?? '',
-    );
+    final storedSegments =
+        entry?.flight.segments ?? const <RecruitmentFlightSegment>[];
+    if (storedSegments.isNotEmpty) {
+      flightSegments = storedSegments
+          .map(_FlightSegmentDraft.fromSegment)
+          .toList(growable: true);
+    } else if (entry != null) {
+      flightSegments = <_FlightSegmentDraft>[
+        _FlightSegmentDraft(
+          origin: entry.flight.origin,
+          destination: entry.flight.destination,
+          flightNumber: entry.flight.flightNumber,
+          departureAt: entry.flight.departureAt,
+          arrivalAt: entry.flight.arrivalAt,
+        ),
+      ];
+    } else {
+      flightSegments = <_FlightSegmentDraft>[
+        _FlightSegmentDraft(
+          origin: '',
+          destination: '',
+          flightNumber: '',
+          departureAt: DateTime.now().add(const Duration(days: 1, hours: 3)),
+          arrivalAt: null,
+        ),
+      ];
+    }
     notesController = TextEditingController(text: entry?.flight.notes ?? '');
     reminders = List<RecruitmentFlightReminder>.from(
       entry?.reminders ?? const <RecruitmentFlightReminder>[],
@@ -722,9 +775,9 @@ class _RecruitmentFlightEditorScreenState
 
   @override
   void dispose() {
-    originController.dispose();
-    destinationController.dispose();
-    flightNumberController.dispose();
+    for (final segment in flightSegments) {
+      segment.dispose();
+    }
     notesController.dispose();
     super.dispose();
   }
@@ -753,16 +806,161 @@ class _RecruitmentFlightEditorScreenState
     return DateTime(date.year, date.month, date.day, time.hour, time.minute);
   }
 
-  Future<void> chooseDeparture() async {
-    final value = await chooseDateTime(departureAt);
-    if (value != null && mounted) setState(() => departureAt = value);
+  Future<void> chooseDeparture(int index) async {
+    final segment = flightSegments[index];
+    final value = await chooseDateTime(segment.departureAt);
+    if (value != null && mounted) {
+      setState(() => segment.departureAt = value);
+    }
   }
 
-  Future<void> chooseArrival() async {
+  Future<void> chooseArrival(int index) async {
+    final segment = flightSegments[index];
     final value = await chooseDateTime(
-      arrivalAt ?? departureAt.add(const Duration(hours: 3)),
+      segment.arrivalAt ?? segment.departureAt.add(const Duration(hours: 3)),
     );
-    if (value != null && mounted) setState(() => arrivalAt = value);
+    if (value != null && mounted) {
+      setState(() => segment.arrivalAt = value);
+    }
+  }
+
+  void addFlightSegment() {
+    final previous = flightSegments.last;
+    final suggestedDeparture = (previous.arrivalAt ?? previous.departureAt)
+        .add(const Duration(hours: 2));
+    setState(() {
+      flightSegments.add(
+        _FlightSegmentDraft(
+          origin: previous.destinationController.text.trim(),
+          destination: '',
+          flightNumber: '',
+          departureAt: suggestedDeparture,
+          arrivalAt: null,
+        ),
+      );
+    });
+  }
+
+  void removeFlightSegment(int index) {
+    if (index <= 0 || index >= flightSegments.length) return;
+    final removed = flightSegments.removeAt(index);
+    removed.dispose();
+    setState(() {});
+  }
+
+  Widget buildFlightSegmentCard(int index) {
+    final segment = flightSegments[index];
+    return PremiumWorkCard(
+      radius: 22,
+      padding: const EdgeInsets.all(14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  index == 0 ? 'Рейс 1' : 'Рейс ${index + 1} · пересадка',
+                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900),
+                ),
+              ),
+              if (index > 0)
+                IconButton(
+                  tooltip: 'Удалить рейс',
+                  onPressed: saving ? null : () => removeFlightSegment(index),
+                  icon: const Icon(Icons.delete_outline_rounded),
+                ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final originField = TextField(
+                controller: segment.originController,
+                enabled: !saving,
+                decoration: const InputDecoration(
+                  labelText: 'Откуда',
+                  hintText: 'Москва',
+                  prefixIcon: Icon(Icons.flight_takeoff_outlined),
+                ),
+              );
+              final destinationField = TextField(
+                controller: segment.destinationController,
+                enabled: !saving,
+                decoration: const InputDecoration(
+                  labelText: 'Куда',
+                  hintText: 'Мурманск',
+                  prefixIcon: Icon(Icons.flight_land_outlined),
+                ),
+                onChanged: (value) {
+                  if (index + 1 < flightSegments.length &&
+                      flightSegments[index + 1]
+                          .originController
+                          .text
+                          .trim()
+                          .isEmpty) {
+                    flightSegments[index + 1].originController.text = value.trim();
+                  }
+                },
+              );
+              if (constraints.maxWidth < 560) {
+                return Column(
+                  children: [
+                    originField,
+                    const SizedBox(height: 10),
+                    destinationField,
+                  ],
+                );
+              }
+              return Row(
+                children: [
+                  Expanded(child: originField),
+                  const SizedBox(width: 10),
+                  Expanded(child: destinationField),
+                ],
+              );
+            },
+          ),
+          const SizedBox(height: 10),
+          TextField(
+            controller: segment.flightNumberController,
+            enabled: !saving,
+            textCapitalization: TextCapitalization.characters,
+            decoration: const InputDecoration(
+              labelText: 'Номер рейса',
+              hintText: 'SU 1320',
+              prefixIcon: Icon(Icons.airplane_ticket_outlined),
+            ),
+          ),
+          const SizedBox(height: 10),
+          OutlinedButton.icon(
+            onPressed: saving ? null : () => chooseDeparture(index),
+            icon: const Icon(Icons.event_outlined),
+            label: Text('Вылет: ${dateTimeText(segment.departureAt)}'),
+          ),
+          const SizedBox(height: 8),
+          OutlinedButton.icon(
+            onPressed: saving ? null : () => chooseArrival(index),
+            icon: const Icon(Icons.schedule_outlined),
+            label: Text(
+              segment.arrivalAt == null
+                  ? 'Указать время прибытия'
+                  : 'Прибытие: ${dateTimeText(segment.arrivalAt!)}',
+            ),
+          ),
+          if (segment.arrivalAt != null)
+            Align(
+              alignment: Alignment.centerRight,
+              child: TextButton(
+                onPressed: saving
+                    ? null
+                    : () => setState(() => segment.arrivalAt = null),
+                child: const Text('Убрать время прибытия'),
+              ),
+            ),
+        ],
+      ),
+    );
   }
 
   Future<void> addReminder() async {
@@ -840,15 +1038,18 @@ class _RecruitmentFlightEditorScreenState
 
     final eventKind = setup['event_kind'] ?? 'departure';
     final title = setup['title']?.trim() ?? '';
-    if (eventKind == 'arrival' && arrivalAt == null) {
+    final tripArrivalAt = flightSegments.last.arrivalAt;
+    if (eventKind == 'arrival' && tripArrivalAt == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Сначала укажите время прибытия рейса')),
+        const SnackBar(content: Text('Сначала укажите время прибытия последнего рейса')),
       );
       return;
     }
 
     final now = DateTime.now();
-    final eventAt = eventKind == 'arrival' ? arrivalAt : departureAt;
+    final eventAt = eventKind == 'arrival'
+        ? tripArrivalAt
+        : flightSegments.first.departureAt;
     final suggested = eventAt != null && eventAt.isAfter(now)
         ? eventAt
         : now.add(const Duration(hours: 1));
@@ -1081,16 +1282,22 @@ class _RecruitmentFlightEditorScreenState
       );
       return;
     }
+    final segmentValues = flightSegments
+        .map((segment) => segment.toSegment())
+        .toList(growable: false);
+    final firstSegment = segmentValues.first;
+    final lastSegment = segmentValues.last;
     setState(() => saving = true);
     try {
       await RecruitmentFlightRepository.saveFlight(
         flightId: widget.entry?.flight.id ?? '',
         candidate: selectedCandidate,
-        departureAt: departureAt,
-        arrivalAt: arrivalAt,
-        origin: originController.text,
-        destination: destinationController.text,
-        flightNumber: flightNumberController.text,
+        departureAt: firstSegment.departureAt,
+        arrivalAt: lastSegment.arrivalAt,
+        origin: firstSegment.origin,
+        destination: lastSegment.destination,
+        flightNumber: firstSegment.flightNumber,
+        segments: segmentValues,
         reminders: List<RecruitmentFlightReminder>.unmodifiable(reminders),
         notes: notesController.text,
         ticketUploads: List<RecruitmentFlightTicketUpload>.unmodifiable(
@@ -1146,71 +1353,16 @@ class _RecruitmentFlightEditorScreenState
                 : (value) => setState(() => candidate = value),
           ),
           const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(
-                child: TextField(
-                  controller: originController,
-                  enabled: !saving,
-                  decoration: const InputDecoration(
-                    labelText: 'Откуда',
-                    hintText: 'Москва',
-                    prefixIcon: Icon(Icons.flight_takeoff_outlined),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: TextField(
-                  controller: destinationController,
-                  enabled: !saving,
-                  decoration: const InputDecoration(
-                    labelText: 'Куда',
-                    hintText: 'Мурманск',
-                    prefixIcon: Icon(Icons.flight_land_outlined),
-                  ),
-                ),
-              ),
-            ],
+          for (var index = 0; index < flightSegments.length; index++) ...[
+            buildFlightSegmentCard(index),
+            const SizedBox(height: 10),
+          ],
+          OutlinedButton.icon(
+            onPressed: saving ? null : addFlightSegment,
+            icon: const Icon(Icons.add_rounded),
+            label: const Text('Добавить рейс'),
           ),
           const SizedBox(height: 12),
-          TextField(
-            controller: flightNumberController,
-            enabled: !saving,
-            textCapitalization: TextCapitalization.characters,
-            decoration: const InputDecoration(
-              labelText: 'Номер рейса',
-              hintText: 'SU 1320',
-              prefixIcon: Icon(Icons.airplane_ticket_outlined),
-            ),
-          ),
-          const SizedBox(height: 12),
-          OutlinedButton.icon(
-            onPressed: saving ? null : chooseDeparture,
-            icon: const Icon(Icons.event_outlined),
-            label: Text('Вылет: ${dateTimeText(departureAt)}'),
-          ),
-          const SizedBox(height: 8),
-          OutlinedButton.icon(
-            onPressed: saving ? null : chooseArrival,
-            icon: const Icon(Icons.schedule_outlined),
-            label: Text(
-              arrivalAt == null
-                  ? 'Указать время прибытия'
-                  : 'Прибытие: ${dateTimeText(arrivalAt!)}',
-            ),
-          ),
-          if (arrivalAt != null)
-            Align(
-              alignment: Alignment.centerRight,
-              child: TextButton(
-                onPressed: saving
-                    ? null
-                    : () => setState(() => arrivalAt = null),
-                child: const Text('Убрать время прибытия'),
-              ),
-            ),
-          const SizedBox(height: 4),
           PremiumWorkCard(
             radius: 22,
             padding: const EdgeInsets.all(14),
