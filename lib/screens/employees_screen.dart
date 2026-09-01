@@ -61,7 +61,7 @@ class _EmployeesScreenState extends State<EmployeesScreen> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    directoryController.setActive(TickerMode.of(context));
+    directoryController.setActive(TickerMode.valuesOf(context).enabled);
   }
 
   @override
