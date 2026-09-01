@@ -310,6 +310,7 @@ abstract final class RecruitmentFlightRepository {
     required String origin,
     required String destination,
     String flightNumber = '',
+    List<RecruitmentFlightSegment> segments = const <RecruitmentFlightSegment>[],
     List<RecruitmentFlightReminder> reminders =
         const <RecruitmentFlightReminder>[],
     String notes = '',
@@ -324,15 +325,41 @@ abstract final class RecruitmentFlightRepository {
     if (candidate.applicationId.trim().isEmpty) {
       throw Exception('Выберите сотрудника');
     }
-    if (origin.trim().isEmpty || destination.trim().isEmpty) {
-      throw Exception('Укажите город вылета и назначения');
+    final normalizedSegments = segments.isEmpty
+        ? <RecruitmentFlightSegment>[
+            RecruitmentFlightSegment(
+              origin: origin.trim(),
+              destination: destination.trim(),
+              flightNumber: flightNumber.trim(),
+              departureAt: departureAt,
+              arrivalAt: arrivalAt,
+            ),
+          ]
+        : List<RecruitmentFlightSegment>.from(segments);
+    for (var index = 0; index < normalizedSegments.length; index++) {
+      final segment = normalizedSegments[index];
+      if (segment.origin.trim().isEmpty || segment.destination.trim().isEmpty) {
+        throw Exception('Укажите откуда и куда для рейса ${index + 1}');
+      }
+      if (segment.departureAt.isBefore(
+        DateTime.now().subtract(const Duration(days: 1)),
+      )) {
+        throw Exception('Дата вылета рейса ${index + 1} уже прошла');
+      }
+      if (segment.arrivalAt != null &&
+          !segment.arrivalAt!.isAfter(segment.departureAt)) {
+        throw Exception('Прибытие рейса ${index + 1} должно быть позже вылета');
+      }
+      if (index > 0) {
+        final previous = normalizedSegments[index - 1];
+        final previousEnd = previous.arrivalAt ?? previous.departureAt;
+        if (!segment.departureAt.isAfter(previousEnd)) {
+          throw Exception('Следующий рейс должен вылетать позже предыдущего');
+        }
+      }
     }
-    if (departureAt.isBefore(DateTime.now().subtract(const Duration(days: 1)))) {
-      throw Exception('Дата вылета уже прошла');
-    }
-    if (arrivalAt != null && !arrivalAt.isAfter(departureAt)) {
-      throw Exception('Прибытие должно быть позже вылета');
-    }
+    final firstSegment = normalizedSegments.first;
+    final lastSegment = normalizedSegments.last;
 
     final reminderKeys = <String>{};
     for (final reminder in reminders) {
@@ -345,7 +372,7 @@ abstract final class RecruitmentFlightRepository {
       if (reminder.title.trim().length > 120) {
         throw Exception('Название уведомления должно быть короче 120 символов');
       }
-      if (reminder.eventKind == 'arrival' && arrivalAt == null) {
+      if (reminder.eventKind == 'arrival' && lastSegment.arrivalAt == null) {
         throw Exception('Для уведомления о прибытии укажите время прибытия');
       }
       final local = reminder.remindAt.toLocal();
@@ -456,11 +483,12 @@ abstract final class RecruitmentFlightRepository {
       'object_id': candidate.objectId.trim().isEmpty
           ? null
           : candidate.objectId.trim(),
-      'departure_at': departureAt.toUtc().toIso8601String(),
-      'arrival_at': arrivalAt?.toUtc().toIso8601String(),
-      'origin': origin.trim(),
-      'destination': destination.trim(),
-      'flight_number': flightNumber.trim().toUpperCase(),
+      'departure_at': firstSegment.departureAt.toUtc().toIso8601String(),
+      'arrival_at': lastSegment.arrivalAt?.toUtc().toIso8601String(),
+      'origin': firstSegment.origin.trim(),
+      'destination': lastSegment.destination.trim(),
+      'flight_number': firstSegment.flightNumber.trim().toUpperCase(),
+      'segments': normalizedSegments.map((segment) => segment.toPayload()).toList(),
       'remind_day_before': false,
       'remind_three_hours': false,
       'notes': notes.trim(),
