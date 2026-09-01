@@ -15,6 +15,10 @@ void main() {
 
     expect(web, contains('id="app-loader"'));
     expect(web, contains("window.addEventListener('flutter-first-frame'"));
+    expect(web, contains('var appStroyVisibleMs = 2000;'));
+    expect(web, contains('switchToCompanyFallback'));
+    expect(web, contains('Загрузка Строй На Века'));
+    expect(web, contains('window.setTimeout(completeAppStroyPhase, appStroyVisibleMs);'));
     expect(main, isNot(contains('binding.deferFirstFrame();')));
     expect(main, isNot(contains('WidgetsBinding.instance.allowFirstFrame();')));
     expect(main, isNot(contains('CircularProgressIndicator')));
