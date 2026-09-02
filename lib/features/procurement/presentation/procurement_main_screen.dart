@@ -6,9 +6,9 @@ import '../../../models/app_user_profile.dart';
 import '../../../screens/profile_screen.dart';
 import '../../../widgets/premium_ui.dart';
 import '../../shell/presentation/persistent_tab_shell.dart';
+import 'adaptive_procurement_requests_screen.dart';
 import 'procurement_dashboard_screen.dart';
 import 'procurement_deliveries_screen.dart';
-import 'procurement_requests_screen.dart';
 import 'procurement_suppliers_screen.dart';
 
 class ProcurementMainScreen extends StatefulWidget {
@@ -72,7 +72,7 @@ class _ProcurementMainScreenState extends State<ProcurementMainScreen>
         onOpenRequests: openRequests,
         onOpenDeliveries: openDeliveries,
       ),
-      1 => ProcurementRequestsScreen(profile: widget.profile),
+      1 => AdaptiveProcurementRequestsScreen(profile: widget.profile),
       2 => ProcurementSuppliersScreen(profile: widget.profile),
       3 => ProcurementDeliveriesScreen(profile: widget.profile),
       4 => ProfileScreen(profile: widget.profile),
