@@ -8,7 +8,7 @@ import '../app/app_ui_tokens.dart';
 import '../data/app_data_sync.dart';
 import '../data/app_state.dart';
 import '../data/attendance_repository.dart';
-import '../data/employee_repository.dart';
+import '../data/offline_master_repository.dart';
 import '../features/timesheet/data/timesheet_group_repository.dart';
 import '../features/timesheet/models/timesheet_group.dart';
 import '../models/app_user_profile.dart';
@@ -221,7 +221,7 @@ class _DesktopTimesheetScreenState extends State<DesktopTimesheetScreen> {
     try {
       final employeeFuture = attendanceOnly
           ? Future<List<Employee>>.value(employees)
-          : EmployeeRepository.fetchEmployees(
+          : OfflineEmployeeRepository.fetchEmployees(
               objectName: requestedObject,
               forceRefresh: forceRefresh,
             );
@@ -230,13 +230,13 @@ class _DesktopTimesheetScreenState extends State<DesktopTimesheetScreen> {
           : TimesheetGroupRepository.fetchGroups(objectName: requestedObject);
       final results = await Future.wait<dynamic>([
         employeeFuture,
-        AttendanceRepository.fetchShiftValuesForDate(
+        OfflineAttendanceRepository.fetchShiftValuesForDate(
           requestedDate,
           objectName: requestedObject,
           forceRefresh: forceRefresh,
         ),
         groupFuture,
-        AttendanceRepository.fetchResponsibilityForDate(
+        OfflineAttendanceRepository.fetchResponsibilityForDate(
           requestedDate,
           objectName: requestedObject,
           forceRefresh: forceRefresh,
@@ -446,7 +446,7 @@ class _DesktopTimesheetScreenState extends State<DesktopTimesheetScreen> {
     });
 
     try {
-      await AttendanceRepository.saveTimesheet(
+      await OfflineAttendanceRepository.saveTimesheet(
         date: selectedDate,
         employees: employees,
         shiftValuesByEmployeeId: shiftValuesByEmployeeId,
@@ -461,7 +461,7 @@ class _DesktopTimesheetScreenState extends State<DesktopTimesheetScreen> {
         hasUnsavedChanges = false;
       });
       final responsibility =
-          await AttendanceRepository.fetchResponsibilityForDate(
+          await OfflineAttendanceRepository.fetchResponsibilityForDate(
             selectedDate,
             objectName: widget.selectedObjectName,
             forceRefresh: true,
