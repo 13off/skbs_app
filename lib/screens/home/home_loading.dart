@@ -18,8 +18,8 @@ extension _HomeLoading on _HomeScreenState {
     final refreshObjects = change.affects(AppDataDomain.objects);
 
     setState(() {
-      if (refreshObjects) {
-        objectNamesFuture = EmployeeRepository.fetchObjectNames();
+      if (refreshObjects && widget.profile.isAdmin) {
+        objectNamesFuture = OfflineObjectRepository.fetchObjectNames();
       }
       dashboardFuture = loadDashboardData();
     });
@@ -70,13 +70,20 @@ extension _HomeLoading on _HomeScreenState {
   }) async {
     final today = AppState.today;
     final selectedObject = cleanObjectName(widget.selectedObjectName);
+    final financeFuture = widget.profile.isAdmin
+        ? FinanceSummaryRepository.fetchSummary(
+            period: financePeriod,
+            objectName: selectedObject,
+            forceRefresh: forceRefresh,
+          )
+        : Future<FinanceSummaryData>.value(FinanceSummaryData.empty);
 
     final results = await Future.wait<dynamic>([
-      EmployeeRepository.fetchEmployees(
+      OfflineEmployeeRepository.fetchEmployees(
         objectName: selectedObject,
         forceRefresh: forceRefresh,
       ),
-      AttendanceRepository.fetchWorkedEmployeeIds(
+      OfflineAttendanceRepository.fetchWorkedEmployeeIds(
         today,
         objectName: selectedObject,
         forceRefresh: forceRefresh,
@@ -86,13 +93,9 @@ extension _HomeLoading on _HomeScreenState {
         objectName: selectedObject,
         forceRefresh: forceRefresh,
       ),
-      FinanceSummaryRepository.fetchSummary(
-        period: financePeriod,
-        objectName: selectedObject,
-        forceRefresh: forceRefresh,
-      ),
+      financeFuture,
       if (selectedObject == null)
-        ObjectRepository.fetchObjectNames(forceRefresh: forceRefresh),
+        OfflineObjectRepository.fetchObjectNames(forceRefresh: forceRefresh),
     ]);
 
     final employees = results[0] as List<Employee>;
@@ -121,9 +124,9 @@ extension _HomeLoading on _HomeScreenState {
 
     if (!mounted) return;
     setState(() {
-      objectNamesFuture = EmployeeRepository.fetchObjectNames(
-        forceRefresh: true,
-      );
+      objectNamesFuture = widget.profile.isAdmin
+          ? OfflineObjectRepository.fetchObjectNames(forceRefresh: true)
+          : Future<List<String>>.value(const <String>[]);
       dashboardFuture = loadDashboardData(forceRefresh: true);
     });
   }
