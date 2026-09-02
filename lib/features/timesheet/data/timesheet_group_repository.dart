@@ -52,7 +52,9 @@ class TimesheetGroupRepository {
     final cached = await OfflineSyncService.readSnapshot(
       _snapshotKey(objectName),
     );
-    if (cached is! List) rethrow;
+    if (cached is! List) {
+      throw StateError('Нет локального снимка групп табеля');
+    }
     return _sortGroups(
       cached.whereType<Map>().map(
         (row) => TimesheetGroup.fromMap(Map<String, dynamic>.from(row)),
