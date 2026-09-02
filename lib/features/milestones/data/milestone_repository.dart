@@ -1,5 +1,6 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../../data/offline_sync_service.dart';
 import '../models/milestone_models.dart';
 
 abstract final class MilestoneRepository {
@@ -14,6 +15,136 @@ abstract final class MilestoneRepository {
   static String? _cleanObject(String? value) {
     final clean = value?.trim();
     return clean == null || clean.isEmpty ? null : clean;
+  }
+
+  static String _snapshotKey({
+    String? objectName,
+    DateTime? fromDate,
+    required bool includePast,
+  }) {
+    final object = _cleanObject(objectName) ?? '__all__';
+    final from = fromDate == null ? '__none__' : _dateKey(fromDate);
+    return 'milestones::$object::${includePast ? 'all' : 'future'}::$from';
+  }
+
+  static Map<String, dynamic> _taskToSnapshot(MilestoneTaskData task) {
+    return <String, dynamic>{
+      'task_id': task.taskId,
+      'work': task.work,
+      'axes': task.axes,
+      'status': task.status,
+      'date': task.date.toUtc().toIso8601String(),
+      'progress_percent': task.progressPercent,
+    };
+  }
+
+  static MilestoneTaskData _taskFromSnapshot(Map<String, dynamic> row) {
+    return MilestoneTaskData(
+      taskId: row['task_id']?.toString() ?? '',
+      work: row['work']?.toString() ?? '',
+      axes: row['axes']?.toString() ?? '',
+      status: row['status']?.toString() ?? 'Запланировано',
+      date: DateTime.tryParse(row['date']?.toString() ?? '')?.toLocal() ??
+          DateTime.now(),
+      progressPercent: ((row['progress_percent'] as num?)?.toInt() ?? 0)
+          .clamp(0, 100)
+          .toInt(),
+    );
+  }
+
+  static Map<String, dynamic> _itemToSnapshot(MilestoneChecklistItem item) {
+    return <String, dynamic>{
+      'id': item.id,
+      'milestone_id': item.milestoneId,
+      'title': item.title,
+      'weight': item.weight,
+      'state': item.state,
+      'is_critical': item.isCritical,
+      'sort_order': item.sortOrder,
+      'tasks': item.tasks.map(_taskToSnapshot).toList(growable: false),
+    };
+  }
+
+  static MilestoneChecklistItem _itemFromSnapshot(Map<String, dynamic> row) {
+    final rawTasks = row['tasks'];
+    final tasks = rawTasks is! List
+        ? const <MilestoneTaskData>[]
+        : rawTasks
+              .whereType<Map>()
+              .map(
+                (raw) => _taskFromSnapshot(Map<String, dynamic>.from(raw)),
+              )
+              .toList(growable: false);
+    return MilestoneChecklistItem(
+      id: row['id']?.toString() ?? '',
+      milestoneId: row['milestone_id']?.toString() ?? '',
+      title: row['title']?.toString() ?? '',
+      weight: (row['weight'] as num?)?.toInt() ?? 10,
+      state: row['state']?.toString() ?? 'not_started',
+      isCritical: row['is_critical'] == true,
+      sortOrder: (row['sort_order'] as num?)?.toInt() ?? 0,
+      tasks: List<MilestoneTaskData>.unmodifiable(tasks),
+    );
+  }
+
+  static Map<String, dynamic> _milestoneToSnapshot(ProjectMilestone milestone) {
+    return <String, dynamic>{
+      'id': milestone.id,
+      'object_name': milestone.objectName,
+      'title': milestone.title,
+      'location': milestone.location,
+      'target_date': milestone.targetDate.toUtc().toIso8601String(),
+      'status': milestone.status,
+      'notes': milestone.notes,
+      'items': milestone.items.map(_itemToSnapshot).toList(growable: false),
+    };
+  }
+
+  static ProjectMilestone _milestoneFromSnapshot(Map<String, dynamic> row) {
+    final rawItems = row['items'];
+    final items = rawItems is! List
+        ? const <MilestoneChecklistItem>[]
+        : rawItems
+              .whereType<Map>()
+              .map(
+                (raw) => _itemFromSnapshot(Map<String, dynamic>.from(raw)),
+              )
+              .toList(growable: false);
+    return ProjectMilestone(
+      id: row['id']?.toString() ?? '',
+      objectName: row['object_name']?.toString() ?? '',
+      title: row['title']?.toString() ?? '',
+      location: row['location']?.toString() ?? '',
+      targetDate:
+          DateTime.tryParse(row['target_date']?.toString() ?? '')?.toLocal() ??
+          DateTime.now(),
+      status: row['status']?.toString() ?? 'planned',
+      notes: row['notes']?.toString() ?? '',
+      items: List<MilestoneChecklistItem>.unmodifiable(items),
+    );
+  }
+
+  static Future<void> _saveMilestoneSnapshot(
+    String key,
+    List<ProjectMilestone> milestones,
+  ) async {
+    await OfflineSyncService.saveSnapshot(
+      key,
+      milestones.map(_milestoneToSnapshot).toList(growable: false),
+    );
+  }
+
+  static Future<List<ProjectMilestone>?> _readMilestoneSnapshot(
+    String key,
+  ) async {
+    final cached = await OfflineSyncService.readSnapshot(key);
+    if (cached is! List) return null;
+    return cached
+        .whereType<Map>()
+        .map(
+          (raw) => _milestoneFromSnapshot(Map<String, dynamic>.from(raw)),
+        )
+        .toList(growable: false);
   }
 
   static const concreteChecklist = <MilestoneChecklistDraft>[
@@ -93,108 +224,129 @@ abstract final class MilestoneRepository {
     bool includePast = true,
   }) async {
     final cleanObject = _cleanObject(objectName);
-    var query = _client
-        .from('project_milestones')
-        .select('id, object_name, title, location, target_date, status, notes');
+    final snapshotKey = _snapshotKey(
+      objectName: cleanObject,
+      fromDate: fromDate,
+      includePast: includePast,
+    );
 
-    if (cleanObject != null) {
-      query = query.eq('object_name', cleanObject);
-    }
-    if (!includePast) {
-      query = query.gte('target_date', _dateKey(fromDate ?? DateTime.now()));
-    }
-
-    final milestoneRows = await query.order('target_date', ascending: true);
-    if (milestoneRows.isEmpty) return const <ProjectMilestone>[];
-
-    final milestoneIds = milestoneRows
-        .map<String>((row) => row['id'].toString())
-        .toList();
-
-    final results = await Future.wait<dynamic>([
-      _client
-          .from('milestone_checklist_items')
-          .select(
-            'id, milestone_id, title, weight, state, is_critical, sort_order',
-          )
-          .inFilter('milestone_id', milestoneIds)
-          .order('sort_order', ascending: true),
-      _client
-          .from('task_milestone_links')
-          .select(
-            'task_id, milestone_id, checklist_item_id, progress_percent, '
-            'tasks(id, work, axes, status, task_date)',
-          )
-          .inFilter('milestone_id', milestoneIds),
-    ]);
-
-    final tasksByItem = <String, List<MilestoneTaskData>>{};
-    for (final raw in results[1] as List<dynamic>) {
-      final row = Map<String, dynamic>.from(raw as Map);
-      final itemId = row['checklist_item_id']?.toString() ?? '';
-      final taskRaw = row['tasks'];
-      if (itemId.isEmpty || taskRaw is! Map) continue;
-      final task = Map<String, dynamic>.from(taskRaw);
-      tasksByItem
-          .putIfAbsent(itemId, () => <MilestoneTaskData>[])
-          .add(
-            MilestoneTaskData(
-              taskId: task['id']?.toString() ?? row['task_id'].toString(),
-              work: task['work']?.toString() ?? '',
-              axes: task['axes']?.toString() ?? '',
-              status: task['status']?.toString() ?? 'Запланировано',
-              date:
-                  DateTime.tryParse(task['task_date']?.toString() ?? '') ??
-                  DateTime.now(),
-              progressPercent: ((row['progress_percent'] as num?)?.toInt() ?? 0)
-                  .clamp(0, 100)
-                  .toInt(),
-            ),
-          );
-    }
-
-    final itemsByMilestone = <String, List<MilestoneChecklistItem>>{};
-    for (final raw in results[0] as List<dynamic>) {
-      final row = Map<String, dynamic>.from(raw as Map);
-      final milestoneId = row['milestone_id']?.toString() ?? '';
-      final itemId = row['id']?.toString() ?? '';
-      if (milestoneId.isEmpty || itemId.isEmpty) continue;
-      itemsByMilestone
-          .putIfAbsent(milestoneId, () => <MilestoneChecklistItem>[])
-          .add(
-            MilestoneChecklistItem(
-              id: itemId,
-              milestoneId: milestoneId,
-              title: row['title']?.toString() ?? '',
-              weight: (row['weight'] as num?)?.toInt() ?? 10,
-              state: row['state']?.toString() ?? 'not_started',
-              isCritical: row['is_critical'] == true,
-              sortOrder: (row['sort_order'] as num?)?.toInt() ?? 0,
-              tasks: List<MilestoneTaskData>.unmodifiable(
-                tasksByItem[itemId] ?? const <MilestoneTaskData>[],
-              ),
-            ),
-          );
-    }
-
-    return milestoneRows.map<ProjectMilestone>((raw) {
-      final row = Map<String, dynamic>.from(raw);
-      final id = row['id']?.toString() ?? '';
-      return ProjectMilestone(
-        id: id,
-        objectName: row['object_name']?.toString() ?? '',
-        title: row['title']?.toString() ?? '',
-        location: row['location']?.toString() ?? '',
-        targetDate:
-            DateTime.tryParse(row['target_date']?.toString() ?? '') ??
-            DateTime.now(),
-        status: row['status']?.toString() ?? 'planned',
-        notes: row['notes']?.toString() ?? '',
-        items: List<MilestoneChecklistItem>.unmodifiable(
-          itemsByMilestone[id] ?? const <MilestoneChecklistItem>[],
-        ),
+    try {
+      var query = _client.from('project_milestones').select(
+        'id, object_name, title, location, target_date, status, notes',
       );
-    }).toList();
+
+      if (cleanObject != null) {
+        query = query.eq('object_name', cleanObject);
+      }
+      if (!includePast) {
+        query = query.gte('target_date', _dateKey(fromDate ?? DateTime.now()));
+      }
+
+      final milestoneRows = await query.order('target_date', ascending: true);
+      if (milestoneRows.isEmpty) {
+        await _saveMilestoneSnapshot(snapshotKey, const <ProjectMilestone>[]);
+        await OfflineSyncService.markSynced();
+        return const <ProjectMilestone>[];
+      }
+
+      final milestoneIds = milestoneRows
+          .map<String>((row) => row['id'].toString())
+          .toList();
+
+      final results = await Future.wait<dynamic>([
+        _client
+            .from('milestone_checklist_items')
+            .select(
+              'id, milestone_id, title, weight, state, is_critical, sort_order',
+            )
+            .inFilter('milestone_id', milestoneIds)
+            .order('sort_order', ascending: true),
+        _client
+            .from('task_milestone_links')
+            .select(
+              'task_id, milestone_id, checklist_item_id, progress_percent, '
+              'tasks(id, work, axes, status, task_date)',
+            )
+            .inFilter('milestone_id', milestoneIds),
+      ]);
+
+      final tasksByItem = <String, List<MilestoneTaskData>>{};
+      for (final raw in results[1] as List<dynamic>) {
+        final row = Map<String, dynamic>.from(raw as Map);
+        final itemId = row['checklist_item_id']?.toString() ?? '';
+        final taskRaw = row['tasks'];
+        if (itemId.isEmpty || taskRaw is! Map) continue;
+        final task = Map<String, dynamic>.from(taskRaw);
+        tasksByItem
+            .putIfAbsent(itemId, () => <MilestoneTaskData>[])
+            .add(
+              MilestoneTaskData(
+                taskId: task['id']?.toString() ?? row['task_id'].toString(),
+                work: task['work']?.toString() ?? '',
+                axes: task['axes']?.toString() ?? '',
+                status: task['status']?.toString() ?? 'Запланировано',
+                date:
+                    DateTime.tryParse(task['task_date']?.toString() ?? '') ??
+                    DateTime.now(),
+                progressPercent:
+                    ((row['progress_percent'] as num?)?.toInt() ?? 0)
+                        .clamp(0, 100)
+                        .toInt(),
+              ),
+            );
+      }
+
+      final itemsByMilestone = <String, List<MilestoneChecklistItem>>{};
+      for (final raw in results[0] as List<dynamic>) {
+        final row = Map<String, dynamic>.from(raw as Map);
+        final milestoneId = row['milestone_id']?.toString() ?? '';
+        final itemId = row['id']?.toString() ?? '';
+        if (milestoneId.isEmpty || itemId.isEmpty) continue;
+        itemsByMilestone
+            .putIfAbsent(milestoneId, () => <MilestoneChecklistItem>[])
+            .add(
+              MilestoneChecklistItem(
+                id: itemId,
+                milestoneId: milestoneId,
+                title: row['title']?.toString() ?? '',
+                weight: (row['weight'] as num?)?.toInt() ?? 10,
+                state: row['state']?.toString() ?? 'not_started',
+                isCritical: row['is_critical'] == true,
+                sortOrder: (row['sort_order'] as num?)?.toInt() ?? 0,
+                tasks: List<MilestoneTaskData>.unmodifiable(
+                  tasksByItem[itemId] ?? const <MilestoneTaskData>[],
+                ),
+              ),
+            );
+      }
+
+      final milestones = milestoneRows.map<ProjectMilestone>((raw) {
+        final row = Map<String, dynamic>.from(raw);
+        final id = row['id']?.toString() ?? '';
+        return ProjectMilestone(
+          id: id,
+          objectName: row['object_name']?.toString() ?? '',
+          title: row['title']?.toString() ?? '',
+          location: row['location']?.toString() ?? '',
+          targetDate:
+              DateTime.tryParse(row['target_date']?.toString() ?? '') ??
+              DateTime.now(),
+          status: row['status']?.toString() ?? 'planned',
+          notes: row['notes']?.toString() ?? '',
+          items: List<MilestoneChecklistItem>.unmodifiable(
+            itemsByMilestone[id] ?? const <MilestoneChecklistItem>[],
+          ),
+        );
+      }).toList(growable: false);
+      await _saveMilestoneSnapshot(snapshotKey, milestones);
+      await OfflineSyncService.markSynced();
+      return milestones;
+    } catch (error) {
+      if (!OfflineSyncService.isNetworkFailure(error)) rethrow;
+      final cached = await _readMilestoneSnapshot(snapshotKey);
+      if (cached == null) rethrow;
+      return cached;
+    }
   }
 
   static Future<ProjectMilestone?> fetchNearest({String? objectName}) async {
