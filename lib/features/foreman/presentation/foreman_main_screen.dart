@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../../../data/app_state.dart';
@@ -28,7 +27,7 @@ class ForemanMainScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final desktop = kIsWeb && constraints.maxWidth >= desktopBreakpoint;
+        final desktop = constraints.maxWidth >= desktopBreakpoint;
         if (!desktop) return premium.MainScreen(profile: profile);
         return _ForemanDesktopMainScreen(profile: profile);
       },
