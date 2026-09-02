@@ -104,23 +104,41 @@ class OfflineObjectRepository {
           .toList(growable: false);
     }
   }
+
+  static Future<List<String>> fetchObjectNames({
+    bool forceRefresh = false,
+  }) async {
+    final objects = await fetchObjects(forceRefresh: forceRefresh);
+    final result = objects
+        .where((object) => object.isActive)
+        .map((object) => object.name.trim())
+        .where((name) => name.isNotEmpty)
+        .toSet()
+        .toList(growable: false)
+      ..sort();
+    return result;
+  }
 }
 
 class OfflineAttendanceRepository {
   OfflineAttendanceRepository._();
 
-  static String _key(DateTime date, String? objectName) {
-    final object = objectName?.trim().isNotEmpty == true
+  static String _objectKey(String? objectName) {
+    return objectName?.trim().isNotEmpty == true
         ? objectName!.trim()
         : '__all__';
-    return 'attendance::${AttendanceRepository.dateKey(date)}::$object';
+  }
+
+  static String _key(DateTime date, String? objectName) {
+    return 'attendance::${AttendanceRepository.dateKey(date)}::${_objectKey(objectName)}';
+  }
+
+  static String _responsibilityKey(DateTime date, String? objectName) {
+    return 'attendance_responsibility::${AttendanceRepository.dateKey(date)}::${_objectKey(objectName)}';
   }
 
   static String _queueKey(DateTime date, String? objectName) {
-    final object = objectName?.trim().isNotEmpty == true
-        ? objectName!.trim()
-        : '__all__';
-    return '${AttendanceRepository.dateKey(date)}::$object';
+    return '${AttendanceRepository.dateKey(date)}::${_objectKey(objectName)}';
   }
 
   static Map<String, double> _valuesFromSnapshot(dynamic cached) {
@@ -131,6 +149,28 @@ class OfflineAttendanceRepository {
           : double.tryParse(value.toString()) ?? 0;
       return MapEntry(key.toString(), number);
     });
+  }
+
+  static Map<String, dynamic> _actorToSnapshot(ResponsibilityActor actor) {
+    return <String, dynamic>{
+      'user_id': actor.userId,
+      'full_name': actor.fullName,
+      'avatar_path': actor.avatarPath,
+      'acted_at': actor.actedAt?.toUtc().toIso8601String(),
+    };
+  }
+
+  static ResponsibilityActor? _actorFromSnapshot(dynamic raw) {
+    if (raw is! Map) return null;
+    final row = Map<String, dynamic>.from(raw);
+    final fullName = row['full_name']?.toString().trim() ?? '';
+    if (fullName.isEmpty) return null;
+    return ResponsibilityActor(
+      userId: ResponsibilityActor.cleanText(row['user_id']),
+      fullName: fullName,
+      avatarPath: ResponsibilityActor.cleanText(row['avatar_path']),
+      actedAt: DateTime.tryParse(row['acted_at']?.toString() ?? '')?.toLocal(),
+    );
   }
 
   static Future<Map<String, double>> fetchShiftValuesForDate(
@@ -160,12 +200,26 @@ class OfflineAttendanceRepository {
       return values;
     } catch (error) {
       if (!OfflineSyncService.isNetworkFailure(error)) rethrow;
-      final values = _valuesFromSnapshot(
-        await OfflineSyncService.readSnapshot(key),
-      );
-      if (values.isEmpty) rethrow;
-      return values;
+      final cached = await OfflineSyncService.readSnapshot(key);
+      if (cached is! Map) rethrow;
+      return _valuesFromSnapshot(cached);
     }
+  }
+
+  static Future<Set<String>> fetchWorkedEmployeeIds(
+    DateTime date, {
+    String? objectName,
+    bool forceRefresh = false,
+  }) async {
+    final values = await fetchShiftValuesForDate(
+      date,
+      objectName: objectName,
+      forceRefresh: forceRefresh,
+    );
+    return values.entries
+        .where((entry) => entry.value > 0)
+        .map((entry) => entry.key)
+        .toSet();
   }
 
   static Future<Map<String, ResponsibilityActor>> fetchResponsibilityForDate(
@@ -173,17 +227,34 @@ class OfflineAttendanceRepository {
     String? objectName,
     bool forceRefresh = false,
   }) async {
+    final key = _responsibilityKey(date, objectName);
     try {
       final result = await AttendanceRepository.fetchResponsibilityForDate(
         date,
         objectName: objectName,
         forceRefresh: forceRefresh,
       );
+      await OfflineSyncService.saveSnapshot(
+        key,
+        result.map(
+          (employeeId, actor) => MapEntry(
+            employeeId,
+            _actorToSnapshot(actor),
+          ),
+        ),
+      );
       await OfflineSyncService.markSynced();
       return result;
     } catch (error) {
       if (!OfflineSyncService.isNetworkFailure(error)) rethrow;
-      return const <String, ResponsibilityActor>{};
+      final cached = await OfflineSyncService.readSnapshot(key);
+      if (cached is! Map) return const <String, ResponsibilityActor>{};
+      final result = <String, ResponsibilityActor>{};
+      for (final entry in cached.entries) {
+        final actor = _actorFromSnapshot(entry.value);
+        if (actor != null) result[entry.key.toString()] = actor;
+      }
+      return result;
     }
   }
 
@@ -231,7 +302,13 @@ class OfflineAttendanceRepository {
         'updated_at': now,
       });
     }
-    if (rows.isEmpty) return;
+    if (rows.isEmpty) {
+      await OfflineSyncService.saveSnapshot(
+        _key(date, objectName),
+        shiftValuesByEmployeeId,
+      );
+      return;
+    }
 
     await OfflineSyncService.saveSnapshot(
       _key(date, objectName),
