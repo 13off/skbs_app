@@ -7,6 +7,7 @@ import '../data/app_cache_coordinator.dart';
 import '../data/app_data_sync.dart';
 import '../data/app_state.dart';
 import '../data/finance_summary_repository.dart';
+import '../data/object_repository.dart';
 import '../data/offline_master_repository.dart';
 import '../data/task_repository.dart';
 import '../features/milestones/presentation/milestone_home_overlay.dart';
