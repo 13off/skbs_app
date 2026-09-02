@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 
-import '../../../app/app_ui_tokens.dart';
 import '../../../app/theme_controller.dart';
 import '../../../navigation/app_page_route.dart';
 import '../../../navigation/navigation_session.dart';
@@ -415,7 +414,9 @@ class _DesktopTabRailState extends State<_DesktopTabRail> {
               color: scheme.surface.withValues(alpha: dark ? 0.82 : 0.88),
               borderRadius: BorderRadius.circular(28),
               border: Border.all(
-                color: scheme.outlineVariant.withValues(alpha: dark ? 0.55 : 0.70),
+                color: scheme.outlineVariant.withValues(
+                  alpha: dark ? 0.55 : 0.70,
+                ),
               ),
               boxShadow: [
                 BoxShadow(
@@ -546,7 +547,7 @@ class _DesktopNavigationTile extends StatelessWidget {
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 170),
           curve: Curves.easeOutCubic,
-          minHeight: 52,
+          constraints: const BoxConstraints(minHeight: 52),
           padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 10),
           decoration: BoxDecoration(
             color: selected
@@ -574,7 +575,7 @@ class _DesktopNavigationTile extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                   style: theme.textTheme.labelLarge?.copyWith(
                     color: selected ? scheme.onSurface : scheme.onSurfaceVariant,
-                    fontWeight: selected ? FontWeight.w800 : FontWeight.w650,
+                    fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
                   ),
                 ),
               ),
