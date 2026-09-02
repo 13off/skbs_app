@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../../../app/app_adaptive_palette.dart';
+import '../../../app/app_ui_tokens.dart';
 import '../../../data/app_data_sync.dart';
 import '../../../models/app_user_profile.dart';
 import '../../../widgets/app_page.dart';
@@ -54,7 +55,7 @@ class _ProcurementDashboardScreenState
 
   Future<void> refresh() async {
     final next = load();
-    setState(() => future = next);
+    if (mounted) setState(() => future = next);
     await next;
   }
 
@@ -80,6 +81,8 @@ class _ProcurementDashboardScreenState
             const SizedBox(height: 10),
             Text(
               value,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
               style: TextStyle(
                 color: AppAdaptivePalette.textPrimary,
                 fontSize: 22,
@@ -169,6 +172,46 @@ class _ProcurementDashboardScreenState
     );
   }
 
+  Widget actionPanel() {
+    return PremiumWorkCard(
+      radius: 24,
+      padding: const EdgeInsets.all(18),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            'Рабочие разделы',
+            style: TextStyle(
+              color: AppAdaptivePalette.textPrimary,
+              fontSize: 18,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'Быстрый переход без мобильных полноэкранных карточек.',
+            style: TextStyle(
+              color: AppAdaptivePalette.textMuted,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 18),
+          FilledButton.icon(
+            onPressed: widget.onOpenRequests,
+            icon: const Icon(Icons.assignment_outlined),
+            label: const Text('Открыть заявки'),
+          ),
+          const SizedBox(height: 10),
+          OutlinedButton.icon(
+            onPressed: widget.onOpenDeliveries,
+            icon: const Icon(Icons.local_shipping_outlined),
+            label: const Text('Открыть доставки'),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget loadError(Object? error) {
     return PremiumWorkCard(
       radius: 20,
@@ -203,6 +246,175 @@ class _ProcurementDashboardScreenState
     );
   }
 
+  Widget mobileContent(ProcurementDashboardData data) {
+    final latest = data.requests.where((item) => !item.isClosed).take(5);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
+          children: [
+            metric(
+              data.requiresAttention.toString(),
+              'Требуют внимания',
+              Icons.priority_high_rounded,
+            ),
+            const SizedBox(width: 10),
+            metric(
+              data.inPurchase.toString(),
+              'В закупке',
+              Icons.shopping_cart_checkout_rounded,
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
+        Row(
+          children: [
+            metric(
+              data.inDelivery.toString(),
+              'В доставке',
+              Icons.local_shipping_outlined,
+            ),
+            const SizedBox(width: 10),
+            metric(
+              money(data.openAmount),
+              'Открытая сумма',
+              Icons.payments_outlined,
+            ),
+          ],
+        ),
+        const SizedBox(height: 18),
+        Row(
+          children: [
+            Expanded(
+              child: PremiumActionButton(
+                onPressed: widget.onOpenRequests,
+                icon: Icons.assignment_outlined,
+                label: 'Заявки',
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: OutlinedButton.icon(
+                onPressed: widget.onOpenDeliveries,
+                icon: const Icon(Icons.local_shipping_outlined),
+                label: const Text('Доставки'),
+                style: OutlinedButton.styleFrom(
+                  minimumSize: const Size.fromHeight(52),
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 24),
+        Text(
+          'В работе',
+          style: Theme.of(
+            context,
+          ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900),
+        ),
+        const SizedBox(height: 10),
+        if (latest.isEmpty)
+          PremiumWorkCard(
+            radius: 20,
+            padding: const EdgeInsets.all(18),
+            child: Text(
+              'Нет открытых заявок',
+              style: TextStyle(
+                color: AppAdaptivePalette.textMuted,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          )
+        else
+          ...latest.map(requestTile),
+      ],
+    );
+  }
+
+  Widget desktopContent(ProcurementDashboardData data) {
+    final latest = data.requests.where((item) => !item.isClosed).take(8).toList();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
+          children: [
+            metric(
+              data.requiresAttention.toString(),
+              'Требуют внимания',
+              Icons.priority_high_rounded,
+            ),
+            const SizedBox(width: 12),
+            metric(
+              data.inPurchase.toString(),
+              'В закупке',
+              Icons.shopping_cart_checkout_rounded,
+            ),
+            const SizedBox(width: 12),
+            metric(
+              data.inDelivery.toString(),
+              'В доставке',
+              Icons.local_shipping_outlined,
+            ),
+            const SizedBox(width: 12),
+            metric(
+              money(data.openAmount),
+              'Открытая сумма',
+              Icons.payments_outlined,
+            ),
+          ],
+        ),
+        const SizedBox(height: 18),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              flex: 7,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          'В работе',
+                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                      ),
+                      TextButton.icon(
+                        onPressed: widget.onOpenRequests,
+                        icon: const Icon(Icons.arrow_forward_rounded, size: 18),
+                        label: const Text('Все заявки'),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  if (latest.isEmpty)
+                    PremiumWorkCard(
+                      radius: 20,
+                      padding: const EdgeInsets.all(18),
+                      child: Text(
+                        'Нет открытых заявок',
+                        style: TextStyle(
+                          color: AppAdaptivePalette.textMuted,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    )
+                  else
+                    ...latest.map(requestTile),
+                ],
+              ),
+            ),
+            const SizedBox(width: 18),
+            Expanded(flex: 3, child: actionPanel()),
+          ],
+        ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return AppPage(
@@ -231,87 +443,12 @@ class _ProcurementDashboardScreenState
                 requests: <ProcurementRequest>[],
                 suppliers: <ProcurementSupplier>[],
               );
-          final latest = data.requests.where((item) => !item.isClosed).take(5);
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Row(
-                children: [
-                  metric(
-                    data.requiresAttention.toString(),
-                    'Требуют внимания',
-                    Icons.priority_high_rounded,
-                  ),
-                  const SizedBox(width: 10),
-                  metric(
-                    data.inPurchase.toString(),
-                    'В закупке',
-                    Icons.shopping_cart_checkout_rounded,
-                  ),
-                ],
-              ),
-              const SizedBox(height: 10),
-              Row(
-                children: [
-                  metric(
-                    data.inDelivery.toString(),
-                    'В доставке',
-                    Icons.local_shipping_outlined,
-                  ),
-                  const SizedBox(width: 10),
-                  metric(
-                    money(data.openAmount),
-                    'Открытая сумма',
-                    Icons.payments_outlined,
-                  ),
-                ],
-              ),
-              const SizedBox(height: 18),
-              Row(
-                children: [
-                  Expanded(
-                    child: PremiumActionButton(
-                      onPressed: widget.onOpenRequests,
-                      icon: Icons.assignment_outlined,
-                      label: 'Заявки',
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: widget.onOpenDeliveries,
-                      icon: const Icon(Icons.local_shipping_outlined),
-                      label: const Text('Доставки'),
-                      style: OutlinedButton.styleFrom(
-                        minimumSize: const Size.fromHeight(52),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 24),
-              Text(
-                'В работе',
-                style: Theme.of(
-                  context,
-                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900),
-              ),
-              const SizedBox(height: 10),
-              if (latest.isEmpty)
-                PremiumWorkCard(
-                  radius: 20,
-                  padding: const EdgeInsets.all(18),
-                  child: Text(
-                    'Нет открытых заявок',
-                    style: TextStyle(
-                      color: AppAdaptivePalette.textMuted,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                )
-              else
-                ...latest.map(requestTile),
-            ],
+          return LayoutBuilder(
+            builder: (context, constraints) {
+              return constraints.maxWidth >= AppUi.desktopBreakpoint
+                  ? desktopContent(data)
+                  : mobileContent(data);
+            },
           );
         },
       ),
