@@ -7,7 +7,7 @@ import 'support/employees_source.dart';
 String source(String path) => File(path).readAsStringSync();
 
 void main() {
-  test('employees use desktop table only on wide web screens', () {
+  test('employees use desktop table on every wide screen', () {
     final adaptive = source('lib/screens/adaptive_employees_screen.dart');
     final mobile = employeesSource();
     final shell = source(
@@ -15,7 +15,8 @@ void main() {
     );
 
     expect(adaptive, contains('desktopBreakpoint = 1050'));
-    expect(adaptive, contains('kIsWeb && constraints.maxWidth'));
+    expect(adaptive, isNot(contains('kIsWeb')));
+    expect(adaptive, contains('constraints.maxWidth >= desktopBreakpoint'));
     expect(adaptive, contains('return EmployeesScreen('));
     expect(adaptive, contains('return _DesktopEmployeesScreen('));
 
