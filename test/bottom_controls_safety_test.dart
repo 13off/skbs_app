@@ -109,7 +109,7 @@ void main() {
 
       // The milestones FAB belongs to its own pushed Scaffold, not to the
       // root tab shell, and its list reserves space for the control. The
-      // horizontal inset is adaptive: 18 on phones and 144 in a wide PWA.
+      // horizontal inset remains adaptive through the shared desktop token.
       expect(milestones, contains('leading: const BackButton()'));
       expect(milestones, contains('floatingActionButton:'));
       expect(milestones, contains('final horizontalPadding ='));
@@ -118,12 +118,11 @@ void main() {
       expect(milestones, contains('horizontalPadding,'));
       expect(milestones, contains('120,'));
 
-      // The root specialist shell gives navigation its own Scaffold slot, so
-      // page content physically ends before the translucent glass panel.
-      expect(
-        persistentShell,
-        contains('bottomNavigationBar: ProfessionalBottomNavigation('),
-      );
+      // The root specialist shell gives compact bottom navigation its own
+      // Scaffold slot and swaps it for a permanent side rail on wide desktop.
+      expect(persistentShell, contains('bottomNavigationBar: useDesktopShell'));
+      expect(persistentShell, contains('ProfessionalBottomNavigation('));
+      expect(persistentShell, contains('_DesktopTabRail('));
       expect(persistentShell, isNot(contains('extendBody: true')));
       expect(
         persistentShell,
