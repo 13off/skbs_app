@@ -27,77 +27,58 @@ jobs:
           path = Path('lib/features/recruitment/presentation/recruitment_applications_screen.dart')
           text = path.read_text(encoding='utf-8')
 
-          replacements = [
-              (
-                  """    final feedbackCard = Material(\n      color: AppAdaptivePalette.surface,\n      elevation: 18,\n      shadowColor: Colors.black.withValues(alpha: 0.28),\n      borderRadius: BorderRadius.circular(AppUi.cardRadius),\n      clipBehavior: Clip.antiAlias,\n      child: SizedBox(\n        width: 292,\n        child: candidateCard(\n          application,\n          configuration,\n          indicator: indicator,\n          feedback: true,\n        ),\n      ),\n    );""",
-                  """    final feedbackCard = RepaintBoundary(\n      child: Material(\n        color: AppAdaptivePalette.surface,\n        elevation: 10,\n        shadowColor: Colors.black.withValues(alpha: 0.18),\n        borderRadius: BorderRadius.circular(AppUi.cardRadius),\n        clipBehavior: Clip.antiAlias,\n        child: SizedBox(\n          width: 292,\n          child: candidateCard(\n            application,\n            configuration,\n            indicator: indicator,\n            feedback: true,\n          ),\n        ),\n      ),\n    );""",
-              ),
-              (
-                  """    final draggingPlaceholder = AnimatedOpacity(\n      opacity: 0.20,\n      duration: const Duration(milliseconds: 140),\n      curve: Curves.easeOutCubic,\n      child: Transform.scale(scale: 0.985, child: card),\n    );""",
-                  """    final draggingPlaceholder = AnimatedOpacity(\n      opacity: 0.14,\n      duration: const Duration(milliseconds: 70),\n      curve: Curves.easeOutCubic,\n      child: Transform.scale(scale: 0.99, child: card),\n    );""",
-              ),
-              (
-                  "feedback: Transform.scale(scale: 1.015, child: feedbackCard),",
-                  "feedback: Transform.scale(scale: 1.008, child: feedbackCard),",
-              ),
-              (
-                  """      rootOverlay: true,\n      feedback: Transform.scale(scale: 1.008, child: feedbackCard),\n      childWhenDragging: draggingPlaceholder,""",
-                  """      rootOverlay: true,\n      delay: const Duration(milliseconds: 160),\n      feedback: Transform.scale(scale: 1.008, child: feedbackCard),\n      childWhenDragging: draggingPlaceholder,""",
-              ),
-              (
-                  "scale: highlighted ? 1.012 : 1,\n                  duration: const Duration(milliseconds: 220),",
-                  "scale: highlighted ? 1.006 : 1,\n                  duration: const Duration(milliseconds: 90),",
-              ),
-              (
-                  "duration: const Duration(milliseconds: 220),\n                    curve: Curves.easeOutCubic,\n                    width: 310,",
-                  "duration: const Duration(milliseconds: 90),\n                    curve: Curves.easeOutCubic,\n                    width: 310,",
-              ),
-              (
-                  "blurRadius: 22,\n                                spreadRadius: 1,",
-                  "blurRadius: 14,\n                                spreadRadius: 0,",
-              ),
-          ]
-
-          for old, new in replacements:
+          def replace_once(old: str, new: str, label: str):
+              global text
               count = text.count(old)
-              if old == "feedback: Transform.scale(scale: 1.015, child: feedbackCard),":
-                  if count != 2:
-                      raise SystemExit(f'Expected 2 feedback scale occurrences, found {count}')
-                  text = text.replace(old, new)
-              else:
-                  if count != 1:
-                      raise SystemExit(f'Expected one occurrence, found {count}: {old[:80]!r}')
-                  text = text.replace(old, new, 1)
+              if count != 1:
+                  raise SystemExit(f'{label}: expected 1 occurrence, found {count}')
+              text = text.replace(old, new, 1)
 
-          # The delay belongs only to LongPressDraggable. The generic rootOverlay snippet
-          # above initially matches Draggable first, so move it to the touch branch.
-          desktop = """    if (_usesImmediatePointerDrag) {\n      return Draggable<RecruitmentApplication>(\n        data: application,\n        maxSimultaneousDrags: busy ? 0 : 1,\n        rootOverlay: true,\n        delay: const Duration(milliseconds: 160),"""
-          if desktop not in text:
-              raise SystemExit('Desktop drag marker with temporary delay not found')
-          text = text.replace(
-              desktop,
-              """    if (_usesImmediatePointerDrag) {\n      return Draggable<RecruitmentApplication>(\n        data: application,\n        maxSimultaneousDrags: busy ? 0 : 1,\n        rootOverlay: true,""",
-              1,
+          replace_once(
+              """    final feedbackCard = Material(\n      color: AppAdaptivePalette.surface,\n      elevation: 18,\n      shadowColor: Colors.black.withValues(alpha: 0.28),\n      borderRadius: BorderRadius.circular(AppUi.cardRadius),\n      clipBehavior: Clip.antiAlias,\n      child: SizedBox(\n        width: 292,\n        child: candidateCard(\n          application,\n          configuration,\n          indicator: indicator,\n          feedback: true,\n        ),\n      ),\n    );""",
+              """    final feedbackCard = RepaintBoundary(\n      child: Material(\n        color: AppAdaptivePalette.surface,\n        elevation: 10,\n        shadowColor: Colors.black.withValues(alpha: 0.18),\n        borderRadius: BorderRadius.circular(AppUi.cardRadius),\n        clipBehavior: Clip.antiAlias,\n        child: SizedBox(\n          width: 292,\n          child: candidateCard(\n            application,\n            configuration,\n            indicator: indicator,\n            feedback: true,\n          ),\n        ),\n      ),\n    );""",
+              'feedback card',
           )
-          touch = """    return LongPressDraggable<RecruitmentApplication>(\n      data: application,\n      maxSimultaneousDrags: busy ? 0 : 1,\n      rootOverlay: true,"""
-          if touch not in text:
-              raise SystemExit('Touch drag marker not found')
+
+          replace_once(
+              """    final draggingPlaceholder = AnimatedOpacity(\n      opacity: 0.20,\n      duration: const Duration(milliseconds: 140),\n      curve: Curves.easeOutCubic,\n      child: Transform.scale(scale: 0.985, child: card),\n    );""",
+              """    final draggingPlaceholder = AnimatedOpacity(\n      opacity: 0.14,\n      duration: const Duration(milliseconds: 70),\n      curve: Curves.easeOutCubic,\n      child: Transform.scale(scale: 0.99, child: card),\n    );""",
+              'drag placeholder',
+          )
+
+          scale_old = 'feedback: Transform.scale(scale: 1.015, child: feedbackCard),'
+          if text.count(scale_old) != 2:
+              raise SystemExit(f'feedback scale: expected 2 occurrences, found {text.count(scale_old)}')
           text = text.replace(
-              touch,
-              """    return LongPressDraggable<RecruitmentApplication>(\n      data: application,\n      maxSimultaneousDrags: busy ? 0 : 1,\n      rootOverlay: true,\n      delay: const Duration(milliseconds: 160),""",
-              1,
+              scale_old,
+              'feedback: Transform.scale(scale: 1.008, child: feedbackCard),',
+          )
+
+          replace_once(
+              """    return LongPressDraggable<RecruitmentApplication>(\n      data: application,\n      maxSimultaneousDrags: busy ? 0 : 1,\n      rootOverlay: true,\n      feedback: Transform.scale(scale: 1.008, child: feedbackCard),""",
+              """    return LongPressDraggable<RecruitmentApplication>(\n      data: application,\n      maxSimultaneousDrags: busy ? 0 : 1,\n      rootOverlay: true,\n      delay: const Duration(milliseconds: 160),\n      feedback: Transform.scale(scale: 1.008, child: feedbackCard),""",
+              'touch drag delay',
+          )
+
+          replace_once(
+              """scale: highlighted ? 1.012 : 1,\n                  duration: const Duration(milliseconds: 220),""",
+              """scale: highlighted ? 1.006 : 1,\n                  duration: const Duration(milliseconds: 90),""",
+              'target scale motion',
+          )
+
+          replace_once(
+              """duration: const Duration(milliseconds: 220),\n                    curve: Curves.easeOutCubic,\n                    width: 310,""",
+              """duration: const Duration(milliseconds: 90),\n                    curve: Curves.easeOutCubic,\n                    width: 310,""",
+              'target surface motion',
+          )
+
+          replace_once(
+              """blurRadius: 22,\n                                spreadRadius: 1,""",
+              """blurRadius: 14,\n                                spreadRadius: 0,""",
+              'target shadow',
           )
 
           path.write_text(text, encoding='utf-8')
-
-          test_path = Path('test/desktop_v2_contract_test.dart')
-          test = test_path.read_text(encoding='utf-8')
-          marker = """    expect(recruitment, contains('return Draggable<RecruitmentApplication>('));\n    expect(recruitment, contains('return LongPressDraggable<RecruitmentApplication>('));"""
-          replacement = """    expect(recruitment, contains('return Draggable<RecruitmentApplication>('));\n    expect(recruitment, contains('return LongPressDraggable<RecruitmentApplication>('));\n    expect(recruitment, contains('delay: const Duration(milliseconds: 160)'));\n    expect(recruitment, contains('duration: const Duration(milliseconds: 70)'));\n    expect(recruitment, contains('scale: highlighted ? 1.006 : 1'));\n    expect(recruitment, contains('elevation: 10'));\n    expect(recruitment, contains('final feedbackCard = RepaintBoundary('));"""
-          if marker not in test:
-              raise SystemExit('Desktop v2 drag contract marker not found')
-          test = test.replace(marker, replacement, 1)
-          test_path.write_text(test, encoding='utf-8')
 
       - name: Remove one-shot workflow and commit
         shell: bash
@@ -105,6 +86,6 @@ jobs:
           rm .github/workflows/recruitment-drag-motion-hotfix.yml
           git config user.name "13off"
           git config user.email "ilyaodincev1999@gmail.com"
-          git add lib/features/recruitment/presentation/recruitment_applications_screen.dart test/desktop_v2_contract_test.dart .github/workflows/recruitment-drag-motion-hotfix.yml
+          git add lib/features/recruitment/presentation/recruitment_applications_screen.dart .github/workflows/recruitment-drag-motion-hotfix.yml
           git commit -m "perf(recruitment): make card dragging faster and smoother"
           git push origin HEAD:feature/desktop-v2-20260902
