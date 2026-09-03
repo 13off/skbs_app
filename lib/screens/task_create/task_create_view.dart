@@ -1,6 +1,8 @@
 part of '../add_task_screen.dart';
 
 extension _TaskCreateView on _AddTaskScreenState {
+  bool get _voicePanelEnabled => false;
+
   Widget buildTaskCreateView() {
     final editingDraft = widget.sourceDraftId?.trim().isNotEmpty == true;
     return Scaffold(
@@ -27,6 +29,10 @@ extension _TaskCreateView on _AddTaskScreenState {
           ),
           const SizedBox(height: 14),
           buildObjectCard(),
+          if (_voicePanelEnabled) ...[
+            const SizedBox(height: 16),
+            buildVoiceAssistantCard(),
+          ],
           const SizedBox(height: 16),
           OutlinedButton.icon(
             onPressed: widget.allowAnyDate ? pickDate : null,
