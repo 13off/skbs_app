@@ -7,7 +7,7 @@ import 'support/timesheet_source.dart';
 String source(String path) => File(path).readAsStringSync();
 
 void main() {
-  test('timesheet switches to desktop table only on wide web', () {
+  test('timesheet switches to desktop table on every wide screen', () {
     final adaptive = source('lib/screens/adaptive_timesheet_screen.dart');
     final mobile = timesheetSource();
     final desktop = source('lib/screens/desktop_timesheet_screen.dart');
@@ -16,7 +16,8 @@ void main() {
     );
 
     expect(adaptive, contains('desktopBreakpoint = 1050'));
-    expect(adaptive, contains('kIsWeb && constraints.maxWidth'));
+    expect(adaptive, isNot(contains('kIsWeb')));
+    expect(adaptive, contains('constraints.maxWidth >= desktopBreakpoint'));
     expect(adaptive, contains('TimesheetScreen('));
     expect(adaptive, contains('DesktopTimesheetScreen('));
     expect(adaptive, contains('TimesheetDownloadSheet.show'));
@@ -73,7 +74,9 @@ void main() {
       expect(desktop, contains("'Сохранить изменения'"));
       expect(desktop, contains("'Сохранить табель'"));
 
-      // The desktop save card sits directly above the shared bottom navigation.
+      // The desktop save card keeps using the shared navigation geometry for
+      // compact widths; the wide shell replaces that bottom navigation with
+      // the permanent desktop rail.
       expect(desktop, contains('bottom: AppUi.navigationTotalHeight(context)'));
       expect(desktop, isNot(contains('bottom: 112')));
 
