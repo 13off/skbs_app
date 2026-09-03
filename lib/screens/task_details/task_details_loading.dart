@@ -46,11 +46,16 @@ extension _TaskDetailsLoading on _TaskDetailsScreenState {
 
     try {
       final result = await Future.wait<dynamic>(<Future<dynamic>>[
-        EmployeeRepository.fetchEmployees(objectName: widget.task.objectName),
+        OfflineEmployeeRepository.fetchEmployees(
+          objectName: widget.task.objectName,
+        ),
         TaskRepository.fetchTaskAssigneeIds(taskId),
         TaskRepository.fetchTaskPhotos(taskId),
         TaskRepository.fetchTaskMilestoneLink(taskId),
-        DeveloperPolicyRepository.ensurePolicy(widget.task.objectName),
+        DeveloperPolicyRepository.ensurePolicy(
+          widget.task.objectName,
+          forceRefresh: true,
+        ),
       ]);
 
       if (!mounted || token != loadToken) return;

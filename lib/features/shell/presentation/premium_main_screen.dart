@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -9,6 +11,7 @@ import '../../../data/attendance_repository.dart';
 import '../../../data/employee_repository.dart';
 import '../../../data/object_repository.dart';
 import '../../../data/task_repository.dart';
+import '../../../features/developer/data/developer_policy_repository.dart';
 import '../../../models/app_user_profile.dart';
 import '../../../models/task_item_data.dart';
 import '../../../navigation/web_back_navigation.dart';
@@ -75,6 +78,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
 
     setActiveAppBackHandler(handleBackRequest);
     startDataSync();
+    unawaited(warmUpForemanTaskPolicy());
   }
 
   @override
@@ -84,6 +88,13 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
     if (oldWidget.profile.activeCompanyId != widget.profile.activeCompanyId) {
       AppDataSync.stop(companyId: oldWidget.profile.activeCompanyId);
       startDataSync();
+      unawaited(warmUpForemanTaskPolicy());
+      return;
+    }
+
+    if (oldWidget.profile.objectName != widget.profile.objectName ||
+        oldWidget.profile.actualRole != widget.profile.actualRole) {
+      unawaited(warmUpForemanTaskPolicy());
     }
   }
 
@@ -102,6 +113,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
       AppDataSync.refreshAll();
+      unawaited(warmUpForemanTaskPolicy());
     }
   }
 
@@ -118,6 +130,20 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
     if (clean == null || clean.isEmpty) return null;
 
     return clean;
+  }
+
+  Future<void> warmUpForemanTaskPolicy() async {
+    if (!widget.profile.isForeman) return;
+    final objectName = cleanObjectName(widget.profile.objectName);
+    if (objectName == null) return;
+    try {
+      await DeveloperPolicyRepository.ensurePolicy(
+        objectName,
+        forceRefresh: true,
+      ).timeout(const Duration(seconds: 5));
+    } catch (_) {
+      // Фоновая синхронизация правила не должна блокировать офлайн-работу.
+    }
   }
 
   Future<void> warmUpVisibleData() async {

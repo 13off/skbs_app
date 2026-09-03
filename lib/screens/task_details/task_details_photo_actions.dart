@@ -40,33 +40,49 @@ extension _TaskDetailsPhotoActions on _TaskDetailsScreenState {
       );
       if (pickedPhotos.isEmpty) return;
 
-      final uploadedPhotos = await TaskPhotoRepository.uploadPhotos(
-        taskId: taskId,
-        photos: pickedPhotos,
-        photoStage: photoStage,
-        onProgress: (progress) {
-          if (!mounted || pickingPhotoStage != photoStage) return;
-          final previous = photoUploadProgress;
-          final percentChanged = progress.percent != lastRenderedUploadPercent;
-          final completedChanged =
-              previous == null ||
-              previous.completedFiles != progress.completedFiles;
-          if (!percentChanged && !completedChanged) return;
+      List<TaskPhotoData> uploadedPhotos;
+      try {
+        uploadedPhotos = await TaskPhotoRepository.uploadPhotos(
+          taskId: taskId,
+          photos: pickedPhotos,
+          photoStage: photoStage,
+          onProgress: (progress) {
+            if (!mounted || pickingPhotoStage != photoStage) return;
+            final previous = photoUploadProgress;
+            final percentChanged = progress.percent != lastRenderedUploadPercent;
+            final completedChanged =
+                previous == null ||
+                previous.completedFiles != progress.completedFiles;
+            if (!percentChanged && !completedChanged) return;
 
-          setState(() {
-            photoUploadProgress = progress;
-            lastRenderedUploadPercent = progress.percent;
-          });
-        },
-      );
+            setState(() {
+              photoUploadProgress = progress;
+              lastRenderedUploadPercent = progress.percent;
+            });
+          },
+        );
+      } catch (_) {
+        // Если Storage недоступен, TaskRepository сохранит байты в локальной
+        // очереди и отправит их после восстановления соединения.
+        uploadedPhotos = await TaskRepository.uploadPhotosForTask(
+          taskId: taskId,
+          photos: pickedPhotos,
+          photoStage: photoStage,
+        );
+      }
       if (!mounted) return;
 
       setState(() => photos = <TaskPhotoData>[...uploadedPhotos, ...photos]);
+      final queuedOffline = uploadedPhotos.any(
+        (photo) => photo.storagePath.trim().isEmpty,
+      );
       final count = uploadedPhotos.length;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            count == 1
+            queuedOffline
+                ? 'Фото сохранены на устройстве и отправятся на сервер при появлении связи'
+                : count == 1
                 ? 'Фотография добавлена'
                 : 'Добавлено фотографий: $count',
           ),

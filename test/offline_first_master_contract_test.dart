@@ -11,14 +11,21 @@ void main() {
 
     expect(mainScreen, contains('OfflineSyncHost('));
     expect(mainScreen, contains('child: buildPlatform()'));
-    expect(banner, contains('if (state.pendingCount == 0) return widget.child;'));
-    expect(banner, contains('Ожидает отправки:'));
-    expect(banner, contains('Последняя синхронизация:'));
+    expect(
+      banner,
+      contains('browserOffline || state.pendingCount > 0 || state.isSyncing'),
+    );
+    expect(banner, contains('_OfflineSyncIndicator('));
+    expect(banner, contains('html.window.onOffline.listen'));
+    expect(banner, contains('html.window.onOnline.listen'));
+    expect(banner, contains('Нет связи с сервером'));
+    expect(banner, contains('Отправляем данные'));
     expect(banner, contains('OfflineSyncService.flush()'));
 
+    expect(banner, isNot(contains('_OfflinePendingBanner')));
+    expect(banner, isNot(contains('Последняя синхронизация:')));
     expect(banner, isNot(contains('Хорошая сеть')));
     expect(banner, isNot(contains('Слабая сеть')));
-    expect(banner, isNot(contains('Нет сети')));
   });
 
   test('timesheet saves through persistent offline queue', () {
@@ -51,7 +58,7 @@ void main() {
     expect(sync, contains('upsert: true'));
   });
 
-  test('task form keeps old policy and employee flow when network drops', () {
+  test('task form restores the last object policy when network drops', () {
     final loading = File(
       'lib/screens/task_create/task_create_loading.dart',
     ).readAsStringSync();
@@ -60,10 +67,14 @@ void main() {
     ).readAsStringSync();
 
     expect(loading, contains('OfflineEmployeeRepository.fetchEmployees('));
+    expect(loading, contains('DeveloperPolicyRepository.ensurePolicy('));
+    expect(loading, contains('forceRefresh: true'));
     expect(
       loading,
       contains('DeveloperPolicyRepository.policyForObjectSync('),
     );
+    expect(policy, contains('OfflineSyncService.saveSnapshot('));
+    expect(policy, contains('OfflineSyncService.readSnapshot('));
     expect(policy, contains('return entry?.policy ?? TaskPolicy.defaults;'));
   });
 }

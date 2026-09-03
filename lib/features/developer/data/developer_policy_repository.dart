@@ -1,5 +1,6 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../../data/offline_sync_service.dart';
 import '../models/task_policy.dart';
 
 class DeveloperPolicyRepository {
@@ -12,6 +13,8 @@ class DeveloperPolicyRepository {
   static int _cacheGeneration = 0;
 
   static String _key(String objectName) => objectName.trim().toLowerCase();
+  static String _snapshotKey(String objectName) =>
+      'developer_task_policy::${_key(objectName)}';
 
   static TaskPolicy policyForObjectSync(String objectName) {
     final entry = _cache[_key(objectName)];
@@ -43,6 +46,14 @@ class DeveloperPolicyRepository {
     _inFlight[key] = future;
     try {
       return await future;
+    } catch (error) {
+      if (!OfflineSyncService.isNetworkFailure(error)) rethrow;
+      final saved = await _readPolicySnapshot(objectName);
+      if (saved == null) rethrow;
+      if (generation == _cacheGeneration) {
+        _cache[key] = _PolicyCacheEntry(saved, DateTime.now());
+      }
+      return saved;
     } finally {
       if (identical(_inFlight[key], future)) _inFlight.remove(key);
     }
@@ -61,6 +72,7 @@ class DeveloperPolicyRepository {
     if (generation == _cacheGeneration) {
       _cache[key] = _PolicyCacheEntry(policy, DateTime.now());
     }
+    await _savePolicySnapshot(objectName, policy);
     return policy;
   }
 
@@ -71,6 +83,7 @@ class DeveloperPolicyRepository {
     );
     final center = DeveloperTaskPolicyCenter.fromJson(_map(result));
     _primeCache(center, generation);
+    await _persistCenterPolicies(center);
     return center;
   }
 
@@ -88,6 +101,7 @@ class DeveloperPolicyRepository {
     );
     final center = DeveloperTaskPolicyCenter.fromJson(_map(result));
     _primeCache(center, generation);
+    await _persistCenterPolicies(center);
     return center;
   }
 
@@ -101,6 +115,7 @@ class DeveloperPolicyRepository {
     );
     final center = DeveloperTaskPolicyCenter.fromJson(_map(result));
     _primeCache(center, generation);
+    await _persistCenterPolicies(center);
     return center;
   }
 
@@ -117,6 +132,34 @@ class DeveloperPolicyRepository {
     for (final object in center.objects) {
       _cache[_key(object.name)] = _PolicyCacheEntry(object.policy, now);
     }
+  }
+
+  static Future<void> _persistCenterPolicies(
+    DeveloperTaskPolicyCenter center,
+  ) async {
+    await Future.wait<void>(
+      center.objects.map(
+        (object) => _savePolicySnapshot(object.name, object.policy),
+      ),
+    );
+  }
+
+  static Future<void> _savePolicySnapshot(
+    String objectName,
+    TaskPolicy policy,
+  ) {
+    return OfflineSyncService.saveSnapshot(
+      _snapshotKey(objectName),
+      policy.toJson(),
+    );
+  }
+
+  static Future<TaskPolicy?> _readPolicySnapshot(String objectName) async {
+    final saved = await OfflineSyncService.readSnapshot(
+      _snapshotKey(objectName),
+    );
+    if (saved is! Map) return null;
+    return TaskPolicy.fromJson(Map<String, dynamic>.from(saved));
   }
 
   static Map<String, dynamic> _map(dynamic value) {

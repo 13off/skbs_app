@@ -1,8 +1,11 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../../../data/app_state.dart';
 import '../../../data/task_repository.dart';
+import '../../../features/developer/data/developer_policy_repository.dart';
 import '../../../features/shell/presentation/persistent_tab_shell.dart';
 import '../../../features/shell/presentation/premium_main_screen.dart'
     as premium;
@@ -59,6 +62,29 @@ class _ForemanDesktopMainScreenState extends State<_ForemanDesktopMainScreen> {
   void initState() {
     super.initState();
     tabs = PersistentTabController(pageCount: pageCount);
+    unawaited(warmUpTaskPolicy());
+  }
+
+  @override
+  void didUpdateWidget(covariant _ForemanDesktopMainScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.profile.objectName != widget.profile.objectName ||
+        oldWidget.profile.activeCompanyId != widget.profile.activeCompanyId) {
+      unawaited(warmUpTaskPolicy());
+    }
+  }
+
+  Future<void> warmUpTaskPolicy() async {
+    final assignedObject = objectName;
+    if (assignedObject == null) return;
+    try {
+      await DeveloperPolicyRepository.ensurePolicy(
+        assignedObject,
+        forceRefresh: true,
+      ).timeout(const Duration(seconds: 5));
+    } catch (_) {
+      // Офлайн-режим продолжает работать на последнем сохранённом правиле.
+    }
   }
 
   @override
