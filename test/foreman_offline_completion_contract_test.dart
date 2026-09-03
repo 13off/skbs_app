@@ -89,18 +89,24 @@ void main() {
   });
 
   test('рабочая смена и задачи мастера не зависят от постоянной сети', () {
-    containsAll('lib/features/foreman/presentation/foreman_desktop_home_screen.dart', const [
-      'OfflineEmployeeRepository.fetchEmployees(',
-      'OfflineAttendanceRepository.fetchShiftValuesForDate(',
-      'TaskRepository.fetchTasksForDate(',
-      'ForemanWorkspaceRepository.fetchOverdueTasks(',
-      'ForemanWorkspaceRepository.fetchTaskMeta(',
-    ]);
-    containsAll('lib/features/foreman/data/foreman_workspace_repository.dart', const [
-      'OfflineSyncService.saveSnapshot(',
-      'OfflineSyncService.readSnapshot(',
-      'OfflineSyncService.isNetworkFailure(error)',
-    ]);
+    containsAll(
+      'lib/features/foreman/presentation/foreman_desktop_home_screen.dart',
+      const [
+        'OfflineEmployeeRepository.fetchEmployees(',
+        'OfflineAttendanceRepository.fetchShiftValuesForDate(',
+        'TaskRepository.fetchTasksForDate(',
+        'ForemanWorkspaceRepository.fetchOverdueTasks(',
+        'ForemanWorkspaceRepository.fetchTaskMeta(',
+      ],
+    );
+    containsAll(
+      'lib/features/foreman/data/foreman_workspace_repository.dart',
+      const [
+        'OfflineSyncService.saveSnapshot(',
+        'OfflineSyncService.readSnapshot(',
+        'OfflineSyncService.isNetworkFailure(error)',
+      ],
+    );
     containsAll('lib/data/task_repository.dart', const [
       '_queueTaskCreate(',
       "kind: 'task.create'",
@@ -114,7 +120,11 @@ void main() {
     ]);
     containsAll('lib/screens/add_task_screen.dart', const [
       "import '../data/offline_master_repository.dart';",
-      'OfflineEmployeeRepository',
+      "part 'task_create/task_create_loading.dart';",
+    ]);
+    containsAll('lib/screens/task_create/task_create_loading.dart', const [
+      'OfflineEmployeeRepository.fetchEmployees(',
+      "errorText = 'Не удалось открыть сохранённый список сотрудников: $error';",
     ]);
   });
 
