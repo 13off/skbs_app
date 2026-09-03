@@ -52,7 +52,10 @@ extension _TaskDetailsLoading on _TaskDetailsScreenState {
         TaskRepository.fetchTaskAssigneeIds(taskId),
         TaskRepository.fetchTaskPhotos(taskId),
         TaskRepository.fetchTaskMilestoneLink(taskId),
-        DeveloperPolicyRepository.ensurePolicy(widget.task.objectName),
+        DeveloperPolicyRepository.ensurePolicy(
+          widget.task.objectName,
+          forceRefresh: true,
+        ),
       ]);
 
       if (!mounted || token != loadToken) return;
