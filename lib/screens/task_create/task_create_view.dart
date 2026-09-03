@@ -3,8 +3,6 @@ part of '../add_task_screen.dart';
 extension _TaskCreateView on _AddTaskScreenState {
   Widget buildTaskCreateView() {
     final editingDraft = widget.sourceDraftId?.trim().isNotEmpty == true;
-    final batchCount = voiceBatchDrafts.length > 1 ? voiceBatchDrafts.length : 1;
-    final dateActive = isVoiceFieldActive(TaskVoiceField.date);
     return Scaffold(
       appBar: AppBar(
         leading: const BackButton(),
@@ -24,35 +22,15 @@ extension _TaskCreateView on _AddTaskScreenState {
                 ? 'Новая задача на основе существующей'
                 : editingDraft
                 ? 'Продолжите заполнение черновика'
-                : batchCount > 1
-                ? 'Прораб создаёт $batchCount задачи'
                 : 'Прораб добавляет задачу на объект',
             style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900),
           ),
           const SizedBox(height: 14),
           buildObjectCard(),
-          if (widget.allowDraft) ...[
-            const SizedBox(height: 16),
-            buildVoiceAssistantCard(),
-          ],
           const SizedBox(height: 16),
           OutlinedButton.icon(
             onPressed: widget.allowAnyDate ? pickDate : null,
-            style: OutlinedButton.styleFrom(
-              side: BorderSide(
-                color: dateActive
-                    ? AppAdaptivePalette.accent
-                    : AppAdaptivePalette.border,
-                width: dateActive ? 2 : 1,
-              ),
-              backgroundColor: dateActive
-                  ? AppAdaptivePalette.accent.withValues(alpha: 0.06)
-                  : null,
-            ),
-            icon: Icon(
-              dateActive ? Icons.mic_rounded : Icons.calendar_month,
-              color: dateActive ? AppAdaptivePalette.accent : null,
-            ),
+            icon: const Icon(Icons.calendar_month),
             label: Text('Дата задачи: ${formatDate(selectedDate)}'),
           ),
           const SizedBox(height: 16),
@@ -103,11 +81,7 @@ extension _TaskCreateView on _AddTaskScreenState {
               onPressed: isLoadingPolicy ? null : saveTask,
               icon: const Icon(Icons.save),
               label: Text(
-                batchCount > 1
-                    ? 'Сохранить $batchCount задачи'
-                    : widget.isRepeat
-                    ? 'Создать копию задачи'
-                    : 'Сохранить задачу',
+                widget.isRepeat ? 'Создать копию задачи' : 'Сохранить задачу',
               ),
             ),
           ),
