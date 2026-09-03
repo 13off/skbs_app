@@ -5,15 +5,42 @@ import 'package:flutter_test/flutter_test.dart';
 void main() {
   String source(String path) => File(path).readAsStringSync();
 
-  test('wide shell uses persistent desktop navigation', () {
+  test('wide shell keeps the working navigation at the bottom', () {
     final shell = source(
       'lib/features/shell/presentation/persistent_tab_shell.dart',
     );
 
-    expect(shell, contains("ValueKey('professional-desktop-navigation')"));
-    expect(shell, contains('desktopShellBreakpoint'));
-    expect(shell, contains('_DesktopTabRail'));
-    expect(shell, contains('bottomNavigationBar: useDesktopShell'));
+    expect(
+      shell,
+      contains('bottomNavigationBar: ProfessionalBottomNavigation('),
+    );
+    expect(shell, isNot(contains('_DesktopTabRail')));
+    expect(shell, isNot(contains('desktopRailWidth')));
+  });
+
+  test('native desktop candidate cards use immediate pointer dragging', () {
+    final recruitment = source(
+      'lib/features/recruitment/presentation/recruitment_applications_screen.dart',
+    );
+
+    expect(recruitment, contains('bool get _usesImmediatePointerDrag'));
+    expect(
+      recruitment,
+      contains('defaultTargetPlatform == TargetPlatform.windows'),
+    );
+    expect(
+      recruitment,
+      contains('defaultTargetPlatform == TargetPlatform.macOS'),
+    );
+    expect(
+      recruitment,
+      contains('defaultTargetPlatform == TargetPlatform.linux'),
+    );
+    expect(recruitment, contains('if (_usesImmediatePointerDrag)'));
+    expect(
+      recruitment,
+      contains("_usesImmediatePointerDrag ? 'Перетащи' : 'Удерживай'"),
+    );
   });
 
   test('native Windows is not forced back to mobile adaptive screens', () {
