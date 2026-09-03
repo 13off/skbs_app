@@ -7,6 +7,7 @@ extension _TaskCreateView on _AddTaskScreenState {
     final editingDraft = widget.sourceDraftId?.trim().isNotEmpty == true;
     final batchCount = voiceBatchDrafts.length > 1 ? voiceBatchDrafts.length : 1;
     final dateActive = isVoiceFieldActive(TaskVoiceField.date);
+    final voicePanelBuilder = buildVoiceAssistantCard;
     return Scaffold(
       appBar: AppBar(
         leading: const BackButton(),
@@ -33,7 +34,7 @@ extension _TaskCreateView on _AddTaskScreenState {
           ),
           if (_voicePanelEnabled) ...[
             const SizedBox(height: 16),
-            buildVoiceAssistantCard(),
+            voicePanelBuilder(),
           ],
           const SizedBox(height: 14),
           buildObjectCard(),
