@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 
 import '../app/app_adaptive_palette.dart';
 import '../data/app_data_sync.dart';
@@ -89,15 +88,15 @@ class _OfflineSyncHostState extends State<OfflineSyncHost>
       valueListenable: OfflineSyncService.state,
       builder: (context, state, _) {
         if (state.pendingCount == 0) return widget.child;
-        return Column(
+        final safeTop = MediaQuery.paddingOf(context).top;
+        return Stack(
+          fit: StackFit.expand,
           children: [
-            _OfflinePendingBanner(state: state),
-            Expanded(
-              child: MediaQuery.removePadding(
-                context: context,
-                removeTop: true,
-                child: widget.child,
-              ),
+            widget.child,
+            Positioned(
+              top: safeTop + 8,
+              right: 10,
+              child: _OfflineSyncIndicator(state: state),
             ),
           ],
         );
@@ -106,66 +105,135 @@ class _OfflineSyncHostState extends State<OfflineSyncHost>
   }
 }
 
-class _OfflinePendingBanner extends StatelessWidget {
+class _OfflineSyncIndicator extends StatelessWidget {
   final OfflineSyncState state;
 
-  const _OfflinePendingBanner({required this.state});
+  const _OfflineSyncIndicator({required this.state});
+
+  Future<void> _showStatus(BuildContext context) async {
+    await showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      backgroundColor: AppAdaptivePalette.surfaceElevated,
+      builder: (sheetContext) {
+        final syncing = state.isSyncing;
+        return SafeArea(
+          top: false,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(22, 4, 22, 24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      width: 38,
+                      height: 38,
+                      decoration: BoxDecoration(
+                        color: (syncing
+                                ? AppAdaptivePalette.accent
+                                : AppAdaptivePalette.danger)
+                            .withValues(alpha: 0.14),
+                        shape: BoxShape.circle,
+                      ),
+                      alignment: Alignment.center,
+                      child: syncing
+                          ? SizedBox(
+                              width: 19,
+                              height: 19,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2.4,
+                                color: AppAdaptivePalette.accent,
+                              ),
+                            )
+                          : Icon(
+                              Icons.wifi_off_rounded,
+                              size: 20,
+                              color: AppAdaptivePalette.danger,
+                            ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        syncing ? 'Отправляем данные' : 'Нет связи с сервером',
+                        style: const TextStyle(
+                          fontSize: 19,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 14),
+                Text(
+                  syncing
+                      ? 'Соединение восстановлено. AppСтрой отправляет сохранённые изменения на сервер. Осталось: ${state.pendingCount}.'
+                      : 'Изменения сохранены на этом устройстве. AppСтрой автоматически отправит их на сервер, когда соединение восстановится.',
+                  style: TextStyle(
+                    color: AppAdaptivePalette.textMuted,
+                    fontSize: 15,
+                    height: 1.4,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                if (!syncing) ...[
+                  const SizedBox(height: 16),
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      onPressed: () {
+                        Navigator.pop(sheetContext);
+                        unawaited(OfflineSyncService.flush());
+                      },
+                      icon: const Icon(Icons.refresh_rounded),
+                      label: const Text('Проверить соединение'),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
-    final lastSyncText = state.lastSyncAt == null
-        ? 'Последняя синхронизация: —'
-        : 'Последняя синхронизация: ${DateFormat('HH:mm').format(state.lastSyncAt!.toLocal())}';
-
+    final syncing = state.isSyncing;
     return Material(
-      color: AppAdaptivePalette.surfaceElevated,
-      child: SafeArea(
-        bottom: false,
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () => _showStatus(context),
+        customBorder: const CircleBorder(),
         child: Container(
-          width: double.infinity,
-          padding: const EdgeInsets.fromLTRB(14, 8, 8, 8),
+          width: 36,
+          height: 36,
           decoration: BoxDecoration(
-            border: Border(
-              bottom: BorderSide(color: AppAdaptivePalette.border),
-            ),
-          ),
-          child: Row(
-            children: [
-              Icon(
-                state.isSyncing
-                    ? Icons.sync_rounded
-                    : Icons.cloud_upload_outlined,
-                size: 18,
-                color: AppAdaptivePalette.textMuted,
-              ),
-              const SizedBox(width: 9),
-              Expanded(
-                child: Text(
-                  'Ожидает отправки: ${state.pendingCount} · $lastSyncText',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: AppAdaptivePalette.textMuted,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ),
-              IconButton(
-                tooltip: 'Синхронизировать',
-                visualDensity: VisualDensity.compact,
-                onPressed: state.isSyncing
-                    ? null
-                    : () => unawaited(OfflineSyncService.flush()),
-                icon: state.isSyncing
-                    ? const SizedBox(
-                        width: 17,
-                        height: 17,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Icon(Icons.refresh_rounded, size: 20),
+            color: syncing
+                ? AppAdaptivePalette.accent
+                : AppAdaptivePalette.danger,
+            shape: BoxShape.circle,
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.20),
+                blurRadius: 12,
+                offset: const Offset(0, 4),
               ),
             ],
           ),
+          alignment: Alignment.center,
+          child: syncing
+              ? const SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2.3,
+                    color: Colors.white,
+                  ),
+                )
+              : const Icon(Icons.wifi_off_rounded, size: 19, color: Colors.white),
         ),
       ),
     );
