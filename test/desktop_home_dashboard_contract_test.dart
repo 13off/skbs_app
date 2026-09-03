@@ -43,10 +43,14 @@ void main() {
 
     expect(navigation, contains('ProfessionalBottomNavigation'));
     expect(navigation, contains("ValueKey('professional-bottom-navigation')"));
-    expect(persistentShell, contains('_DesktopTabRail('));
     expect(
       persistentShell,
-      contains("ValueKey('professional-desktop-navigation')"),
+      contains('bottomNavigationBar: ProfessionalBottomNavigation('),
+    );
+    expect(persistentShell, isNot(contains('_DesktopTabRail(')));
+    expect(
+      persistentShell,
+      isNot(contains("ValueKey('professional-desktop-navigation')")),
     );
   });
 
