@@ -129,6 +129,8 @@ void main() {
     ]);
     containsAll('lib/screens/task_create/task_create_loading.dart', const [
       'OfflineEmployeeRepository.fetchEmployees(',
+      'DeveloperPolicyRepository.ensurePolicy(',
+      'forceRefresh: true',
       "errorText = 'Не удалось открыть сохранённый список сотрудников: \$error';",
     ]);
   });
@@ -160,8 +162,18 @@ void main() {
     );
     containsAll('lib/screens/task_details/task_details_loading.dart', const [
       'OfflineEmployeeRepository.fetchEmployees(',
-      'DeveloperPolicyRepository.ensurePolicy(widget.task.objectName)',
+      'DeveloperPolicyRepository.ensurePolicy(',
+      'forceRefresh: true',
     ]);
+    containsAll(
+      'lib/features/shell/presentation/premium_main_screen.dart',
+      const [
+        'warmUpForemanTaskPolicy()',
+        'widget.profile.isForeman',
+        'DeveloperPolicyRepository.ensurePolicy(',
+        'forceRefresh: true',
+      ],
+    );
   });
 
   test('голосовая панель задачи временно скрыта', () {
