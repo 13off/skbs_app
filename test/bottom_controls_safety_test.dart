@@ -118,11 +118,14 @@ void main() {
       expect(milestones, contains('horizontalPadding,'));
       expect(milestones, contains('120,'));
 
-      // The root specialist shell gives compact bottom navigation its own
-      // Scaffold slot and swaps it for a permanent side rail on wide desktop.
-      expect(persistentShell, contains('bottomNavigationBar: useDesktopShell'));
-      expect(persistentShell, contains('ProfessionalBottomNavigation('));
-      expect(persistentShell, contains('_DesktopTabRail('));
+      // The root specialist shell keeps the work navigation in the Scaffold's
+      // bottom slot on phone, web and native desktop. Wide desktop changes the
+      // content layout only; it does not move navigation to a side rail.
+      expect(
+        persistentShell,
+        contains('bottomNavigationBar: ProfessionalBottomNavigation('),
+      );
+      expect(persistentShell, isNot(contains('_DesktopTabRail(')));
       expect(persistentShell, isNot(contains('extendBody: true')));
       expect(
         persistentShell,
