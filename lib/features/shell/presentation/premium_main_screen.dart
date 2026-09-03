@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -9,6 +11,7 @@ import '../../../data/attendance_repository.dart';
 import '../../../data/employee_repository.dart';
 import '../../../data/object_repository.dart';
 import '../../../data/task_repository.dart';
+import '../../../features/developer/data/developer_policy_repository.dart';
 import '../../../models/app_user_profile.dart';
 import '../../../models/task_item_data.dart';
 import '../../../navigation/web_back_navigation.dart';
@@ -75,6 +78,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
 
     setActiveAppBackHandler(handleBackRequest);
     startDataSync();
+    unawaited(warmUpForemanTaskPolicy());
   }
 
   @override
@@ -84,6 +88,13 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
     if (oldWidget.profile.activeCompanyId != widget.profile.activeCompanyId) {
       AppDataSync.stop(companyId: oldWidget.profile.activeCompanyId);
       startDataSync();
+      unawaited(warmUpForemanTaskPolicy());
+      return;
+    }
+
+    if (oldWidget.profile.objectName != widget.profile.objectName ||
+        oldWidget.profile.actualRole != widget.profile.actualRole) {
+      unawaited(warmUpForemanTaskPolicy());
     }
   }
 
@@ -102,6 +113,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
       AppDataSync.refreshAll();
+      unawaited(warmUpForemanTaskPolicy());
     }
   }
 
@@ -118,6 +130,20 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
     if (clean == null || clean.isEmpty) return null;
 
     return clean;
+  }
+
+  Future<void> warmUpForemanTaskPolicy() async {
+    if (!widget.profile.isForeman) return;
+    final objectName = cleanObjectName(widget.profile.objectName);
+    if (objectName == null) return;
+    try {
+      await DeveloperPolicyRepository.ensurePolicy(
+        objectName,
+        forceRefresh: true,
+      ).timeout(const Duration(seconds: 5));
+    } catch (_) {
+      // Фоновая синхронизация политики не должна мешать офлайн-работе.
+    }
   }
 
   Future<void> warmUpVisibleData() async {
@@ -560,10 +586,192 @@ class _KeepAliveTabState extends State<_KeepAliveTab>
   }
 }
 
-class _ConditionalPagePhysics extends PageScrollPhysics {
+class _TabItem {
+  final String label;
+  final IconData icon;
+  final IconData selectedIcon;
+
+  const _TabItem({
+    required this.label,
+    required this.icon,
+    required this.selectedIcon,
+  });
+}
+
+class _PremiumBottomBar extends StatelessWidget {
+  final List<_TabItem> items;
+  final int selectedIndex;
+  final String storageKey;
+  final ValueChanged<int> onSelected;
+
+  const _PremiumBottomBar({
+    required this.items,
+    required this.selectedIndex,
+    required this.storageKey,
+    required this.onSelected,
+  });
+
+  static const double _outerHorizontal = 16;
+  static const double _innerHorizontal = 8;
+  static const double _itemGap = 6;
+  static const double _reservedTrailing = 0;
+  static const double _contentHeight = 66;
+  static const double _contentTop = 7;
+  static const double _contentBottom = 7;
+  static const double _safeBottomCap = 16;
+
+  static double _safeBottom(BuildContext context) {
+    final raw = MediaQuery.paddingOf(context).bottom;
+    if (raw <= 0) return 0;
+    return raw.clamp(0, _safeBottomCap).toDouble();
+  }
+
+  static double totalHeight(BuildContext context) {
+    return _contentHeight +
+        _contentTop +
+        _contentBottom +
+        _safeBottom(context);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final activeIndex = selectedIndex.clamp(0, items.length - 1);
+    final totalHeight = _PremiumBottomBar.totalHeight(context);
+
+    return SizedBox(
+      height: totalHeight,
+      child: Padding(
+        padding: EdgeInsets.fromLTRB(
+          _outerHorizontal,
+          _contentTop,
+          _outerHorizontal,
+          _contentBottom + _safeBottom(context),
+        ),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final gapTotal = _itemGap * (items.length - 1);
+            final freeWidth =
+                constraints.maxWidth -
+                (_innerHorizontal * 2) -
+                gapTotal -
+                _reservedTrailing;
+            final itemWidth = freeWidth / items.length;
+
+            return Container(
+              decoration: BoxDecoration(
+                color: AppAdaptivePalette.navigationSurface,
+                borderRadius: BorderRadius.circular(27),
+                border: Border.all(color: AppAdaptivePalette.navigationBorder),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(
+                      alpha: AppAdaptivePalette.isDark ? 0.18 : 0.07,
+                    ),
+                    blurRadius: 20,
+                    offset: const Offset(0, 8),
+                  ),
+                ],
+              ),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: _innerHorizontal,
+                ),
+                child: Stack(
+                  children: [
+                    AnimatedPositioned(
+                      duration: const Duration(milliseconds: 210),
+                      curve: Curves.easeOutCubic,
+                      left: activeIndex * (itemWidth + _itemGap),
+                      top: 7,
+                      bottom: 7,
+                      width: itemWidth,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: AppAdaptivePalette.navigationSelectedSurface,
+                          borderRadius: BorderRadius.circular(21),
+                          border: Border.all(
+                            color: AppAdaptivePalette.navigationSelectedBorder,
+                          ),
+                        ),
+                      ),
+                    ),
+                    Row(
+                      children: [
+                        for (var index = 0; index < items.length; index++) ...[
+                          if (index > 0) const SizedBox(width: _itemGap),
+                          SizedBox(
+                            width: itemWidth,
+                            child: _PremiumTabButton(
+                              item: items[index],
+                              selected: index == activeIndex,
+                              onTap: () => onSelected(index),
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        ),
+      ),
+    );
+  }
+}
+
+class _PremiumTabButton extends StatelessWidget {
+  final _TabItem item;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _PremiumTabButton({
+    required this.item,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final textColor = selected
+        ? AppAdaptivePalette.navigationSelectedText
+        : AppAdaptivePalette.navigationText;
+    final iconColor = selected
+        ? AppAdaptivePalette.navigationSelectedIcon
+        : AppAdaptivePalette.navigationIcon;
+
+    return PremiumPressable(
+      semanticLabel: item.label,
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(21),
+      child: SizedBox.expand(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(item.selectedIcon, size: 24, color: iconColor),
+            const SizedBox(height: 4),
+            Text(
+              item.label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: textColor,
+                fontSize: 11,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ConditionalPagePhysics extends ScrollPhysics {
   final bool Function() canSwipe;
 
-  const _ConditionalPagePhysics({required this.canSwipe, super.parent});
+  const _ConditionalPagePhysics({this.canSwipe, super.parent});
 
   @override
   _ConditionalPagePhysics applyTo(ScrollPhysics? ancestor) {
@@ -579,52 +787,11 @@ class _ConditionalPagePhysics extends PageScrollPhysics {
   }
 
   @override
-  double applyPhysicsToUserOffset(ScrollMetrics position, double offset) {
-    if (!canSwipe()) return 0;
-    return super.applyPhysicsToUserOffset(position, offset);
+  Simulation? createBallisticSimulation(
+    ScrollMetrics position,
+    double velocity,
+  ) {
+    if (!canSwipe()) return null;
+    return super.createBallisticSimulation(position, velocity);
   }
-}
-
-class _PremiumBottomBar extends StatelessWidget {
-  final List<_TabItem> items;
-  final int selectedIndex;
-  final ValueChanged<int> onSelected;
-  final String storageKey;
-
-  const _PremiumBottomBar({
-    required this.items,
-    required this.selectedIndex,
-    required this.onSelected,
-    required this.storageKey,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return ProfessionalBottomNavigation(
-      items: items
-          .map(
-            (item) => ProfessionalBottomNavigationItem(
-              label: item.label,
-              icon: item.icon,
-              selectedIcon: item.selectedIcon,
-            ),
-          )
-          .toList(growable: false),
-      selectedIndex: selectedIndex,
-      storageKey: storageKey,
-      onSelected: onSelected,
-    );
-  }
-}
-
-class _TabItem {
-  final String label;
-  final IconData icon;
-  final IconData selectedIcon;
-
-  const _TabItem({
-    required this.label,
-    required this.icon,
-    required this.selectedIcon,
-  });
 }
