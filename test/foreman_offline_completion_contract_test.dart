@@ -24,7 +24,10 @@ void main() {
       'OfflineSyncService.pendingCount > 0',
       'Timer.periodic(_retryInterval',
       'AppLifecycleState.resumed',
-      '_OfflineSyncIndicator(state: state)',
+      '_OfflineSyncIndicator(',
+      'state: state',
+      'html.window.onOffline.listen',
+      'html.window.onOnline.listen',
       "'Нет связи с сервером'",
       "'Отправляем данные'",
     ]);
@@ -163,7 +166,8 @@ void main() {
 
   test('голосовая панель задачи временно скрыта', () {
     final view = source('lib/screens/task_create/task_create_view.dart');
-    expect(view, isNot(contains('buildVoiceAssistantCard()')));
+    expect(view, contains('_voicePanelEnabled => false'));
+    expect(view, contains('if (_voicePanelEnabled)'));
     final loading = source('lib/screens/task_create/task_create_loading.dart');
     expect(loading, isNot(contains('captureVoiceTask()')));
   });
