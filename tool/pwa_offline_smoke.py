@@ -67,6 +67,31 @@ def _worker_state(driver: webdriver.Chrome) -> dict[str, Any]:
     )
 
 
+def _wait_for_worker_ready(driver: webdriver.Chrome) -> dict[str, Any]:
+    return driver.execute_async_script(
+        """
+        const done = arguments[0];
+        if (!('serviceWorker' in navigator)) {
+          done({ok: false, error: 'serviceWorker unsupported'});
+          return;
+        }
+        navigator.serviceWorker.ready.then((registration) => {
+          done({
+            ok: true,
+            scope: registration.scope,
+            active: registration.active ? registration.active.scriptURL : null,
+            waiting: registration.waiting ? registration.waiting.scriptURL : null,
+            installing: registration.installing
+              ? registration.installing.scriptURL
+              : null,
+          });
+        }).catch((error) => {
+          done({ok: false, error: String(error)});
+        });
+        """
+    )
+
+
 def main() -> int:
     args = _parse_args()
     build_dir = Path(args.build_dir).resolve()
@@ -102,6 +127,7 @@ def main() -> int:
     options.set_capability('goog:loggingPrefs', {'browser': 'ALL'})
 
     driver: webdriver.Chrome | None = None
+    registration_state: dict[str, Any] = {}
     online_state: dict[str, Any] = {}
     offline_state: dict[str, Any] = {}
     browser_logs: list[dict[str, Any]] = []
@@ -109,10 +135,28 @@ def main() -> int:
 
     try:
         driver = webdriver.Chrome(options=options)
+        driver.set_script_timeout(args.timeout)
         wait = WebDriverWait(driver, args.timeout)
 
-        # Prime the application shell exactly as a user does by opening the PWA
-        # once while online.
+        # A newly installed service worker is not guaranteed to control the
+        # document that registered it. Prime exactly like a real PWA update:
+        # open once online, wait until the worker is active, then reopen once
+        # online so the application shell is controlled before connectivity is
+        # removed.
+        driver.get(url)
+        wait.until(_flutter_ready)
+        registration_state = _wait_for_worker_ready(driver)
+        if not registration_state.get('ok'):
+            raise RuntimeError(
+                f'offline worker never became ready: {registration_state}'
+            )
+        if 'appstroy-offline-sw.js' not in str(
+            registration_state.get('active') or ''
+        ):
+            raise RuntimeError(
+                f'unexpected active service worker: {registration_state}'
+            )
+
         driver.get(url)
         wait.until(_flutter_ready)
         wait.until(
@@ -156,7 +200,11 @@ def main() -> int:
         )
         (artifacts_dir / 'state.json').write_text(
             json.dumps(
-                {'online': online_state, 'offline': offline_state},
+                {
+                    'registration': registration_state,
+                    'online': online_state,
+                    'offline': offline_state,
+                },
                 ensure_ascii=False,
                 indent=2,
             ),
@@ -182,7 +230,11 @@ def main() -> int:
         print('PWA offline cold-start smoke passed')
         print(
             json.dumps(
-                {'online': online_state, 'offline': offline_state},
+                {
+                    'registration': registration_state,
+                    'online': online_state,
+                    'offline': offline_state,
+                },
                 ensure_ascii=False,
                 indent=2,
             )
@@ -197,6 +249,18 @@ def main() -> int:
                 )
                 (artifacts_dir / 'failure-page.html').write_text(
                     driver.page_source,
+                    encoding='utf-8',
+                )
+                (artifacts_dir / 'state.json').write_text(
+                    json.dumps(
+                        {
+                            'registration': registration_state,
+                            'online': online_state,
+                            'offline': offline_state,
+                        },
+                        ensure_ascii=False,
+                        indent=2,
+                    ),
                     encoding='utf-8',
                 )
             except Exception:
