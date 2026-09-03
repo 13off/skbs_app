@@ -45,7 +45,7 @@ void main() {
       'lib/screens/task_details/task_details_photo_actions.dart',
       const [
         "kind: 'task.photos.add'",
-        "dedupeKey: '${taskId.trim()}::\$photoStage'",
+        "dedupeKey: '\${taskId.trim()}::\$photoStage'",
         'photoStage: photoStage',
         "text.contains('сеть')",
         "'Фото сохранено на устройстве и отправится при появлении сети'",
