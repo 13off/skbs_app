@@ -503,8 +503,16 @@ class TaskRepository {
       return _copyTasks(tasks);
     } catch (error) {
       if (!OfflineSyncService.isNetworkFailure(error)) rethrow;
-      final tasks = await _readTaskSnapshot(cacheKey);
-      if (tasks.isEmpty) rethrow;
+      final cached = await OfflineSyncService.readSnapshot(
+        _tasksSnapshotKey(cacheKey),
+      );
+      if (cached is! List) rethrow;
+      final tasks = cached
+          .whereType<Map>()
+          .map(
+            (row) => _taskFromSnapshot(Map<String, dynamic>.from(row)),
+          )
+          .toList(growable: false);
       return _copyTasks(tasks);
     }
   }
