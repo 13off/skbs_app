@@ -5,6 +5,14 @@
 part of 'task_details_editor_screen.dart';
 
 extension _TaskDetailsPhotoActions on _TaskDetailsScreenState {
+  bool _isPhotoNetworkFailure(Object error) {
+    final text = error.toString().toLowerCase();
+    return OfflineSyncService.isNetworkFailure(error) ||
+        text.contains('сеть') ||
+        text.contains('соединен') ||
+        text.contains('нет подключения');
+  }
+
   Future<List<TaskPhotoData>> _uploadOrQueuePhotos({
     required String taskId,
     required List<TaskPhotoFile> pickedPhotos,
@@ -19,7 +27,7 @@ extension _TaskDetailsPhotoActions on _TaskDetailsScreenState {
         onProgress: onProgress,
       );
     } catch (error) {
-      if (!OfflineSyncService.isNetworkFailure(error)) rethrow;
+      if (!_isPhotoNetworkFailure(error)) rethrow;
 
       final queued = pickedPhotos
           .map(
