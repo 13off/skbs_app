@@ -17,9 +17,11 @@ void main() {
     expect(mainShell, isNot(contains('extendBody: true')));
     expect(mainShell, isNot(contains('legacy-tab-content-clearance')));
 
-    expect(persistentShell, contains('bottomNavigationBar: useDesktopShell'));
-    expect(persistentShell, contains('ProfessionalBottomNavigation('));
-    expect(persistentShell, contains('_DesktopTabRail('));
+    expect(
+      persistentShell,
+      contains('bottomNavigationBar: ProfessionalBottomNavigation('),
+    );
+    expect(persistentShell, isNot(contains('_DesktopTabRail(')));
     expect(persistentShell, isNot(contains('extendBody: true')));
     expect(
       persistentShell,
