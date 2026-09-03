@@ -63,7 +63,7 @@ class _AccountingMainScreenState extends State<AccountingMainScreen> {
           selectedIcon: Icons.home_rounded,
         ),
         ProfessionalBottomNavigationItem(
-          label: 'Расчёты',
+          label: 'Выплаты',
           icon: Icons.payments_outlined,
           selectedIcon: Icons.payments_rounded,
         ),
