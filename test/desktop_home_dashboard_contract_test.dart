@@ -5,18 +5,22 @@ import 'package:flutter_test/flutter_test.dart';
 String source(String path) => File(path).readAsStringSync();
 
 void main() {
-  test('desktop home uses a wide web dashboard and preserves mobile home', () {
+  test('desktop home uses a wide dashboard and preserves mobile home', () {
     final adaptive = source('lib/screens/adaptive_home_base_screen.dart');
     final wrapper = source('lib/screens/adaptive_home_screen.dart');
     final shell = source(
       'lib/features/shell/presentation/premium_main_screen.dart',
+    );
+    final persistentShell = source(
+      'lib/features/shell/presentation/persistent_tab_shell.dart',
     );
     final navigation = source(
       'lib/widgets/professional_bottom_navigation.dart',
     );
 
     expect(adaptive, contains('desktopBreakpoint = 1050'));
-    expect(adaptive, contains('kIsWeb && constraints.maxWidth'));
+    expect(adaptive, isNot(contains('kIsWeb')));
+    expect(adaptive, contains('constraints.maxWidth >= desktopBreakpoint'));
     expect(adaptive, contains('return HomeScreen('));
     expect(adaptive, contains('BoxConstraints(maxWidth: double.infinity)'));
     expect(adaptive, contains('AppDataSync.changes.listen'));
@@ -39,10 +43,14 @@ void main() {
 
     expect(navigation, contains('ProfessionalBottomNavigation'));
     expect(navigation, contains("ValueKey('professional-bottom-navigation')"));
-    expect(navigation, isNot(contains('NavigationRail(')));
+    expect(persistentShell, contains('_DesktopTabRail('));
+    expect(
+      persistentShell,
+      contains("ValueKey('professional-desktop-navigation')"),
+    );
   });
 
-  test('desktop controls use overlays and real bottom navigation tabs', () {
+  test('desktop controls use overlays and real navigation tabs', () {
     final adaptive = source('lib/screens/adaptive_home_base_screen.dart');
     final widgets = source('lib/screens/desktop_home_widgets.dart');
     final manager = source('lib/screens/desktop_object_management_dialog.dart');
