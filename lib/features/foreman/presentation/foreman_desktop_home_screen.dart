@@ -4,8 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../../../data/app_data_sync.dart';
 import '../../../data/app_state.dart';
-import '../../../data/attendance_repository.dart';
-import '../../../data/employee_repository.dart';
+import '../../../data/offline_master_repository.dart';
 import '../../../data/task_repository.dart';
 import '../../../features/milestones/presentation/milestone_home_overlay.dart';
 import '../../../models/app_user_profile.dart';
@@ -93,11 +92,11 @@ class _ForemanDesktopHomeScreenState extends State<ForemanDesktopHomeScreen> {
     final today = AppState.today;
     final object = cleanObjectName(objectName);
     final results = await Future.wait<dynamic>([
-      EmployeeRepository.fetchEmployees(
+      OfflineEmployeeRepository.fetchEmployees(
         objectName: object,
         forceRefresh: forceRefresh,
       ),
-      AttendanceRepository.fetchShiftValuesForDate(
+      OfflineAttendanceRepository.fetchShiftValuesForDate(
         today,
         objectName: object,
         forceRefresh: forceRefresh,

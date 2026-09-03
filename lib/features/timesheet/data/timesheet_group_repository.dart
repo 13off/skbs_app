@@ -1,6 +1,7 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../data/app_data_sync.dart';
+import '../../../data/offline_sync_service.dart';
 import '../models/timesheet_group.dart';
 
 class TimesheetGroupRepository {
@@ -19,6 +20,10 @@ class TimesheetGroupRepository {
     return clean == null || clean.isEmpty ? null : clean;
   }
 
+  static String _snapshotKey(String? objectName) {
+    return 'timesheet_groups::${_cleanObjectName(objectName) ?? '__all__'}';
+  }
+
   static List<TimesheetGroup> _sortGroups(Iterable<TimesheetGroup> groups) {
     final result = groups.toList(growable: false);
     result.sort((first, second) {
@@ -29,6 +34,32 @@ class TimesheetGroupRepository {
       return first.name.toLowerCase().compareTo(second.name.toLowerCase());
     });
     return result;
+  }
+
+  static Map<String, dynamic> _toSnapshot(TimesheetGroup group) {
+    return <String, dynamic>{
+      'id': group.id,
+      'object_id': group.objectId,
+      'object_name': group.objectName,
+      'name': group.name,
+      'sort_order': group.sortOrder,
+      'is_system': group.isSystem,
+      'employee_ids': group.employeeIds.toList(growable: false),
+    };
+  }
+
+  static Future<List<TimesheetGroup>> _readSnapshot(String? objectName) async {
+    final cached = await OfflineSyncService.readSnapshot(
+      _snapshotKey(objectName),
+    );
+    if (cached is! List) {
+      throw StateError('Нет локального снимка групп табеля');
+    }
+    return _sortGroups(
+      cached.whereType<Map>().map(
+        (row) => TimesheetGroup.fromMap(Map<String, dynamic>.from(row)),
+      ),
+    );
   }
 
   static Future<List<TimesheetGroup>> fetchGroups({
@@ -65,16 +96,30 @@ class TimesheetGroupRepository {
   }
 
   static Future<List<TimesheetGroup>> _loadGroups(String? objectName) async {
-    final result = await _client.rpc(
-      'list_timesheet_groups',
-      params: <String, dynamic>{'p_object_name': objectName},
-    );
-    if (result is! List) return const <TimesheetGroup>[];
-    return _sortGroups(
-      result.whereType<Map>().map(
-        (row) => TimesheetGroup.fromMap(Map<String, dynamic>.from(row)),
-      ),
-    );
+    try {
+      final result = await _client.rpc(
+        'list_timesheet_groups',
+        params: <String, dynamic>{'p_object_name': objectName},
+      );
+      final groups = result is! List
+          ? const <TimesheetGroup>[]
+          : _sortGroups(
+              result.whereType<Map>().map(
+                (row) => TimesheetGroup.fromMap(
+                  Map<String, dynamic>.from(row),
+                ),
+              ),
+            );
+      await OfflineSyncService.saveSnapshot(
+        _snapshotKey(objectName),
+        groups.map(_toSnapshot).toList(growable: false),
+      );
+      await OfflineSyncService.markSynced();
+      return groups;
+    } catch (error) {
+      if (!OfflineSyncService.isNetworkFailure(error)) rethrow;
+      return _readSnapshot(objectName);
+    }
   }
 
   static void clearCache() {

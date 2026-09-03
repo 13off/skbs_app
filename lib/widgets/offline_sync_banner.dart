@@ -39,7 +39,7 @@ class _OfflineSyncHostState extends State<OfflineSyncHost>
       unawaited(OfflineSyncService.flush());
     });
     _dataChangeSubscription = AppDataSync.changes.listen((change) {
-      if (change.isRemote) unawaited(OfflineSyncService.markSynced());
+      if (change.isRemote) unawaited(_syncAfterConnectivitySignal());
     });
   }
 
@@ -58,6 +58,14 @@ class _OfflineSyncHostState extends State<OfflineSyncHost>
       companyId: widget.companyId,
     );
     await OfflineSyncService.flush();
+  }
+
+  Future<void> _syncAfterConnectivitySignal() async {
+    if (OfflineSyncService.pendingCount > 0) {
+      await OfflineSyncService.flush();
+      return;
+    }
+    await OfflineSyncService.markSynced();
   }
 
   @override

@@ -6,10 +6,9 @@ import '../app/app_adaptive_palette.dart';
 import '../data/app_cache_coordinator.dart';
 import '../data/app_data_sync.dart';
 import '../data/app_state.dart';
-import '../data/attendance_repository.dart';
-import '../data/employee_repository.dart';
 import '../data/finance_summary_repository.dart';
 import '../data/object_repository.dart';
+import '../data/offline_master_repository.dart';
 import '../data/task_repository.dart';
 import '../features/milestones/presentation/milestone_home_overlay.dart';
 import '../models/app_user_profile.dart';
@@ -65,7 +64,9 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
     dashboardFuture = loadDashboardData();
-    objectNamesFuture = EmployeeRepository.fetchObjectNames();
+    objectNamesFuture = widget.profile.isAdmin
+        ? OfflineObjectRepository.fetchObjectNames()
+        : Future<List<String>>.value(const <String>[]);
     dataChangeSubscription = AppDataSync.changes.listen(handleDataChange);
   }
 
