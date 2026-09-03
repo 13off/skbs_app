@@ -1,6 +1,8 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:universal_html/html.dart' as html;
 
 import '../app/app_adaptive_palette.dart';
 import '../data/app_data_sync.dart';
@@ -28,17 +30,35 @@ class _OfflineSyncHostState extends State<OfflineSyncHost>
 
   Timer? _retryTimer;
   StreamSubscription<AppDataChange>? _dataChangeSubscription;
+  StreamSubscription<html.Event>? _browserOfflineSubscription;
+  StreamSubscription<html.Event>? _browserOnlineSubscription;
+  bool _browserOnline = true;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _configure();
+    _configureBrowserConnectivity();
     _retryTimer = Timer.periodic(_retryInterval, (_) {
       unawaited(OfflineSyncService.flush());
     });
     _dataChangeSubscription = AppDataSync.changes.listen((change) {
       if (change.isRemote) unawaited(_syncAfterConnectivitySignal());
+    });
+  }
+
+  void _configureBrowserConnectivity() {
+    if (!kIsWeb) return;
+    _browserOnline = html.window.navigator.onLine;
+    _browserOfflineSubscription = html.window.onOffline.listen((_) {
+      if (!mounted || !_browserOnline) return;
+      setState(() => _browserOnline = false);
+    });
+    _browserOnlineSubscription = html.window.onOnline.listen((_) {
+      if (!mounted) return;
+      if (!_browserOnline) setState(() => _browserOnline = true);
+      unawaited(OfflineSyncService.flush());
     });
   }
 
@@ -79,6 +99,8 @@ class _OfflineSyncHostState extends State<OfflineSyncHost>
     WidgetsBinding.instance.removeObserver(this);
     _retryTimer?.cancel();
     _dataChangeSubscription?.cancel();
+    _browserOfflineSubscription?.cancel();
+    _browserOnlineSubscription?.cancel();
     super.dispose();
   }
 
@@ -87,7 +109,10 @@ class _OfflineSyncHostState extends State<OfflineSyncHost>
     return ValueListenableBuilder<OfflineSyncState>(
       valueListenable: OfflineSyncService.state,
       builder: (context, state, _) {
-        if (state.pendingCount == 0) return widget.child;
+        final browserOffline = kIsWeb && !_browserOnline;
+        final shouldShow =
+            browserOffline || state.pendingCount > 0 || state.isSyncing;
+        if (!shouldShow) return widget.child;
         final safeTop = MediaQuery.paddingOf(context).top;
         return Stack(
           fit: StackFit.expand,
@@ -96,7 +121,10 @@ class _OfflineSyncHostState extends State<OfflineSyncHost>
             Positioned(
               top: safeTop + 8,
               right: 10,
-              child: _OfflineSyncIndicator(state: state),
+              child: _OfflineSyncIndicator(
+                state: state,
+                offline: browserOffline || !state.isSyncing,
+              ),
             ),
           ],
         );
@@ -107,8 +135,11 @@ class _OfflineSyncHostState extends State<OfflineSyncHost>
 
 class _OfflineSyncIndicator extends StatelessWidget {
   final OfflineSyncState state;
+  final bool offline;
 
-  const _OfflineSyncIndicator({required this.state});
+  const _OfflineSyncIndicator({required this.state, required this.offline});
+
+  bool get syncing => state.isSyncing && !offline;
 
   Future<void> _showStatus(BuildContext context) async {
     await showModalBottomSheet<void>(
@@ -116,7 +147,6 @@ class _OfflineSyncIndicator extends StatelessWidget {
       showDragHandle: true,
       backgroundColor: AppAdaptivePalette.surfaceElevated,
       builder: (sheetContext) {
-        final syncing = state.isSyncing;
         return SafeArea(
           top: false,
           child: Padding(
@@ -169,7 +199,9 @@ class _OfflineSyncIndicator extends StatelessWidget {
                 Text(
                   syncing
                       ? 'Соединение восстановлено. AppСтрой отправляет сохранённые изменения на сервер. Осталось: ${state.pendingCount}.'
-                      : 'Изменения сохранены на этом устройстве. AppСтрой автоматически отправит их на сервер, когда соединение восстановится.',
+                      : state.pendingCount > 0
+                      ? 'Изменения сохранены на этом устройстве. AppСтрой автоматически отправит их на сервер, когда соединение восстановится. Ожидает отправки: ${state.pendingCount}.'
+                      : 'Сейчас нет подключения к интернету. Можно продолжать работать с сохранёнными данными. Новые изменения останутся на устройстве и автоматически отправятся на сервер после восстановления связи.',
                   style: TextStyle(
                     color: AppAdaptivePalette.textMuted,
                     fontSize: 15,
@@ -201,7 +233,6 @@ class _OfflineSyncIndicator extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final syncing = state.isSyncing;
     return Material(
       color: Colors.transparent,
       child: InkWell(
