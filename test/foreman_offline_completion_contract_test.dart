@@ -124,7 +124,7 @@ void main() {
     ]);
     containsAll('lib/screens/task_create/task_create_loading.dart', const [
       'OfflineEmployeeRepository.fetchEmployees(',
-      "errorText = 'Не удалось открыть сохранённый список сотрудников: $error';",
+      "errorText = 'Не удалось открыть сохранённый список сотрудников: \$error';",
     ]);
   });
 
