@@ -5,8 +5,9 @@
   const startFlutter = () => {
     _flutter.loader.load({
       config: {
-        // Build already contains CanvasKit. Keeping it same-origin makes a
-        // previously opened AppStroy PWA independent from external CDNs.
+        // Load Flutter with generated config while keeping CanvasKit same-origin.
+        // A previously opened AppStroy PWA then stays independent from external
+        // CDNs during an offline cold start.
         canvasKitBaseUrl: 'canvaskit/',
       },
     });
