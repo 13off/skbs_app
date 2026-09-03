@@ -12,6 +12,8 @@ import 'task_photo_native_picker_service.dart';
 class TaskPhotoBrowserService {
   static const acceptedFileTypes = 'image/*,.heic,.heif';
   static const Duration fileReadTimeout = Duration(seconds: 25);
+  static const Duration pickerSafetyTimeout = Duration(minutes: 3);
+  static const Duration pickerFocusSettleDelay = Duration(milliseconds: 450);
   static const int prepareConcurrency = 2;
 
   const TaskPhotoBrowserService._();
@@ -129,6 +131,52 @@ class TaskPhotoBrowserService {
     );
   }
 
+  static Future<List<html.File>> _pickWebFiles() async {
+    final input = html.FileUploadInputElement()
+      ..multiple = true
+      ..accept = acceptedFileTypes;
+    input.style
+      ..position = 'fixed'
+      ..left = '-10000px'
+      ..top = '-10000px'
+      ..width = '1px'
+      ..height = '1px'
+      ..opacity = '0';
+
+    // На iOS Safari/PWA detached input может не вернуть change после выбора.
+    // Держим input в DOM до полного завершения системного picker-а.
+    html.document.body?.append(input);
+
+    final completer = Completer<List<html.File>>();
+    StreamSubscription<html.Event>? changeSubscription;
+    StreamSubscription<html.Event>? focusSubscription;
+    Timer? safetyTimer;
+    Timer? focusSettleTimer;
+
+    void finish() {
+      if (completer.isCompleted) return;
+      completer.complete(input.files?.toList(growable: false) ?? <html.File>[]);
+    }
+
+    changeSubscription = input.onChange.listen((_) => finish());
+    focusSubscription = html.window.onFocus.listen((_) {
+      focusSettleTimer?.cancel();
+      focusSettleTimer = Timer(pickerFocusSettleDelay, finish);
+    });
+    safetyTimer = Timer(pickerSafetyTimeout, finish);
+
+    try {
+      input.click();
+      return await completer.future;
+    } finally {
+      safetyTimer.cancel();
+      focusSettleTimer?.cancel();
+      await changeSubscription.cancel();
+      await focusSubscription.cancel();
+      input.remove();
+    }
+  }
+
   static Future<List<TaskPhotoFile>> pickPhotoFiles({
     void Function(int completed, int total)? onPrepareProgress,
   }) async {
@@ -140,17 +188,9 @@ class TaskPhotoBrowserService {
       return photos;
     }
 
-    final input = html.FileUploadInputElement()
-      ..multiple = true
-      ..accept = acceptedFileTypes;
+    final selectedFiles = await _pickWebFiles();
+    if (selectedFiles.isEmpty) return <TaskPhotoFile>[];
 
-    input.click();
-    await input.onChange.first;
-
-    final files = input.files;
-    if (files == null || files.isEmpty) return <TaskPhotoFile>[];
-
-    final selectedFiles = files.toList(growable: false);
     final photos = <TaskPhotoFile>[];
     var completed = 0;
     onPrepareProgress?.call(0, selectedFiles.length);
