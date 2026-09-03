@@ -23,11 +23,17 @@ void main() {
     final screen = File(
       'lib/features/payments/presentation/screens/payments_screen.dart',
     ).readAsStringSync();
+    final repository = File(
+      'lib/data/payment_repository.dart',
+    ).readAsStringSync();
 
     expect(screen, contains('Выбрать промежуток'));
     expect(screen, contains('Уволенные'));
     expect(screen, contains('fetchPeriodTimesheet'));
-    expect(screen, contains('payment.paymentDate'));
+    expect(screen, contains('fetchPaymentTotalsForEmployees'));
+    expect(screen, contains('byPaymentDate: mode == _PaymentAccountingMode.paymentDate'));
+    expect(repository, contains("'p_start_date': dateKey(startDate)"));
+    expect(repository, contains("'p_end_date': dateKey(endDate)"));
   });
 
   test('onboarding implementation is preserved but temporarily disconnected', () {

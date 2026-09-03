@@ -580,70 +580,36 @@ class AttendanceRepository {
       return _copyMonthlyRows(cached.rows);
     }
 
-    final firstDate = DateTime(year, month, 1);
-    final lastDate = DateTime(year, month + 1, 0);
-    final data = await Future.wait<dynamic>([
-      EmployeeRepository.fetchEmployees(
-        objectName: cleanObject,
-        includeFired: includeFired,
-      ),
-      _fetchAttendanceRows(
-        startDate: firstDate,
-        endDate: lastDate,
-        objectName: cleanObject,
-      ),
-      _client
-          .from('payments')
-          .select('employee_id, amount')
-          .eq('period_year', year)
-          .eq('period_month', month),
-    ]);
-    final employees = data[0] as List<Employee>;
-    final attendanceRows = data[1] as List<Map<String, dynamic>>;
-    final paymentRows = data[2] as List<dynamic>;
+    final response = await _client.rpc<dynamic>(
+      'get_monthly_timesheet_fast',
+      params: <String, dynamic>{
+        'p_year': year,
+        'p_month': month,
+        'p_object_name': cleanObject,
+        'p_include_fired': includeFired,
+      },
+    );
+    if (response is! List) return <MonthlyTimesheetRow>[];
 
-    final shiftsByEmployeeId = <String, Map<int, double>>{};
-
-    for (final row in attendanceRows) {
-      final employeeId = row['employee_id']?.toString();
-      final workDateText = row['work_date']?.toString();
-
-      if (employeeId == null || workDateText == null) continue;
-
-      final workDate = DateTime.tryParse(workDateText);
-
-      if (workDate == null) continue;
-
-      final employeeDays = shiftsByEmployeeId.putIfAbsent(
-        employeeId,
-        () => <int, double>{},
-      );
-
-      employeeDays[workDate.day] = _toDouble(row['shifts']);
-    }
-
-    final paidByEmployeeId = <String, double>{};
-
-    for (final row in paymentRows) {
-      final employeeId = row['employee_id']?.toString();
-
-      if (employeeId == null) continue;
-
-      paidByEmployeeId[employeeId] =
-          (paidByEmployeeId[employeeId] ?? 0.0) + _toDouble(row['amount']);
-    }
-
-    final result = employees.map((employee) {
-      final employeeId = employee.id;
-
-      return MonthlyTimesheetRow(
-        employee: employee,
-        shiftsByDay: employeeId == null
-            ? <int, double>{}
-            : shiftsByEmployeeId[employeeId] ?? <int, double>{},
-        paid: employeeId == null ? 0.0 : paidByEmployeeId[employeeId] ?? 0.0,
-      );
-    }).toList();
+    final result = response
+        .whereType<Map>()
+        .map<MonthlyTimesheetRow>((raw) {
+          final row = Map<String, dynamic>.from(raw);
+          final rawDays = row['shifts_by_day'];
+          final shiftsByDay = <int, double>{};
+          if (rawDays is Map) {
+            for (final entry in rawDays.entries) {
+              final day = int.tryParse(entry.key.toString());
+              if (day != null) shiftsByDay[day] = _toDouble(entry.value);
+            }
+          }
+          return MonthlyTimesheetRow(
+            employee: Employee.fromSupabase(row),
+            shiftsByDay: shiftsByDay,
+            paid: _toDouble(row['paid']),
+          );
+        })
+        .toList(growable: false);
 
     if (generation == _cacheGeneration) {
       _monthlyTimesheetCache[cacheKey] = _MonthlyTimesheetCacheEntry(
@@ -651,7 +617,6 @@ class AttendanceRepository {
         createdAt: DateTime.now(),
       );
     }
-
     return _copyMonthlyRows(result);
   }
 
@@ -890,46 +855,34 @@ class AttendanceRepository {
       return _copyPeriodRows(cached.rows);
     }
 
-    final data = await Future.wait<dynamic>([
-      EmployeeRepository.fetchEmployees(
-        objectName: cleanObject,
-        includeFired: includeFired,
-      ),
-      _fetchAttendanceRows(
-        startDate: startDate,
-        endDate: endDate,
-        objectName: cleanObject,
-      ),
-    ]);
-    final employees = data[0] as List<Employee>;
-    final rows = data[1] as List<Map<String, dynamic>>;
+    final response = await _client.rpc<dynamic>(
+      'get_period_timesheet_fast',
+      params: <String, dynamic>{
+        'p_start_date': dateKey(startDate),
+        'p_end_date': dateKey(endDate),
+        'p_object_name': cleanObject,
+        'p_include_fired': includeFired,
+      },
+    );
+    if (response is! List) return <PeriodTimesheetRow>[];
 
-    final shiftsByEmployeeId = <String, Map<String, double>>{};
-
-    for (final row in rows) {
-      final employeeId = row['employee_id']?.toString();
-      final workDateText = row['work_date']?.toString();
-
-      if (employeeId == null || workDateText == null) continue;
-
-      final employeeDates = shiftsByEmployeeId.putIfAbsent(
-        employeeId,
-        () => <String, double>{},
-      );
-
-      employeeDates[workDateText] = _toDouble(row['shifts']);
-    }
-
-    final result = employees.map((employee) {
-      final employeeId = employee.id;
-
-      return PeriodTimesheetRow(
-        employee: employee,
-        shiftsByDate: employeeId == null
-            ? <String, double>{}
-            : shiftsByEmployeeId[employeeId] ?? <String, double>{},
-      );
-    }).toList();
+    final result = response
+        .whereType<Map>()
+        .map<PeriodTimesheetRow>((raw) {
+          final row = Map<String, dynamic>.from(raw);
+          final rawDates = row['shifts_by_date'];
+          final shiftsByDate = <String, double>{};
+          if (rawDates is Map) {
+            for (final entry in rawDates.entries) {
+              shiftsByDate[entry.key.toString()] = _toDouble(entry.value);
+            }
+          }
+          return PeriodTimesheetRow(
+            employee: Employee.fromSupabase(row),
+            shiftsByDate: shiftsByDate,
+          );
+        })
+        .toList(growable: false);
 
     if (generation == _cacheGeneration) {
       _periodTimesheetCache[cacheKey] = _PeriodTimesheetCacheEntry(
@@ -937,7 +890,6 @@ class AttendanceRepository {
         createdAt: DateTime.now(),
       );
     }
-
     return _copyPeriodRows(result);
   }
 }

@@ -81,7 +81,9 @@ void main() {
       ]);
       containsAll('lib/data/task_photo_repository.dart', const [
         ".from('task_photos')",
-        'removeStoragePaths(<String>[photo.storagePath])',
+        'photo.storagePath,',
+        'photo.thumbnailPath.trim().isNotEmpty',
+        'photo.thumbnailPath,',
         "'table': 'task_photos'",
       ]);
 

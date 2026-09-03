@@ -26,37 +26,28 @@ void main() {
     );
   });
 
-  test(
-    'monthly timesheet loads employees, attendance and payments together',
-    () {
-      final source = File(
-        'lib/data/attendance_repository.dart',
-      ).readAsStringSync();
-      final start = source.indexOf(
-        'static Future<List<MonthlyTimesheetRow>> _fetchMonthlyTimesheet',
-      );
-      final end = source.indexOf(
-        'static Future<MonthlyTimesheetRow> fetchMonthlyTimesheetForEmployee',
-        start,
-      );
-      final method = source.substring(start, end);
+  test('monthly timesheet is aggregated by one protected server RPC', () {
+    final source = File(
+      'lib/data/attendance_repository.dart',
+    ).readAsStringSync();
+    final start = source.indexOf(
+      'static Future<List<MonthlyTimesheetRow>> _fetchMonthlyTimesheet',
+    );
+    final end = source.indexOf(
+      'static Future<MonthlyTimesheetRow> fetchMonthlyTimesheetForEmployee',
+      start,
+    );
+    final method = source.substring(start, end);
 
-      expect(method, contains('final data = await Future.wait<dynamic>(['));
-      expect(method, contains('EmployeeRepository.fetchEmployees('));
-      expect(method, contains('_fetchAttendanceRows('));
-      expect(method, contains(".from('payments')"));
-      expect(method, contains('final employees = data[0] as List<Employee>;'));
-      expect(
-        method,
-        contains(
-          'final attendanceRows = data[1] as List<Map<String, dynamic>>;',
-        ),
-      );
-      expect(method, contains('final paymentRows = data[2] as List<dynamic>;'));
-    },
-  );
+    expect(method, contains("'get_monthly_timesheet_fast'"));
+    expect(method, contains("'p_year': year"));
+    expect(method, contains("'p_month': month"));
+    expect(method, contains("row['shifts_by_day']"));
+    expect(method, contains("paid: _toDouble(row['paid'])"));
+    expect(method, isNot(contains(".from('payments')")));
+  });
 
-  test('employee month and arbitrary period also avoid serial reads', () {
+  test('employee month stays parallel and arbitrary period uses one RPC', () {
     final source = File(
       'lib/data/attendance_repository.dart',
     ).readAsStringSync();
@@ -80,9 +71,10 @@ void main() {
       'static Future<List<PeriodTimesheetRow>> _fetchPeriodTimesheet',
     );
     final periodMethod = source.substring(periodStart);
-    expect(periodMethod, contains('final data = await Future.wait<dynamic>(['));
-    expect(periodMethod, contains('EmployeeRepository.fetchEmployees('));
-    expect(periodMethod, contains('_fetchAttendanceRows('));
+    expect(periodMethod, contains("'get_period_timesheet_fast'"));
+    expect(periodMethod, contains("'p_start_date': dateKey(startDate)"));
+    expect(periodMethod, contains("'p_end_date': dateKey(endDate)"));
+    expect(periodMethod, contains("row['shifts_by_date']"));
   });
 
   test('caches and result assembly remain in place', () {

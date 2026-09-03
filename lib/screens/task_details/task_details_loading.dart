@@ -27,10 +27,10 @@ extension _TaskDetailsLoading on _TaskDetailsScreenState {
     return selectedEmployees.map((employee) => employee.name).join(', ');
   }
 
-  Future<String> signedUrlFuture(TaskPhotoData photo) {
+  Future<String> previewSignedUrlFuture(TaskPhotoData photo) {
     return signedUrlFutures.putIfAbsent(
-      photo.id,
-      () => TaskPhotoSignedUrlCache.getSignedUrl(photo),
+      'preview:${photo.id}',
+      () => TaskPhotoSignedUrlCache.getPreviewSignedUrl(photo),
     );
   }
 
@@ -82,6 +82,7 @@ extension _TaskDetailsLoading on _TaskDetailsScreenState {
         isLoading = false;
         errorText = null;
       });
+      unawaited(TaskPhotoSignedUrlCache.prewarmPreviews(loadedPhotos.take(6)));
     } catch (error) {
       if (!mounted || token != loadToken) return;
       setState(() {
