@@ -23,6 +23,12 @@ Color get _text => AppAdaptivePalette.textPrimary;
 Color get _muted => AppAdaptivePalette.textMuted;
 Color get _soft => AppAdaptivePalette.surfaceSoft;
 
+bool get _usesImmediatePointerDrag =>
+    kIsWeb ||
+    defaultTargetPlatform == TargetPlatform.windows ||
+    defaultTargetPlatform == TargetPlatform.macOS ||
+    defaultTargetPlatform == TargetPlatform.linux;
+
 enum RecruitmentViewMode { board, list }
 
 enum RecruitmentSortMode { updatedDesc, updatedAsc, name, nextTask }
@@ -1661,7 +1667,7 @@ class _RecruitmentApplicationsScreenState
                 Icon(Icons.drag_indicator_rounded, size: 18, color: _muted),
                 const SizedBox(width: AppUi.gap4),
                 Text(
-                  kIsWeb ? 'Перетащи' : 'Удерживай',
+                  _usesImmediatePointerDrag ? 'Перетащи' : 'Удерживай',
                   style: TextStyle(
                     color: _muted,
                     fontSize: 10.5,
@@ -1722,7 +1728,7 @@ class _RecruitmentApplicationsScreenState
       }
     }
 
-    if (kIsWeb) {
+    if (_usesImmediatePointerDrag) {
       return Draggable<RecruitmentApplication>(
         data: application,
         maxSimultaneousDrags: busy ? 0 : 1,
