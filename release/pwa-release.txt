@@ -1,6 +1,6 @@
 AppСтрой PWA release
-release date: 2026-08-21
-reason: app-wide performance pass without changing business logic; faster screen transitions and interaction motion, idle prewarm of persistent tabs without pending timers, cached and coalesced timesheet groups, indexed timesheet lookups, debounced recruitment search, fewer redundant refreshes and lighter mobile PWA glass blur
-accepted application commit: 25e6a871450f260a90de762a521de0d62a211247
-verification: PR Check, Acceptance Backend Follow-up and Full Acceptance Test passed; analyzer, all Flutter tests, Web release and browser smoke, Android debug/release, Edge and SQL checks are green
+release date: 2026-09-03
+reason: объединение экранов «Выплаты» и «Отчёты» в панели Бухгалтера; единый раздел «Выплаты и расчёты», переключатель «Начисления и остатки» / «История выплат», перенос XLSX и табеля в общий рабочий экран, удаление отдельной вкладки «Отчёты» из нижней навигации
+accepted application commit: e49050e168fb37b80319ea6da74202f10f7bd0b7
+verification: PWA workflow должен выполнить flutter test, flutter analyze и release web build перед публикацией
 release target: PWA only; no Android APK or iOS IPA publication
