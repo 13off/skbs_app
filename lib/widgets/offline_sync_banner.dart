@@ -50,7 +50,7 @@ class _OfflineSyncHostState extends State<OfflineSyncHost>
 
   void _configureBrowserConnectivity() {
     if (!kIsWeb) return;
-    _browserOnline = html.window.navigator.onLine;
+    _browserOnline = html.window.navigator.onLine ?? true;
     _browserOfflineSubscription = html.window.onOffline.listen((_) {
       if (!mounted || !_browserOnline) return;
       setState(() => _browserOnline = false);
