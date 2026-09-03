@@ -44,7 +44,7 @@ void main() {
     final page = File('lib/widgets/app_page.dart').readAsStringSync();
 
     expect(tokens, contains('pageContentWidth = 1220'));
-    expect(tokens, contains('pageDesktopHorizontalPadding = 144'));
+    expect(tokens, contains('pageDesktopHorizontalPadding = 48'));
     expect(page, isNot(contains("title == 'Кандидаты'")));
     expect(page, contains('final effectiveMaxContentWidth = isDesktop'));
     expect(page, contains('? double.infinity'));
