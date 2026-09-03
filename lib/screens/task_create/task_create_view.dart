@@ -31,10 +31,6 @@ extension _TaskCreateView on _AddTaskScreenState {
           ),
           const SizedBox(height: 14),
           buildObjectCard(),
-          if (widget.allowDraft) ...[
-            const SizedBox(height: 16),
-            buildVoiceAssistantCard(),
-          ],
           const SizedBox(height: 16),
           OutlinedButton.icon(
             onPressed: widget.allowAnyDate ? pickDate : null,
