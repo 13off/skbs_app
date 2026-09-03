@@ -12,6 +12,7 @@ import 'task_photo_native_picker_service.dart';
 class TaskPhotoBrowserService {
   static const acceptedFileTypes = 'image/*,.heic,.heif';
   static const Duration fileReadTimeout = Duration(seconds: 25);
+  static const Duration filePickerTimeout = Duration(seconds: 90);
   static const int prepareConcurrency = 2;
 
   const TaskPhotoBrowserService._();
@@ -129,6 +130,59 @@ class TaskPhotoBrowserService {
     );
   }
 
+  static Future<List<html.File>> _pickWebFiles() async {
+    final input = html.FileUploadInputElement()
+      ..multiple = true
+      ..accept = acceptedFileTypes;
+    input.style.display = 'none';
+    html.document.body?.append(input);
+
+    final completer = Completer<List<html.File>>();
+    StreamSubscription<html.Event>? changeSubscription;
+    StreamSubscription<html.Event>? blurSubscription;
+    StreamSubscription<html.Event>? focusSubscription;
+    Timer? focusGraceTimer;
+    var pickerBlurredWindow = false;
+
+    void completeWithCurrentFiles() {
+      if (completer.isCompleted) return;
+      final files = input.files;
+      completer.complete(
+        files == null ? <html.File>[] : files.toList(growable: false),
+      );
+    }
+
+    changeSubscription = input.onChange.listen((_) {
+      completeWithCurrentFiles();
+    });
+    blurSubscription = html.window.onBlur.listen((_) {
+      pickerBlurredWindow = true;
+    });
+    focusSubscription = html.window.onFocus.listen((_) {
+      if (!pickerBlurredWindow || completer.isCompleted) return;
+      focusGraceTimer?.cancel();
+      focusGraceTimer = Timer(const Duration(milliseconds: 450), () {
+        completeWithCurrentFiles();
+      });
+    });
+
+    try {
+      // На iOS/iPadOS установленная PWA заметно надёжнее открывает медиатеку,
+      // когда input реально находится в DOM, а не создан только в памяти.
+      input.click();
+      return await completer.future.timeout(
+        filePickerTimeout,
+        onTimeout: () => <html.File>[],
+      );
+    } finally {
+      focusGraceTimer?.cancel();
+      await changeSubscription.cancel();
+      await blurSubscription.cancel();
+      await focusSubscription.cancel();
+      input.remove();
+    }
+  }
+
   static Future<List<TaskPhotoFile>> pickPhotoFiles({
     void Function(int completed, int total)? onPrepareProgress,
   }) async {
@@ -140,17 +194,9 @@ class TaskPhotoBrowserService {
       return photos;
     }
 
-    final input = html.FileUploadInputElement()
-      ..multiple = true
-      ..accept = acceptedFileTypes;
+    final selectedFiles = await _pickWebFiles();
+    if (selectedFiles.isEmpty) return <TaskPhotoFile>[];
 
-    input.click();
-    await input.onChange.first;
-
-    final files = input.files;
-    if (files == null || files.isEmpty) return <TaskPhotoFile>[];
-
-    final selectedFiles = files.toList(growable: false);
     final photos = <TaskPhotoFile>[];
     var completed = 0;
     onPrepareProgress?.call(0, selectedFiles.length);
