@@ -31,6 +31,7 @@ extension _TaskCreateLoading on _AddTaskScreenState {
     try {
       final loaded = await DeveloperPolicyRepository.ensurePolicy(
         widget.objectName,
+        forceRefresh: true,
       );
       if (!mounted) return;
       setState(() {
