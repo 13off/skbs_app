@@ -1,6 +1,8 @@
 part of '../add_task_screen.dart';
 
 extension _TaskCreateView on _AddTaskScreenState {
+  bool get _voicePanelEnabled => false;
+
   Widget buildTaskCreateView() {
     final editingDraft = widget.sourceDraftId?.trim().isNotEmpty == true;
     final batchCount = voiceBatchDrafts.length > 1 ? voiceBatchDrafts.length : 1;
@@ -29,6 +31,10 @@ extension _TaskCreateView on _AddTaskScreenState {
                 : 'Прораб добавляет задачу на объект',
             style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900),
           ),
+          if (_voicePanelEnabled) ...[
+            const SizedBox(height: 16),
+            buildVoiceAssistantCard(),
+          ],
           const SizedBox(height: 14),
           buildObjectCard(),
           const SizedBox(height: 16),
