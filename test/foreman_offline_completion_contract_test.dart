@@ -24,7 +24,9 @@ void main() {
       'OfflineSyncService.pendingCount > 0',
       'Timer.periodic(_retryInterval',
       'AppLifecycleState.resumed',
-      "'Ожидает отправки: ",
+      '_OfflineSyncIndicator(state: state)',
+      "'Нет связи с сервером'",
+      "'Отправляем данные'",
     ]);
 
     containsAll('lib/data/offline_sync_service.dart', const [
@@ -126,6 +128,44 @@ void main() {
       'OfflineEmployeeRepository.fetchEmployees(',
       "errorText = 'Не удалось открыть сохранённый список сотрудников: \$error';",
     ]);
+  });
+
+  test('правила объекта и фотографии остаются рабочими без сети', () {
+    containsAll(
+      'lib/features/developer/data/developer_policy_repository.dart',
+      const [
+        "'developer_task_policy::",
+        'OfflineSyncService.saveSnapshot(',
+        'OfflineSyncService.readSnapshot(',
+        'OfflineSyncService.isNetworkFailure(error)',
+        '_persistCenterPolicies(center)',
+      ],
+    );
+    containsAll('lib/data/task_photo_browser_service.dart', const [
+      'html.document.body?.append(input)',
+      'html.window.onFocus.listen',
+      'pickerFocusSettleDelay',
+      'input.remove()',
+    ]);
+    containsAll(
+      'lib/screens/task_details/task_details_photo_actions.dart',
+      const [
+        'TaskRepository.uploadPhotosForTask(',
+        "photoStage: photoStage",
+        'Фото сохранены на устройстве',
+      ],
+    );
+    containsAll('lib/screens/task_details/task_details_loading.dart', const [
+      'OfflineEmployeeRepository.fetchEmployees(',
+      'DeveloperPolicyRepository.ensurePolicy(widget.task.objectName)',
+    ]);
+  });
+
+  test('голосовая панель задачи временно скрыта', () {
+    final view = source('lib/screens/task_create/task_create_view.dart');
+    expect(view, isNot(contains('buildVoiceAssistantCard()')));
+    final loading = source('lib/screens/task_create/task_create_loading.dart');
+    expect(loading, isNot(contains('captureVoiceTask()')));
   });
 
   test('главная мастера не блокируется админскими финансами и этапы кешируются', () {
