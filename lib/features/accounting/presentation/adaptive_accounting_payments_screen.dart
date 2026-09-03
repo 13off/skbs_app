@@ -4,15 +4,19 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../../../data/app_data_sync.dart';
+import '../../../data/employee_repository.dart';
+import '../../../models/employee.dart';
 import '../../../models/monthly_timesheet_row.dart';
+import '../../../navigation/app_page_route.dart';
 import '../../../screens/add_payment_screen.dart';
+import '../../../screens/period_timesheet_screen.dart';
 import '../../../widgets/premium_ui.dart';
+import '../../payments/data/payment_report_exporter.dart';
 import '../../payments/presentation/screens/payments_screen.dart';
 import '../../shared/presentation/specialist_desktop_table.dart';
 import '../../shared/presentation/specialist_desktop_ui.dart';
 import '../data/accounting_repository.dart';
 import 'accounting_widgets.dart';
-import '../../../navigation/app_page_route.dart';
 
 class AdaptiveAccountingPaymentsScreen extends StatelessWidget {
   const AdaptiveAccountingPaymentsScreen({super.key});
@@ -46,6 +50,8 @@ class _DesktopAccountingPaymentsScreenState
   StreamSubscription<AppDataChange>? subscription;
   String? objectName;
   String receiptFilter = 'all';
+  String workspaceView = 'balances';
+  bool isExporting = false;
 
   @override
   void initState() {
@@ -135,6 +141,93 @@ class _DesktopAccountingPaymentsScreenState
         builder: (_) => PaymentsScreen(selectedObjectName: objectName),
       ),
     );
+  }
+
+  void openTimesheet() {
+    Navigator.push<void>(
+      context,
+      AppPageRoute<void>(
+        builder: (_) => PeriodTimesheetScreen(
+          selectedObjectName: objectName,
+          initialMonth: selectedMonth,
+        ),
+      ),
+    );
+  }
+
+  String employeeKey(Employee employee) {
+    final cleanName = employee.name.trim().toLowerCase().replaceAll(
+      RegExp(r'\s+'),
+      ' ',
+    );
+    return cleanName.isNotEmpty
+        ? cleanName
+        : employee.id ?? employee.objectName;
+  }
+
+  Future<List<PaymentReportEmployeeOption>> reportEmployees() async {
+    final employees = await EmployeeRepository.fetchEmployees(
+      objectName: objectName,
+      includeFired: true,
+    );
+    final drafts = <String, _ReportEmployeeDraft>{};
+
+    for (final employee in employees) {
+      final id = employee.id?.trim();
+      if (id == null || id.isEmpty) continue;
+      final key = employeeKey(employee);
+      final draft = drafts.putIfAbsent(
+        key,
+        () => _ReportEmployeeDraft(employee),
+      );
+      draft.employeeIds.add(id);
+      if (employee.objectName.trim().isNotEmpty) {
+        draft.objects.add(employee.objectName.trim());
+      }
+    }
+
+    final result = drafts.entries.map((entry) {
+      final draft = entry.value;
+      final objects = draft.objects.toList()..sort();
+      return PaymentReportEmployeeOption(
+        key: entry.key,
+        name: draft.employee.name,
+        position: draft.employee.position,
+        objectTitle: objects.isEmpty ? 'Все объекты' : objects.join(', '),
+        employeeIds: draft.employeeIds.toList(),
+        objectNames: objects,
+      );
+    }).toList();
+    result.sort((a, b) => a.name.compareTo(b.name));
+    return result;
+  }
+
+  Future<void> downloadPayments() async {
+    if (isExporting) return;
+    setState(() => isExporting = true);
+    try {
+      final employees = await reportEmployees();
+      if (employees.isEmpty) throw Exception('Нет сотрудников для отчёта');
+      final count = await PaymentReportExporter.download(
+        request: PaymentReportRequest(
+          month: selectedMonth,
+          employeeKey: null,
+          objectName: objectName,
+        ),
+        employees: employees,
+      );
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Отчёт скачан. Строк выплат: $count')),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Ошибка формирования отчёта: $error')),
+      );
+    } finally {
+      if (mounted) setState(() => isExporting = false);
+    }
   }
 
   List<String> objectOptions(_PaymentsWorkspaceData data) {
@@ -227,9 +320,20 @@ class _DesktopAccountingPaymentsScreenState
           icon: const Icon(Icons.chevron_right_rounded),
         ),
         OutlinedButton.icon(
-          onPressed: openDetailedMode,
-          icon: const Icon(Icons.tune_rounded),
-          label: const Text('Детальный режим'),
+          onPressed: openTimesheet,
+          icon: const Icon(Icons.calendar_month_outlined),
+          label: const Text('Табель и начисления'),
+        ),
+        OutlinedButton.icon(
+          onPressed: isExporting ? null : downloadPayments,
+          icon: isExporting
+              ? const SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : const Icon(Icons.download_outlined),
+          label: const Text('Скачать XLSX'),
         ),
         FilledButton.icon(
           onPressed: addPayment,
@@ -320,7 +424,6 @@ class _DesktopAccountingPaymentsScreenState
     final accrued = balances.fold<double>(0, (sum, row) => sum + row.accrued);
     final paid = balances.fold<double>(0, (sum, row) => sum + row.paid);
     final balance = accrued - paid;
-    final operations = payments.fold<double>(0, (sum, row) => sum + row.amount);
     final missing = payments.where((row) => row.receiptCount == 0).length;
 
     return Row(
@@ -354,13 +457,43 @@ class _DesktopAccountingPaymentsScreenState
         Expanded(
           child: SpecialistMetricCard(
             icon: Icons.receipt_long_outlined,
-            label: 'Операции',
-            value: accountingMoney(operations),
-            hint: '${payments.length} записей • без чека: $missing',
+            label: 'Без подтверждения',
+            value: '$missing',
+            hint: '${payments.length} операций в выборке',
             accent: missing > 0 ? specialistDanger : specialistSuccess,
           ),
         ),
       ],
+    );
+  }
+
+  Widget workspaceSelector() {
+    return PremiumWorkCard(
+      radius: 22,
+      padding: const EdgeInsets.all(8),
+      child: Align(
+        alignment: Alignment.centerLeft,
+        child: SegmentedButton<String>(
+          showSelectedIcon: false,
+          segments: const [
+            ButtonSegment<String>(
+              value: 'balances',
+              icon: Icon(Icons.calculate_outlined),
+              label: Text('Начисления и остатки'),
+            ),
+            ButtonSegment<String>(
+              value: 'payments',
+              icon: Icon(Icons.receipt_long_outlined),
+              label: Text('История выплат'),
+            ),
+          ],
+          selected: <String>{workspaceView},
+          onSelectionChanged: (values) {
+            if (values.isEmpty) return;
+            setState(() => workspaceView = values.first);
+          },
+        ),
+      ),
     );
   }
 
@@ -433,7 +566,7 @@ class _DesktopAccountingPaymentsScreenState
         SpecialistTableColumn('Объект', flex: 3),
         SpecialistTableColumn('Тип', flex: 2),
         SpecialistTableColumn('Сумма', flex: 2),
-        SpecialistTableColumn('Чек', flex: 2),
+        SpecialistTableColumn('Подтверждение', flex: 2),
         SpecialistTableColumn('Комментарий', flex: 4),
       ],
       rows: rows
@@ -504,7 +637,7 @@ class _DesktopAccountingPaymentsScreenState
           children.add(
             const SpecialistMessageCard(
               icon: Icons.payments_outlined,
-              title: 'Загружаем выплаты',
+              title: 'Загружаем расчёты',
               loading: true,
             ),
           );
@@ -512,7 +645,7 @@ class _DesktopAccountingPaymentsScreenState
           children.add(
             SpecialistMessageCard(
               icon: Icons.cloud_off_outlined,
-              title: 'Не удалось загрузить выплаты',
+              title: 'Не удалось загрузить расчёты',
               description: snapshot.error.toString(),
               actionLabel: 'Повторить',
               onAction: refresh,
@@ -525,49 +658,55 @@ class _DesktopAccountingPaymentsScreenState
           children.add(filters(data));
           children.add(const SizedBox(height: 16));
           children.add(summary(data));
+          children.add(const SizedBox(height: 16));
+          children.add(workspaceSelector());
           children.add(const SizedBox(height: 20));
-          children.add(
-            sectionTitle(
-              'Начисления по сотрудникам',
-              'Смены, ставка, начислено, выплачено и текущий остаток',
-            ),
-          );
-          if (balances.isEmpty) {
+
+          if (workspaceView == 'balances') {
             children.add(
-              const SpecialistMessageCard(
-                icon: Icons.person_search_outlined,
-                title: 'Сотрудники не найдены',
-                description: 'Измените поиск или фильтр по объекту.',
+              sectionTitle(
+                'Начисления по сотрудникам',
+                'Смены, ставка, начислено, выплачено и текущий остаток',
               ),
             );
+            if (balances.isEmpty) {
+              children.add(
+                const SpecialistMessageCard(
+                  icon: Icons.person_search_outlined,
+                  title: 'Сотрудники не найдены',
+                  description: 'Измените поиск или фильтр по объекту.',
+                ),
+              );
+            } else {
+              children.add(balancesTable(balances));
+            }
           } else {
-            children.add(balancesTable(balances));
-          }
-          children.add(const SizedBox(height: 20));
-          children.add(
-            sectionTitle(
-              'Реестр операций',
-              'Все выплаты за выбранный месяц и статус подтверждающих файлов',
-            ),
-          );
-          if (payments.isEmpty) {
             children.add(
-              const SpecialistMessageCard(
-                icon: Icons.receipt_long_outlined,
-                title: 'Выплат за период нет',
-                description: 'Добавьте выплату или измените выбранные фильтры.',
+              sectionTitle(
+                'История выплат',
+                'Все операции за выбранный месяц и статус подтверждающих файлов',
               ),
             );
-          } else {
-            children.add(paymentsTable(payments));
+            if (payments.isEmpty) {
+              children.add(
+                const SpecialistMessageCard(
+                  icon: Icons.receipt_long_outlined,
+                  title: 'Выплат за период нет',
+                  description:
+                      'Добавьте выплату или измените выбранные фильтры.',
+                ),
+              );
+            } else {
+              children.add(paymentsTable(payments));
+            }
           }
         }
 
         return SpecialistDesktopPage(
           storageKey: 'desktop-accounting-payments',
-          title: 'Выплаты и остатки',
+          title: 'Выплаты и расчёты',
           subtitle:
-              'Полная финансовая таблица по сотрудникам и операциям компании',
+              'Начисления, остатки, история выплат и финансовая выгрузка в одном месте',
           trailing: actions(),
           onRefresh: refresh,
           children: children,
@@ -585,4 +724,12 @@ class _PaymentsWorkspaceData {
     required this.balances,
     required this.payments,
   });
+}
+
+class _ReportEmployeeDraft {
+  final Employee employee;
+  final Set<String> employeeIds = <String>{};
+  final Set<String> objects = <String>{};
+
+  _ReportEmployeeDraft(this.employee);
 }
