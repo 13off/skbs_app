@@ -14,9 +14,11 @@ void main() {
       'lib/features/shell/presentation/premium_main_screen.dart',
     );
 
-    expect(persistent, contains('bottomNavigationBar: useDesktopShell'));
-    expect(persistent, contains('ProfessionalBottomNavigation('));
-    expect(persistent, contains('_DesktopTabRail('));
+    expect(
+      persistent,
+      contains('bottomNavigationBar: ProfessionalBottomNavigation('),
+    );
+    expect(persistent, isNot(contains('_DesktopTabRail(')));
     expect(legacy, contains('bottomNavigationBar: _PremiumBottomBar('));
 
     for (final shell in <String>[persistent, legacy]) {
