@@ -12,12 +12,12 @@ void main() {
 
     expect(main, contains('builder: (context, child) => AppScaleViewport('));
     expect(main, isNot(contains('PwaDesktopPageFrame(')));
-    expect(page, isNot(contains('PwaDesktopPageFrame.isApplied(context)')));
+    expect(page, isNot(contains('PwaDesktopPageFrame.isApplied(context)'));
     expect(page, contains('? AppUi.pageDesktopHorizontalPadding'));
-    expect(tokens, contains('pageDesktopHorizontalPadding = 144'));
+    expect(tokens, contains('pageDesktopHorizontalPadding = 48'));
   });
 
-  test('desktop bottom navigation stays near twenty centimetres', () {
+  test('compact desktop bottom navigation stays near twenty centimetres', () {
     final tokens = source('lib/app/app_ui_tokens.dart');
     final navigation = source(
       'lib/widgets/professional_bottom_navigation.dart',
