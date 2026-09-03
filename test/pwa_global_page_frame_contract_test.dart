@@ -12,7 +12,7 @@ void main() {
 
     expect(main, contains('builder: (context, child) => AppScaleViewport('));
     expect(main, isNot(contains('PwaDesktopPageFrame(')));
-    expect(page, isNot(contains('PwaDesktopPageFrame.isApplied(context)'));
+    expect(page, isNot(contains('PwaDesktopPageFrame.isApplied(context)')));
     expect(page, contains('? AppUi.pageDesktopHorizontalPadding'));
     expect(tokens, contains('pageDesktopHorizontalPadding = 48'));
   });
