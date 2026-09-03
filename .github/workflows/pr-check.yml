@@ -194,7 +194,7 @@ jobs:
 
       - name: Upload failing Deno log
         if: failure() && steps.edge-check.outcome == 'failure'
-        uses: actions/upload-artifact@ea165f8d65b5e75b540449e92b4886f43607fa02 # v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: deno-check-log
           path: /tmp/deno-check.log
