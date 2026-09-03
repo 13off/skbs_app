@@ -18,7 +18,7 @@ void main() {
     expect(shell, isNot(contains('desktopRailWidth')));
   });
 
-  test('native desktop candidate cards use immediate pointer dragging', () {
+  test('candidate cards drag quickly and smoothly on every platform', () {
     final recruitment = source(
       'lib/features/recruitment/presentation/recruitment_applications_screen.dart',
     );
@@ -37,6 +37,23 @@ void main() {
       contains('defaultTargetPlatform == TargetPlatform.linux'),
     );
     expect(recruitment, contains('if (_usesImmediatePointerDrag)'));
+    expect(recruitment, contains('return Draggable<RecruitmentApplication>('));
+    expect(
+      recruitment,
+      contains('return LongPressDraggable<RecruitmentApplication>('),
+    );
+    expect(
+      recruitment,
+      contains('delay: const Duration(milliseconds: 160)'),
+    );
+    expect(
+      recruitment,
+      contains('duration: const Duration(milliseconds: 70)'),
+    );
+    expect(recruitment, contains('scale: highlighted ? 1.006 : 1'));
+    expect(recruitment, contains('duration: const Duration(milliseconds: 90)'));
+    expect(recruitment, contains('final feedbackCard = RepaintBoundary('));
+    expect(recruitment, contains('elevation: 10'));
     expect(
       recruitment,
       contains("_usesImmediatePointerDrag ? 'Перетащи' : 'Удерживай'"),
