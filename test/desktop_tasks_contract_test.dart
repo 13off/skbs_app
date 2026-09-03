@@ -5,14 +5,15 @@ import 'package:flutter_test/flutter_test.dart';
 String source(String path) => File(path).readAsStringSync();
 
 void main() {
-  test('tasks use desktop table only on wide web screens', () {
+  test('tasks use desktop table on every wide screen', () {
     final entry = source('lib/screens/tasks_screen.dart');
     final adaptive = source('lib/screens/adaptive_tasks_screen.dart');
     final mobile = source('lib/screens/mobile_tasks_screen.dart');
 
     expect(entry, contains('return AdaptiveTasksScreen('));
     expect(adaptive, contains('desktopBreakpoint = 1050'));
-    expect(adaptive, contains('kIsWeb && constraints.maxWidth'));
+    expect(adaptive, isNot(contains('kIsWeb')));
+    expect(adaptive, contains('constraints.maxWidth >= desktopBreakpoint'));
     expect(adaptive, contains('return mobile.TasksScreen('));
     expect(adaptive, contains('return DesktopTasksScreen('));
 
