@@ -7,7 +7,6 @@ import '../../ai/presentation/operational_audit_launcher_screen.dart';
 import '../../shell/presentation/persistent_tab_shell.dart';
 import 'adaptive_accounting_dashboard_screen.dart';
 import 'adaptive_accounting_payments_screen.dart';
-import 'adaptive_accounting_reports_screen.dart';
 
 class AccountingMainScreen extends StatefulWidget {
   final AppUserProfile profile;
@@ -19,7 +18,7 @@ class AccountingMainScreen extends StatefulWidget {
 }
 
 class _AccountingMainScreenState extends State<AccountingMainScreen> {
-  static const int pageCount = 5;
+  static const int pageCount = 4;
   late final PersistentTabController tabs;
 
   @override
@@ -41,14 +40,13 @@ class _AccountingMainScreenState extends State<AccountingMainScreen> {
       0 => AdaptiveAccountingDashboardScreen(
         profile: widget.profile,
         onOpenPayments: () => select(1),
-        onOpenReports: () => select(2),
+        onOpenReports: () => select(1),
       ),
       1 => const AdaptiveAccountingPaymentsScreen(),
-      2 => const AdaptiveAccountingReportsScreen(),
-      3 => OperationalAuditLauncherScreen(
+      2 => OperationalAuditLauncherScreen(
         initialObjectName: widget.profile.objectName,
       ),
-      4 => ProfileScreen(profile: widget.profile),
+      3 => ProfileScreen(profile: widget.profile),
       _ => const SizedBox.shrink(),
     };
   }
@@ -65,14 +63,9 @@ class _AccountingMainScreenState extends State<AccountingMainScreen> {
           selectedIcon: Icons.home_rounded,
         ),
         ProfessionalBottomNavigationItem(
-          label: 'Выплаты',
+          label: 'Расчёты',
           icon: Icons.payments_outlined,
           selectedIcon: Icons.payments_rounded,
-        ),
-        ProfessionalBottomNavigationItem(
-          label: 'Отчёты',
-          icon: Icons.summarize_outlined,
-          selectedIcon: Icons.summarize_rounded,
         ),
         ProfessionalBottomNavigationItem(
           label: 'Контроль',
