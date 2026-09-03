@@ -11,6 +11,7 @@ on:
       - assets/**
       - web/**
       - tool/web_smoke.py
+      - tool/pwa_offline_smoke.py
       - supabase/functions/**
       - supabase/migrations/**
       - pubspec.yaml
@@ -82,12 +83,18 @@ jobs:
         id: browser-smoke
         run: python3 tool/web_smoke.py
 
+      - name: Run PWA offline cold-start smoke
+        id: offline-smoke
+        run: python3 tool/pwa_offline_smoke.py
+
       - name: Upload browser smoke evidence
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: browser-smoke-evidence
-          path: .artifacts/browser-smoke
+          path: |
+            .artifacts/browser-smoke
+            .artifacts/pwa-offline-smoke
           if-no-files-found: warn
           retention-days: 3
 
@@ -187,7 +194,7 @@ jobs:
 
       - name: Upload failing Deno log
         if: failure() && steps.edge-check.outcome == 'failure'
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        uses: actions/upload-artifact@ea165f8d65b5e75b540449e92b4886f43607fa02 # v4
         with:
           name: deno-check-log
           path: /tmp/deno-check.log
