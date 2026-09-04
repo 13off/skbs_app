@@ -164,7 +164,7 @@ void main() {
       expect(strict, contains('parseForemanTaskVoiceBatch'));
       expect(actions, contains('buildVoiceAdditionalResults'));
       expect(shell, contains('persistTaskCreateDraft'));
-      expect(shell, contains('TaskRepository.addTaskBatch'));
+      expect(shell, contains('OfflineTaskCreateService.queueTask('));
       expect(view, contains(r'Сохранить $batchCount задачи'));
     },
   );
