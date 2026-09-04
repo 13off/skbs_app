@@ -1,8 +1,10 @@
+import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
 
 import '../../expenses/data/expense_repository.dart';
 import '../../shared/presentation/specialist_desktop_table.dart';
 import '../../shared/presentation/specialist_desktop_ui.dart';
+import '../data/accounting_bank_import.dart';
 import '../data/accounting_workbench_repository.dart';
 import 'accounting_widgets.dart';
 import 'accounting_workspace_widgets.dart';
@@ -23,6 +25,7 @@ class _AdaptiveAccountingOperationsScreenState
   String view = 'bank';
   late DateTime month;
   late Future<_OperationsData> future;
+  bool importingBank = false;
 
   @override
   void initState() {
@@ -38,11 +41,13 @@ class _AdaptiveAccountingOperationsScreenState
   Future<_OperationsData> load() async {
     final result = await Future.wait<dynamic>([
       workbench.fetchBankTransactions(from: firstDay, to: lastDay),
+      workbench.fetchBankAccounts(),
       expenses.fetchSnapshot(from: firstDay, to: lastDay),
     ]);
     return _OperationsData(
       bank: result[0] as List<AccountingBankTransaction>,
-      expenses: result[1] as ExpensesSnapshot,
+      bankAccounts: result[1] as List<AccountingBankAccount>,
+      expenses: result[2] as ExpensesSnapshot,
     );
   }
 
@@ -75,6 +80,134 @@ class _AdaptiveAccountingOperationsScreenState
     await refresh();
   }
 
+  Future<void> setCurrentBalance(_OperationsData? data) async {
+    final current = data?.bankAccounts.fold<double>(
+          0,
+          (sum, account) => sum + account.balance,
+        ) ??
+        0;
+    final controller = TextEditingController(
+      text: current == 0 ? '' : current.toStringAsFixed(2),
+    );
+    final balance = await showDialog<double>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Остаток на расчётном счёте'),
+        content: SizedBox(
+          width: 430,
+          child: TextField(
+            controller: controller,
+            autofocus: true,
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            decoration: const InputDecoration(
+              labelText: 'Текущий остаток',
+              prefixIcon: Icon(Icons.account_balance_outlined),
+              suffixText: '₽',
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Отмена'),
+          ),
+          FilledButton(
+            onPressed: () {
+              final parsed = double.tryParse(
+                controller.text.replaceAll(' ', '').replaceAll(',', '.'),
+              );
+              if (parsed == null || parsed < 0) return;
+              Navigator.pop(context, parsed);
+            },
+            child: const Text('Сохранить'),
+          ),
+        ],
+      ),
+    );
+    controller.dispose();
+    if (balance == null) return;
+    await workbench.setBankBalance(balance: balance);
+    await refresh();
+  }
+
+  Future<void> importBankStatement() async {
+    if (importingBank) return;
+    const csvType = XTypeGroup(label: 'CSV', extensions: ['csv']);
+    final file = await openFile(acceptedTypeGroups: const [csvType]);
+    if (file == null) return;
+    setState(() => importingBank = true);
+    try {
+      final bytes = await file.readAsBytes();
+      final parsed = AccountingBankImport.parse(bytes);
+      if (!mounted) return;
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Импорт банковской выписки'),
+          content: SizedBox(
+            width: 560,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Распознано операций: ${parsed.rows.length}',
+                  style: const TextStyle(fontWeight: FontWeight.w900),
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  'Новые контрагенты из выписки будут автоматически добавлены в справочник.',
+                ),
+                if (parsed.warnings.isNotEmpty) ...[
+                  const SizedBox(height: 12),
+                  Text(
+                    'Предупреждений: ${parsed.warnings.length}',
+                    style: TextStyle(
+                      color: specialistWarning,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  ...parsed.warnings.take(5).map(
+                        (warning) => Padding(
+                          padding: const EdgeInsets.only(bottom: 4),
+                          child: Text('• $warning'),
+                        ),
+                      ),
+                ],
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Отмена'),
+            ),
+            FilledButton.icon(
+              onPressed: () => Navigator.pop(context, true),
+              icon: const Icon(Icons.upload_file_rounded),
+              label: const Text('Импортировать'),
+            ),
+          ],
+        ),
+      );
+      if (confirmed != true) return;
+      final count = await workbench.importBankTransactions(parsed.rows);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Импортировано банковских операций: $count')),
+      );
+      await refresh();
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Не удалось импортировать выписку: $error')),
+      );
+    } finally {
+      if (mounted) setState(() => importingBank = false);
+    }
+  }
+
   Future<void> addExpense() async {
     final result = await showDialog<_ExpenseDraft>(
       context: context,
@@ -91,7 +224,7 @@ class _AdaptiveAccountingOperationsScreenState
     await refresh();
   }
 
-  Widget actions() {
+  Widget actions(_OperationsData? data) {
     return Wrap(
       spacing: 10,
       runSpacing: 10,
@@ -121,12 +254,29 @@ class _AdaptiveAccountingOperationsScreenState
           onPressed: () => changeMonth(1),
           icon: const Icon(Icons.chevron_right_rounded),
         ),
-        if (view == 'bank')
+        if (view == 'bank') ...[
+          OutlinedButton.icon(
+            onPressed: importingBank ? null : importBankStatement,
+            icon: importingBank
+                ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.upload_file_rounded),
+            label: const Text('Импорт выписки'),
+          ),
+          OutlinedButton.icon(
+            onPressed: () => setCurrentBalance(data),
+            icon: const Icon(Icons.account_balance_outlined),
+            label: const Text('Остаток на счёте'),
+          ),
           FilledButton.icon(
             onPressed: addBankTransaction,
             icon: const Icon(Icons.add_rounded),
             label: const Text('Добавить операцию'),
           ),
+        ],
         if (view == 'expenses')
           FilledButton.icon(
             onPressed: addExpense,
@@ -137,18 +287,32 @@ class _AdaptiveAccountingOperationsScreenState
     );
   }
 
-  Widget bankView(List<AccountingBankTransaction> rows) {
+  Widget bankView(_OperationsData data) {
+    final rows = data.bank;
     final incoming = rows
         .where((e) => e.direction == 'in')
         .fold<double>(0, (sum, e) => sum + e.amount);
     final outgoing = rows
         .where((e) => e.direction == 'out')
         .fold<double>(0, (sum, e) => sum + e.amount);
+    final currentBalance = data.bankAccounts.fold<double>(
+      0,
+      (sum, account) => sum + account.balance,
+    );
 
     return Column(
       children: [
         Row(
           children: [
+            Expanded(
+              child: SpecialistMetricCard(
+                icon: Icons.account_balance_wallet_outlined,
+                label: 'На счетах сейчас',
+                value: accountingMoney(currentBalance),
+                accent: specialistText,
+              ),
+            ),
+            const SizedBox(width: 12),
             Expanded(
               child: SpecialistMetricCard(
                 icon: Icons.south_west_rounded,
@@ -169,7 +333,7 @@ class _AdaptiveAccountingOperationsScreenState
             const SizedBox(width: 12),
             Expanded(
               child: SpecialistMetricCard(
-                icon: Icons.account_balance_outlined,
+                icon: Icons.swap_vert_rounded,
                 label: 'Сальдо за период',
                 value: accountingMoney(incoming - outgoing),
                 accent: incoming - outgoing >= 0
@@ -181,11 +345,13 @@ class _AdaptiveAccountingOperationsScreenState
         ),
         const SizedBox(height: 16),
         if (rows.isEmpty)
-          const AccountingEmptyState(
+          AccountingEmptyState(
             icon: Icons.account_balance_outlined,
-            title: 'Банковских операций пока нет',
+            title: 'Банковских операций за период нет',
             description:
-                'Добавьте операцию вручную. Следующим этапом сюда можно подключить импорт банковской выписки.',
+                'Загрузите CSV-выписку из банка или добавьте операцию вручную.',
+            actionLabel: 'Импортировать выписку',
+            onAction: () async => importBankStatement(),
           )
         else
           SpecialistDesktopTable(
@@ -210,19 +376,28 @@ class _AdaptiveAccountingOperationsScreenState
                             : specialistDanger,
                         weight: FontWeight.w800,
                       ),
-                      specialistCellText(row.counterparty),
-                      specialistCellText(row.purpose, color: specialistMuted),
+                      specialistCellText(
+                        row.counterparty.isEmpty ? '—' : row.counterparty,
+                      ),
+                      specialistCellText(
+                        row.purpose.isEmpty ? '—' : row.purpose,
+                        color: specialistMuted,
+                      ),
                       specialistCellText(
                         accountingMoney(row.amount),
                         weight: FontWeight.w900,
                       ),
                       AccountingStatusBadge(
-                        label: row.status == 'matched'
-                            ? 'Распознано'
-                            : 'Новая',
-                        color: row.status == 'matched'
-                            ? specialistSuccess
-                            : specialistWarning,
+                        label: switch (row.status) {
+                          'matched' => 'Распознано',
+                          'attention' => 'Проверить',
+                          _ => 'Новая',
+                        },
+                        color: switch (row.status) {
+                          'matched' => specialistSuccess,
+                          'attention' => specialistDanger,
+                          _ => specialistWarning,
+                        },
                       ),
                     ],
                   ),
@@ -343,6 +518,7 @@ class _AdaptiveAccountingOperationsScreenState
     return FutureBuilder<_OperationsData>(
       future: future,
       builder: (context, snapshot) {
+        final data = snapshot.data;
         final children = <Widget>[
           AccountingSectionSwitcher(
             selected: view,
@@ -375,16 +551,17 @@ class _AdaptiveAccountingOperationsScreenState
               onAction: refresh,
             ),
           );
-        } else {
-          final data = snapshot.data!;
-          children.add(view == 'bank' ? bankView(data.bank) : expensesView(data.expenses));
+        } else if (data != null) {
+          children.add(
+            view == 'bank' ? bankView(data) : expensesView(data.expenses),
+          );
         }
 
         return SpecialistDesktopPage(
           storageKey: 'desktop-accounting-operations',
           title: 'Операции',
           subtitle: 'Банк, расходы и выплаты в одном рабочем разделе',
-          trailing: actions(),
+          trailing: actions(data),
           onRefresh: refresh,
           children: children,
         );
@@ -395,9 +572,14 @@ class _AdaptiveAccountingOperationsScreenState
 
 class _OperationsData {
   final List<AccountingBankTransaction> bank;
+  final List<AccountingBankAccount> bankAccounts;
   final ExpensesSnapshot expenses;
 
-  const _OperationsData({required this.bank, required this.expenses});
+  const _OperationsData({
+    required this.bank,
+    required this.bankAccounts,
+    required this.expenses,
+  });
 }
 
 class _BankDraft {
@@ -454,7 +636,8 @@ class _AddBankTransactionDialogState extends State<_AddBankTransactionDialog> {
                 DropdownMenuItem(value: 'in', child: Text('Поступление')),
                 DropdownMenuItem(value: 'out', child: Text('Списание')),
               ],
-              onChanged: (value) => setState(() => direction = value ?? 'out'),
+              onChanged: (value) =>
+                  setState(() => direction = value ?? 'out'),
             ),
             const SizedBox(height: 12),
             TextField(
@@ -470,13 +653,18 @@ class _AddBankTransactionDialogState extends State<_AddBankTransactionDialog> {
             const SizedBox(height: 12),
             TextField(
               controller: purpose,
-              decoration: const InputDecoration(labelText: 'Назначение платежа'),
+              decoration: const InputDecoration(
+                labelText: 'Назначение платежа',
+              ),
             ),
           ],
         ),
       ),
       actions: [
-        TextButton(onPressed: () => Navigator.pop(context), child: const Text('Отмена')),
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Отмена'),
+        ),
         FilledButton(
           onPressed: () {
             final parsed = double.tryParse(amount.text.replaceAll(',', '.'));
@@ -546,7 +734,10 @@ class _AddExpenseDialogState extends State<_AddExpenseDialog> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            TextField(controller: name, decoration: const InputDecoration(labelText: 'Наименование')),
+            TextField(
+              controller: name,
+              decoration: const InputDecoration(labelText: 'Наименование'),
+            ),
             const SizedBox(height: 12),
             TextField(
               controller: amount,
@@ -554,18 +745,29 @@ class _AddExpenseDialogState extends State<_AddExpenseDialog> {
               decoration: const InputDecoration(labelText: 'Сумма'),
             ),
             const SizedBox(height: 12),
-            TextField(controller: counterparty, decoration: const InputDecoration(labelText: 'Контрагент')),
+            TextField(
+              controller: counterparty,
+              decoration: const InputDecoration(labelText: 'Контрагент'),
+            ),
             const SizedBox(height: 12),
-            TextField(controller: comment, decoration: const InputDecoration(labelText: 'Комментарий')),
+            TextField(
+              controller: comment,
+              decoration: const InputDecoration(labelText: 'Комментарий'),
+            ),
           ],
         ),
       ),
       actions: [
-        TextButton(onPressed: () => Navigator.pop(context), child: const Text('Отмена')),
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Отмена'),
+        ),
         FilledButton(
           onPressed: () {
             final parsed = double.tryParse(amount.text.replaceAll(',', '.'));
-            if (parsed == null || parsed <= 0 || name.text.trim().isEmpty) return;
+            if (parsed == null || parsed <= 0 || name.text.trim().isEmpty) {
+              return;
+            }
             Navigator.pop(
               context,
               _ExpenseDraft(
