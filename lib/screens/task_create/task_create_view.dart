@@ -5,6 +5,9 @@ extension _TaskCreateView on _AddTaskScreenState {
     final editingDraft = widget.sourceDraftId?.trim().isNotEmpty == true;
     final batchCount = voiceBatchDrafts.length > 1 ? voiceBatchDrafts.length : 1;
     final dateActive = isVoiceFieldActive(TaskVoiceField.date);
+    // Голосовой движок оставляем совместимым с текущими данными/тестами,
+    // но его UI-панель в форму создания задачи больше не рендерим.
+    final _ = buildVoiceAssistantCard;
     return Scaffold(
       appBar: AppBar(
         leading: const BackButton(),
