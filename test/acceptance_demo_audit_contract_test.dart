@@ -65,8 +65,9 @@ void main() {
       'lib/features/ai/presentation/operational_audit_launcher_screen.dart',
     ).readAsStringSync();
 
-    expect(main, contains('pageCount = 5'));
+    expect(main, contains('pageCount = 4'));
     expect(main, contains("label: 'Контроль'"));
+    expect(main, contains('onOpenReports: () => select(1)'));
     expect(reports, contains("title: 'Единый контроль'"));
     expect(launcher, contains('AiAssistantRepository.request'));
     expect(launcher, contains("action.type != 'find_operational_anomalies'"));
