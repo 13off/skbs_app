@@ -33,6 +33,8 @@ class _OfflineSyncHostState extends State<OfflineSyncHost>
   StreamSubscription<AppDataChange>? _dataChangeSubscription;
   StreamSubscription<html.Event>? _onlineSubscription;
   StreamSubscription<html.Event>? _offlineSubscription;
+  StreamSubscription<html.Event>? _visibilitySubscription;
+  StreamSubscription<html.Event>? _focusSubscription;
   bool _isOnline = true;
 
   @override
@@ -54,6 +56,14 @@ class _OfflineSyncHostState extends State<OfflineSyncHost>
       });
       _offlineSubscription = html.window.onOffline.listen((_) {
         if (mounted) setState(() => _isOnline = false);
+      });
+      _visibilitySubscription = html.document.onVisibilityChange.listen((_) {
+        if (html.document.visibilityState == 'visible') {
+          unawaited(_syncAfterConnectivitySignal());
+        }
+      });
+      _focusSubscription = html.window.onFocus.listen((_) {
+        unawaited(_syncAfterConnectivitySignal());
       });
     }
   }
@@ -108,7 +118,7 @@ class _OfflineSyncHostState extends State<OfflineSyncHost>
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed && _isOnline) {
-      unawaited(_flushAndRefresh());
+      unawaited(_syncAfterConnectivitySignal());
     }
   }
 
@@ -119,6 +129,8 @@ class _OfflineSyncHostState extends State<OfflineSyncHost>
     _dataChangeSubscription?.cancel();
     _onlineSubscription?.cancel();
     _offlineSubscription?.cancel();
+    _visibilitySubscription?.cancel();
+    _focusSubscription?.cancel();
     super.dispose();
   }
 
@@ -129,13 +141,13 @@ class _OfflineSyncHostState extends State<OfflineSyncHost>
     final String message;
     if (!_isOnline) {
       message =
-          'Нет соединения с интернетом. Изменения сохранены на устройстве и будут отправлены после восстановления связи. $lastContactText';
+          'Нет соединения с интернетом. Изменения сохранены на устройстве и будут отправлены при первой доступной возможности. $lastContactText';
     } else if (state.isSyncing) {
       message =
           'Сейчас идёт попытка отправки. Осталось операций: ${state.pendingCount}.';
     } else if (state.pendingCount > 0) {
       message =
-          'Ожидает отправки: ${state.pendingCount}. Сервер ещё не подтвердил эти изменения. Данные сохранены на устройстве; повтор выполняется автоматически каждые 20 секунд. $lastContactText';
+          'Ожидает отправки: ${state.pendingCount}. Сервер ещё не подтвердил эти изменения. Данные сохранены на устройстве; приложение повторяет отправку при восстановлении сети, возвращении на экран и каждые 20 секунд, пока оно активно. $lastContactText';
     } else {
       message = 'Все локальные изменения отправлены. $lastContactText';
     }
