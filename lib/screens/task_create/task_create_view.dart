@@ -5,6 +5,9 @@ extension _TaskCreateView on _AddTaskScreenState {
     final editingDraft = widget.sourceDraftId?.trim().isNotEmpty == true;
     final batchCount = voiceBatchDrafts.length > 1 ? voiceBatchDrafts.length : 1;
     final dateActive = isVoiceFieldActive(TaskVoiceField.date);
+    // Голосовой движок оставляем совместимым с текущими данными/тестами,
+    // но его UI-панель в форму создания задачи больше не рендерим.
+    final _ = buildVoiceAssistantCard;
     return Scaffold(
       appBar: AppBar(
         leading: const BackButton(),
@@ -31,10 +34,6 @@ extension _TaskCreateView on _AddTaskScreenState {
           ),
           const SizedBox(height: 14),
           buildObjectCard(),
-          if (widget.allowDraft) ...[
-            const SizedBox(height: 16),
-            buildVoiceAssistantCard(),
-          ],
           const SizedBox(height: 16),
           OutlinedButton.icon(
             onPressed: widget.allowAnyDate ? pickDate : null,
@@ -49,10 +48,7 @@ extension _TaskCreateView on _AddTaskScreenState {
                   ? AppAdaptivePalette.accent.withValues(alpha: 0.06)
                   : null,
             ),
-            icon: Icon(
-              dateActive ? Icons.mic_rounded : Icons.calendar_month,
-              color: dateActive ? AppAdaptivePalette.accent : null,
-            ),
+            icon: const Icon(Icons.calendar_month),
             label: Text('Дата задачи: ${formatDate(selectedDate)}'),
           ),
           const SizedBox(height: 16),

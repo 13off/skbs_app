@@ -5,6 +5,88 @@
 part of 'task_details_editor_screen.dart';
 
 extension _TaskDetailsPhotoActions on _TaskDetailsScreenState {
+  bool _isPhotoNetworkFailure(Object error) {
+    final text = error.toString().toLowerCase();
+    return OfflineSyncService.isNetworkFailure(error) ||
+        text.contains('сеть') ||
+        text.contains('соединен') ||
+        text.contains('нет подключения');
+  }
+
+  Future<List<TaskPhotoData>> _uploadOrQueuePhotos({
+    required String taskId,
+    required List<TaskPhotoFile> pickedPhotos,
+    required String photoStage,
+    required void Function(TaskPhotoUploadProgress progress) onProgress,
+  }) async {
+    try {
+      return await TaskPhotoRepository.uploadPhotos(
+        taskId: taskId,
+        photos: pickedPhotos,
+        photoStage: photoStage,
+        onProgress: onProgress,
+      );
+    } catch (error) {
+      if (!_isPhotoNetworkFailure(error)) rethrow;
+
+      final queued = pickedPhotos
+          .map(
+            (photo) => OfflineSyncService.serializePhoto(
+              originalName: photo.originalName,
+              contentType: photo.contentType,
+              extension: photo.extension,
+              bytes: photo.bytes,
+              photoStage: photoStage,
+            ),
+          )
+          .toList(growable: false);
+      await OfflineSyncService.enqueue(
+        kind: 'task.photos.add',
+        dedupeKey: '${taskId.trim()}::$photoStage',
+        payload: <String, dynamic>{
+          'id': taskId.trim(),
+          'photo_stage': photoStage,
+          'photos': queued,
+        },
+      );
+
+      final now = DateTime.now();
+      return queued
+          .map(
+            (row) => TaskPhotoData(
+              id: row['offline_id']?.toString() ?? '',
+              taskId: taskId.trim(),
+              storagePath: '',
+              originalName: row['original_name']?.toString() ?? 'Фото',
+              photoStage: photoStage,
+              createdAt: now,
+            ),
+          )
+          .toList(growable: false);
+    }
+  }
+
+  Future<void> _savePhotosSnapshot(
+    String taskId,
+    List<TaskPhotoData> currentPhotos,
+  ) {
+    return OfflineSyncService.saveSnapshot(
+      'task_photos::${taskId.trim()}',
+      currentPhotos
+          .map(
+            (photo) => <String, dynamic>{
+              'id': photo.id,
+              'task_id': photo.taskId,
+              'storage_path': photo.storagePath,
+              'original_name': photo.originalName,
+              'photo_stage': photo.photoStage,
+              'created_at': photo.createdAt.toUtc().toIso8601String(),
+            },
+          )
+          .toList(growable: false),
+    );
+  }
+
   Future<void> addPhotosFast(String photoStage) async {
     if (!canEdit || pickingPhotoStage != null) return;
     if (photoStage != 'before' && photoStage != 'after') {
@@ -40,9 +122,9 @@ extension _TaskDetailsPhotoActions on _TaskDetailsScreenState {
       );
       if (pickedPhotos.isEmpty) return;
 
-      final uploadedPhotos = await TaskPhotoRepository.uploadPhotos(
+      final uploadedPhotos = await _uploadOrQueuePhotos(
         taskId: taskId,
-        photos: pickedPhotos,
+        pickedPhotos: pickedPhotos,
         photoStage: photoStage,
         onProgress: (progress) {
           if (!mounted || pickingPhotoStage != photoStage) return;
@@ -61,12 +143,23 @@ extension _TaskDetailsPhotoActions on _TaskDetailsScreenState {
       );
       if (!mounted) return;
 
-      setState(() => photos = <TaskPhotoData>[...uploadedPhotos, ...photos]);
+      final nextPhotos = <TaskPhotoData>[...uploadedPhotos, ...photos];
+      await _savePhotosSnapshot(taskId, nextPhotos);
+      if (!mounted) return;
+      setState(() => photos = nextPhotos);
+
       final count = uploadedPhotos.length;
+      final queuedOffline = uploadedPhotos.any(
+        (photo) => photo.storagePath.trim().isEmpty,
+      );
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            count == 1
+            queuedOffline
+                ? count == 1
+                      ? 'Фото сохранено на устройстве и отправится при появлении сети'
+                      : 'Фотографии сохранены на устройстве и отправятся при появлении сети'
+                : count == 1
                 ? 'Фотография добавлена'
                 : 'Добавлено фотографий: $count',
           ),

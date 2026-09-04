@@ -45,7 +45,7 @@ void main() {
     expect(matters, contains("('claim', 'Претензии')"));
   });
 
-  test('accountant platform uses adaptive desktop workspaces', () {
+  test('accountant platform uses merged adaptive desktop workspace', () {
     final main = source(
       'lib/features/accounting/presentation/accounting_main_screen.dart',
     );
@@ -55,29 +55,25 @@ void main() {
     final payments = source(
       'lib/features/accounting/presentation/adaptive_accounting_payments_screen.dart',
     );
-    final reports = source(
-      'lib/features/accounting/presentation/adaptive_accounting_reports_screen.dart',
-    );
     final repository = source(
       'lib/features/accounting/data/accounting_repository.dart',
     );
 
     expect(main, contains('AdaptiveAccountingDashboardScreen'));
     expect(main, contains('AdaptiveAccountingPaymentsScreen'));
-    expect(main, contains('AdaptiveAccountingReportsScreen'));
+    expect(main, isNot(contains('AdaptiveAccountingReportsScreen')));
     expect(main, contains('ProfessionalBottomNavigation'));
+    expect(main, contains('onOpenReports: () => select(1)'));
 
     expect(dashboard, contains('AccountingDashboardScreen('));
     expect(dashboard, contains('specialistDesktopBreakpoint'));
     expect(dashboard, contains("title: 'Финансовый контроль'"));
     expect(payments, contains('return const PaymentsScreen();'));
     expect(payments, contains('SpecialistDesktopTable'));
-    expect(payments, contains("title: 'Выплаты и остатки'"));
-    expect(payments, contains("label: const Text('Детальный режим')"));
-    expect(reports, contains('return const AccountingReportsScreen();'));
-    expect(reports, contains('SpecialistDesktopTable'));
-    expect(reports, contains("title: 'Финансовые отчёты'"));
-    expect(reports, contains('allObjectsScopeValue'));
+    expect(payments, contains("title: 'Выплаты и расчёты'"));
+    expect(payments, contains('PaymentReportExporter.download('));
+    expect(payments, contains("label: const Text('Скачать XLSX')"));
+    expect(payments, contains('PeriodTimesheetScreen('));
     expect(repository, contains('fetchBalanceRows'));
   });
 

@@ -173,7 +173,9 @@ extension _TaskDetailsSections on _TaskDetailsScreenState {
                       padding: const EdgeInsets.all(7),
                       color: Colors.black54,
                       child: Text(
-                        photo.originalName,
+                        photo.storagePath.trim().isEmpty
+                            ? 'Ожидает отправки'
+                            : photo.originalName,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
@@ -224,6 +226,32 @@ extension _TaskDetailsSections on _TaskDetailsScreenState {
   }
 
   Widget buildPhotoPreview(TaskPhotoData photo) {
+    if (photo.storagePath.trim().isEmpty) {
+      return Container(
+        color: AppAdaptivePalette.surfaceSoft,
+        alignment: Alignment.center,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.schedule_send_rounded,
+              color: AppAdaptivePalette.warning,
+              size: 30,
+            ),
+            const SizedBox(height: 7),
+            Text(
+              'На устройстве',
+              style: TextStyle(
+                color: AppAdaptivePalette.textMuted,
+                fontSize: 11,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
     final cachedUrl = TaskPhotoSignedUrlCache.cachedUrl(photo);
     if (cachedUrl != null) {
       return buildNetworkPhoto(cachedUrl);

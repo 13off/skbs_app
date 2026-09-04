@@ -11,14 +11,19 @@ void main() {
 
     expect(mainScreen, contains('OfflineSyncHost('));
     expect(mainScreen, contains('child: buildPlatform()'));
-    expect(banner, contains('if (state.pendingCount == 0) return widget.child;'));
+    expect(banner, contains('final showIndicator ='));
+    expect(
+      banner,
+      contains('!_isOnline || state.isSyncing || state.pendingCount > 0'),
+    );
+    expect(banner, contains("? 'Нет сети'"));
     expect(banner, contains('Ожидает отправки:'));
     expect(banner, contains('Последняя синхронизация:'));
     expect(banner, contains('OfflineSyncService.flush()'));
+    expect(banner, contains('if (showIndicator)'));
 
     expect(banner, isNot(contains('Хорошая сеть')));
     expect(banner, isNot(contains('Слабая сеть')));
-    expect(banner, isNot(contains('Нет сети')));
   });
 
   test('timesheet saves through persistent offline queue', () {

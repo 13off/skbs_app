@@ -1,7 +1,9 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:universal_html/html.dart' as html;
 
 import '../app/app_adaptive_palette.dart';
 import '../data/app_data_sync.dart';
@@ -29,18 +31,31 @@ class _OfflineSyncHostState extends State<OfflineSyncHost>
 
   Timer? _retryTimer;
   StreamSubscription<AppDataChange>? _dataChangeSubscription;
+  StreamSubscription<html.Event>? _onlineSubscription;
+  StreamSubscription<html.Event>? _offlineSubscription;
+  bool _isOnline = true;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    _isOnline = !kIsWeb || html.window.navigator.onLine == true;
     _configure();
     _retryTimer = Timer.periodic(_retryInterval, (_) {
-      unawaited(OfflineSyncService.flush());
+      if (_isOnline) unawaited(OfflineSyncService.flush());
     });
     _dataChangeSubscription = AppDataSync.changes.listen((change) {
       if (change.isRemote) unawaited(_syncAfterConnectivitySignal());
     });
+    if (kIsWeb) {
+      _onlineSubscription = html.window.onOnline.listen((_) {
+        if (mounted) setState(() => _isOnline = true);
+        unawaited(_syncAfterConnectivitySignal());
+      });
+      _offlineSubscription = html.window.onOffline.listen((_) {
+        if (mounted) setState(() => _isOnline = false);
+      });
+    }
   }
 
   @override
@@ -57,10 +72,15 @@ class _OfflineSyncHostState extends State<OfflineSyncHost>
       userId: widget.userId,
       companyId: widget.companyId,
     );
-    await OfflineSyncService.flush();
+    if (_isOnline) await OfflineSyncService.flush();
   }
 
   Future<void> _syncAfterConnectivitySignal() async {
+    if (kIsWeb && html.window.navigator.onLine != true) {
+      if (mounted && _isOnline) setState(() => _isOnline = false);
+      return;
+    }
+    if (mounted && !_isOnline) setState(() => _isOnline = true);
     if (OfflineSyncService.pendingCount > 0) {
       await OfflineSyncService.flush();
       return;
@@ -70,7 +90,7 @@ class _OfflineSyncHostState extends State<OfflineSyncHost>
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed) {
+    if (state == AppLifecycleState.resumed && _isOnline) {
       unawaited(OfflineSyncService.flush());
     }
   }
@@ -80,7 +100,29 @@ class _OfflineSyncHostState extends State<OfflineSyncHost>
     WidgetsBinding.instance.removeObserver(this);
     _retryTimer?.cancel();
     _dataChangeSubscription?.cancel();
+    _onlineSubscription?.cancel();
+    _offlineSubscription?.cancel();
     super.dispose();
+  }
+
+  void _showStatus(OfflineSyncState state) {
+    final lastSyncText = state.lastSyncAt == null
+        ? 'Последняя синхронизация ещё не выполнялась.'
+        : 'Последняя синхронизация: ${DateFormat('HH:mm').format(state.lastSyncAt!.toLocal())}.';
+    final String message;
+    if (!_isOnline) {
+      message =
+          'Нет соединения с интернетом. Продолжайте работать — изменения сохраняются на устройстве и будут автоматически отправлены на сервер после восстановления связи. $lastSyncText';
+    } else if (state.isSyncing) {
+      message =
+          'Связь есть. Данные отправляются на сервер. Осталось операций: ${state.pendingCount}.';
+    } else {
+      message =
+          'Ожидает отправки: ${state.pendingCount}. Данные сохранены на устройстве и будут автоматически отправлены на сервер. $lastSyncText';
+    }
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text(message)));
   }
 
   @override
@@ -88,17 +130,25 @@ class _OfflineSyncHostState extends State<OfflineSyncHost>
     return ValueListenableBuilder<OfflineSyncState>(
       valueListenable: OfflineSyncService.state,
       builder: (context, state, _) {
-        if (state.pendingCount == 0) return widget.child;
-        return Column(
+        final showIndicator =
+            !_isOnline || state.isSyncing || state.pendingCount > 0;
+        return Stack(
+          fit: StackFit.expand,
           children: [
-            _OfflinePendingBanner(state: state),
-            Expanded(
-              child: MediaQuery.removePadding(
-                context: context,
-                removeTop: true,
-                child: widget.child,
+            widget.child,
+            if (showIndicator)
+              Positioned(
+                top: MediaQuery.paddingOf(context).top + 10,
+                right: 12,
+                child: _OfflineStatusButton(
+                  online: _isOnline,
+                  state: state,
+                  onTap: () => _showStatus(state),
+                  onRetry: _isOnline && !state.isSyncing
+                      ? () => unawaited(OfflineSyncService.flush())
+                      : null,
+                ),
               ),
-            ),
           ],
         );
       },
@@ -106,65 +156,75 @@ class _OfflineSyncHostState extends State<OfflineSyncHost>
   }
 }
 
-class _OfflinePendingBanner extends StatelessWidget {
+class _OfflineStatusButton extends StatelessWidget {
+  final bool online;
   final OfflineSyncState state;
+  final VoidCallback onTap;
+  final VoidCallback? onRetry;
 
-  const _OfflinePendingBanner({required this.state});
+  const _OfflineStatusButton({
+    required this.online,
+    required this.state,
+    required this.onTap,
+    required this.onRetry,
+  });
 
   @override
   Widget build(BuildContext context) {
-    final lastSyncText = state.lastSyncAt == null
-        ? 'Последняя синхронизация: —'
-        : 'Последняя синхронизация: ${DateFormat('HH:mm').format(state.lastSyncAt!.toLocal())}';
+    final syncing = online && state.isSyncing;
+    final waiting = online && !syncing && state.pendingCount > 0;
+    final background = !online
+        ? AppAdaptivePalette.danger
+        : syncing
+        ? AppAdaptivePalette.accentStrong
+        : AppAdaptivePalette.warning;
 
     return Material(
-      color: AppAdaptivePalette.surfaceElevated,
-      child: SafeArea(
-        bottom: false,
-        child: Container(
-          width: double.infinity,
-          padding: const EdgeInsets.fromLTRB(14, 8, 8, 8),
-          decoration: BoxDecoration(
-            border: Border(
-              bottom: BorderSide(color: AppAdaptivePalette.border),
-            ),
-          ),
-          child: Row(
-            children: [
-              Icon(
-                state.isSyncing
-                    ? Icons.sync_rounded
-                    : Icons.cloud_upload_outlined,
-                size: 18,
-                color: AppAdaptivePalette.textMuted,
-              ),
-              const SizedBox(width: 9),
-              Expanded(
-                child: Text(
-                  'Ожидает отправки: ${state.pendingCount} · $lastSyncText',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: AppAdaptivePalette.textMuted,
-                    fontWeight: FontWeight.w700,
-                  ),
+      color: Colors.transparent,
+      child: Tooltip(
+        message: !online
+            ? 'Нет сети'
+            : syncing
+            ? 'Данные отправляются'
+            : 'Ожидает отправки',
+        child: InkWell(
+          onTap: onTap,
+          onLongPress: onRetry,
+          customBorder: const CircleBorder(),
+          child: Container(
+            width: 44,
+            height: 44,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: background,
+              shape: BoxShape.circle,
+              border: Border.all(color: Colors.white.withValues(alpha: 0.18)),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.2),
+                  blurRadius: 12,
+                  offset: const Offset(0, 4),
                 ),
-              ),
-              IconButton(
-                tooltip: 'Синхронизировать',
-                visualDensity: VisualDensity.compact,
-                onPressed: state.isSyncing
-                    ? null
-                    : () => unawaited(OfflineSyncService.flush()),
-                icon: state.isSyncing
-                    ? const SizedBox(
-                        width: 17,
-                        height: 17,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Icon(Icons.refresh_rounded, size: 20),
-              ),
-            ],
+              ],
+            ),
+            child: syncing
+                ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2.4,
+                      color: Colors.white,
+                    ),
+                  )
+                : Icon(
+                    !online
+                        ? Icons.signal_wifi_connected_no_internet_4_rounded
+                        : waiting
+                        ? Icons.schedule_send_rounded
+                        : Icons.sync_rounded,
+                    color: Colors.white,
+                    size: 22,
+                  ),
           ),
         ),
       ),

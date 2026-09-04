@@ -1,5 +1,6 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../../data/offline_sync_service.dart';
 import '../models/task_policy.dart';
 
 class DeveloperPolicyRepository {
@@ -12,6 +13,7 @@ class DeveloperPolicyRepository {
   static int _cacheGeneration = 0;
 
   static String _key(String objectName) => objectName.trim().toLowerCase();
+  static String _snapshotKey(String key) => 'task_policy::$key';
 
   static TaskPolicy policyForObjectSync(String objectName) {
     final entry = _cache[_key(objectName)];
@@ -53,15 +55,27 @@ class DeveloperPolicyRepository {
     String key,
     int generation,
   ) async {
-    final result = await _client.rpc<dynamic>(
-      'get_effective_task_policy',
-      params: <String, dynamic>{'p_object_name': objectName.trim()},
-    );
-    final policy = TaskPolicy.fromJson(_map(result));
-    if (generation == _cacheGeneration) {
-      _cache[key] = _PolicyCacheEntry(policy, DateTime.now());
+    try {
+      final result = await _client.rpc<dynamic>(
+        'get_effective_task_policy',
+        params: <String, dynamic>{'p_object_name': objectName.trim()},
+      );
+      final policy = TaskPolicy.fromJson(_map(result));
+      if (generation == _cacheGeneration) {
+        _cache[key] = _PolicyCacheEntry(policy, DateTime.now());
+      }
+      await OfflineSyncService.saveSnapshot(_snapshotKey(key), policy.toJson());
+      return policy;
+    } catch (error) {
+      if (!OfflineSyncService.isNetworkFailure(error)) rethrow;
+      final raw = await OfflineSyncService.readSnapshot(_snapshotKey(key));
+      if (raw is! Map) rethrow;
+      final policy = TaskPolicy.fromJson(Map<String, dynamic>.from(raw));
+      if (generation == _cacheGeneration) {
+        _cache[key] = _PolicyCacheEntry(policy, DateTime.now());
+      }
+      return policy;
     }
-    return policy;
   }
 
   static Future<DeveloperTaskPolicyCenter> fetchCenter() async {
@@ -71,6 +85,7 @@ class DeveloperPolicyRepository {
     );
     final center = DeveloperTaskPolicyCenter.fromJson(_map(result));
     _primeCache(center, generation);
+    await _persistCenterPolicies(center);
     return center;
   }
 
@@ -88,6 +103,7 @@ class DeveloperPolicyRepository {
     );
     final center = DeveloperTaskPolicyCenter.fromJson(_map(result));
     _primeCache(center, generation);
+    await _persistCenterPolicies(center);
     return center;
   }
 
@@ -101,6 +117,7 @@ class DeveloperPolicyRepository {
     );
     final center = DeveloperTaskPolicyCenter.fromJson(_map(result));
     _primeCache(center, generation);
+    await _persistCenterPolicies(center);
     return center;
   }
 
@@ -116,6 +133,17 @@ class DeveloperPolicyRepository {
     final now = DateTime.now();
     for (final object in center.objects) {
       _cache[_key(object.name)] = _PolicyCacheEntry(object.policy, now);
+    }
+  }
+
+  static Future<void> _persistCenterPolicies(
+    DeveloperTaskPolicyCenter center,
+  ) async {
+    for (final object in center.objects) {
+      await OfflineSyncService.saveSnapshot(
+        _snapshotKey(_key(object.name)),
+        object.policy.toJson(),
+      );
     }
   }
 

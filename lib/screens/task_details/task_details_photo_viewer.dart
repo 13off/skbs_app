@@ -6,6 +6,17 @@ part of 'task_details_editor_screen.dart';
 
 extension _TaskDetailsPhotoViewer on _TaskDetailsScreenState {
   Future<void> openPhotoInApp(TaskPhotoData photo) async {
+    if (photo.storagePath.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Фото сохранено на устройстве и станет доступно после отправки на сервер',
+          ),
+        ),
+      );
+      return;
+    }
+
     try {
       final url = await TaskPhotoSignedUrlCache.getSignedUrl(photo);
       if (!mounted) return;
@@ -125,6 +136,24 @@ extension _TaskDetailsPhotoViewer on _TaskDetailsScreenState {
     final stillExists = photos.any((item) => item.id == photo.id);
     if (!stillExists) {
       TaskPhotoSignedUrlCache.evict(photo);
+      final taskId = widget.task.id?.trim() ?? '';
+      if (taskId.isNotEmpty) {
+        await OfflineSyncService.saveSnapshot(
+          'task_photos::$taskId',
+          photos
+              .map(
+                (item) => <String, dynamic>{
+                  'id': item.id,
+                  'task_id': item.taskId,
+                  'storage_path': item.storagePath,
+                  'original_name': item.originalName,
+                  'photo_stage': item.photoStage,
+                  'created_at': item.createdAt.toUtc().toIso8601String(),
+                },
+              )
+              .toList(growable: false),
+        );
+      }
     }
   }
 }
