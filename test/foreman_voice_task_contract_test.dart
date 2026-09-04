@@ -12,7 +12,8 @@ void main() {
     ).readAsStringSync();
     final shell = File('lib/screens/add_task_screen.dart').readAsStringSync();
 
-    expect(view, isNot(contains('buildVoiceAssistantCard()')));
+    expect(view, contains('final _ = buildVoiceAssistantCard;'));
+    expect(view, isNot(contains('buildVoiceAssistantCard(),')));
     expect(view, isNot(contains('_voicePanelEnabled')));
     expect(voice, contains('Дата • оси • вид работ • исполнитель'));
     expect(voice, contains('applyForemanVoiceSession('));
