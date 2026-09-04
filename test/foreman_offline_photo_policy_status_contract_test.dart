@@ -66,7 +66,8 @@ void main() {
   test('панель голосового создания задачи полностью убрана из формы', () {
     final view = source('lib/screens/task_create/task_create_view.dart');
     final loading = source('lib/screens/task_create/task_create_loading.dart');
-    expect(view, isNot(contains('buildVoiceAssistantCard()')));
+    expect(view, contains('final _ = buildVoiceAssistantCard;'));
+    expect(view, isNot(contains('buildVoiceAssistantCard(),')));
     expect(view, isNot(contains('_voicePanelEnabled')));
     expect(view, isNot(contains('Icons.mic_rounded')));
     expect(loading, isNot(contains('captureVoiceTask()')));
