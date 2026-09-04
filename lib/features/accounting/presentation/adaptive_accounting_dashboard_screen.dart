@@ -95,14 +95,16 @@ class _DesktopAccountingDashboardScreenState
         forceRefresh: forceRefresh,
       ),
       workbench.fetchBankTransactions(from: firstDay, to: lastDay),
+      workbench.fetchBankAccounts(),
       workbench.fetchCalendarTasks(limit: 10),
       workbench.fetchDocuments(),
     ]);
     return _TodayBundle(
       finance: result[0] as AccountingDashboardData,
       bank: result[1] as List<AccountingBankTransaction>,
-      tasks: result[2] as List<AccountingCalendarTask>,
-      documents: result[3] as List<AccountingPrimaryDocument>,
+      bankAccounts: result[2] as List<AccountingBankAccount>,
+      tasks: result[3] as List<AccountingCalendarTask>,
+      documents: result[4] as List<AccountingPrimaryDocument>,
     );
   }
 
@@ -325,6 +327,10 @@ class _DesktopAccountingDashboardScreenState
           );
         } else {
           final data = snapshot.data!;
+          final currentBalance = data.bankAccounts.fold<double>(
+            0,
+            (sum, account) => sum + account.balance,
+          );
           final incoming = data.bank
               .where((e) => e.direction == 'in')
               .fold<double>(0, (sum, e) => sum + e.amount);
@@ -337,10 +343,20 @@ class _DesktopAccountingDashboardScreenState
               children: [
                 Expanded(
                   child: SpecialistMetricCard(
+                    icon: Icons.account_balance_outlined,
+                    label: 'На счетах сейчас',
+                    value: accountingMoney(currentBalance),
+                    onTap: widget.onOpenPayments,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: SpecialistMetricCard(
                     icon: Icons.south_west_rounded,
                     label: 'Поступления по банку',
                     value: accountingMoney(incoming),
                     accent: specialistSuccess,
+                    onTap: widget.onOpenPayments,
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -350,6 +366,7 @@ class _DesktopAccountingDashboardScreenState
                     label: 'Списания по банку',
                     value: accountingMoney(outgoing),
                     accent: specialistDanger,
+                    onTap: widget.onOpenPayments,
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -419,12 +436,14 @@ class _DesktopAccountingDashboardScreenState
 class _TodayBundle {
   final AccountingDashboardData finance;
   final List<AccountingBankTransaction> bank;
+  final List<AccountingBankAccount> bankAccounts;
   final List<AccountingCalendarTask> tasks;
   final List<AccountingPrimaryDocument> documents;
 
   const _TodayBundle({
     required this.finance,
     required this.bank,
+    required this.bankAccounts,
     required this.tasks,
     required this.documents,
   });
