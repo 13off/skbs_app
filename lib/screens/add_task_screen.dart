@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../app/app_adaptive_palette.dart';
 import '../data/offline_master_repository.dart';
+import '../data/offline_task_create_service.dart';
 import '../data/task_repository.dart';
 import '../features/developer/data/developer_policy_repository.dart';
 import '../features/developer/models/task_policy.dart';
@@ -56,6 +57,16 @@ Future<List<TaskItemData>> persistTaskCreateDraft(
 }) async {
   final drafts = draft.allTasks;
   if (drafts.length == 1) {
+    if (OfflineTaskCreateService.shouldQueueImmediately) {
+      return <TaskItemData>[
+        await OfflineTaskCreateService.queueTask(
+          draft.task,
+          objectName: objectName,
+          assigneeIds: draft.assigneeIds,
+          photos: draft.photos,
+        ),
+      ];
+    }
     return <TaskItemData>[
       await TaskRepository.addTaskWithDetails(
         draft.task,

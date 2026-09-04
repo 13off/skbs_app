@@ -18,7 +18,8 @@ void main() {
     );
     expect(banner, contains("? 'Нет сети'"));
     expect(banner, contains('Ожидает отправки:'));
-    expect(banner, contains('Последняя синхронизация:'));
+    expect(banner, contains('Сервер ещё не подтвердил эти изменения'));
+    expect(banner, contains('Последняя успешная связь с сервером:'));
     expect(banner, contains('OfflineSyncService.flush()'));
     expect(banner, contains('if (showIndicator)'));
 
