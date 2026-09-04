@@ -5,15 +5,16 @@ import 'package:flutter_test/flutter_test.dart';
 String source(String path) => File(path).readAsStringSync();
 
 void main() {
-  test('known-offline task is queued without waiting for HTTP failure', () {
+  test('task is queued locally before any network attempt', () {
     final create = source('lib/screens/add_task_screen.dart');
     final service = source('lib/data/offline_task_create_service.dart');
 
-    expect(create, contains('OfflineTaskCreateService.shouldQueueImmediately'));
     expect(create, contains('OfflineTaskCreateService.queueTask('));
-    expect(service, contains('html.window.navigator.onLine != true'));
+    expect(create, isNot(contains('OfflineTaskCreateService.shouldQueueImmediately')));
+    expect(service, isNot(contains('navigator.onLine')));
     expect(service, contains("kind: 'task.create'"));
-    expect(service, contains("'source': 'offline_task_create'"));
+    expect(service, contains("'source': 'local_first_task_create'"));
+    expect(service, contains('unawaited(OfflineSyncService.flush())'));
   });
 
   test('queued task keeps assignee and photo metadata locally', () {
