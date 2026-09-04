@@ -79,20 +79,6 @@ Future<List<TaskItemData>> persistTaskCreateDraft(
   if (drafts.any((item) => item.photos.isNotEmpty)) {
     throw Exception('Пакет задач с фотографиями нужно сохранять по одной');
   }
-  if (OfflineTaskCreateService.shouldQueueImmediately) {
-    final created = <TaskItemData>[];
-    for (final item in drafts) {
-      created.add(
-        await OfflineTaskCreateService.queueTask(
-          item.task,
-          objectName: objectName,
-          assigneeIds: item.assigneeIds,
-          photos: const <TaskPhotoFile>[],
-        ),
-      );
-    }
-    return created;
-  }
   return TaskRepository.addTaskBatch(
     objectName: objectName,
     tasks: drafts.map((item) => item.toBatchInput()).toList(growable: false),
