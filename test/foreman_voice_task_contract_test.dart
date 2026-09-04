@@ -3,7 +3,7 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  test('голосовой ввод показывается только в сценарии прораба', () {
+  test('движок голосового ввода остаётся, но панель создания задачи скрыта', () {
     final view = File(
       'lib/screens/task_create/task_create_view.dart',
     ).readAsStringSync();
@@ -12,8 +12,8 @@ void main() {
     ).readAsStringSync();
     final shell = File('lib/screens/add_task_screen.dart').readAsStringSync();
 
-    expect(view, contains('if (widget.allowDraft)'));
-    expect(view, contains('buildVoiceAssistantCard()'));
+    expect(view, isNot(contains('buildVoiceAssistantCard()')));
+    expect(view, isNot(contains('_voicePanelEnabled')));
     expect(voice, contains('Дата • оси • вид работ • исполнитель'));
     expect(voice, contains('applyForemanVoiceSession('));
     expect(voice, contains('selectedAssigneeIds'));
