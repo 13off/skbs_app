@@ -130,6 +130,39 @@ class TaskPhotoBrowserService {
     );
   }
 
+  static Future<List<TaskPhotoFile>> pickPhotoFiles({
+    void Function(int completed, int total)? onPrepareProgress,
+  }) async {
+    if (!kIsWeb) {
+      final photos = await TaskPhotoNativePickerService.pickPhotoFiles();
+      if (photos.isNotEmpty) {
+        onPrepareProgress?.call(photos.length, photos.length);
+      }
+      return photos;
+    }
+
+    final selectedFiles = await _pickWebFiles();
+    if (selectedFiles.isEmpty) return <TaskPhotoFile>[];
+
+    final photos = <TaskPhotoFile>[];
+    var completed = 0;
+    onPrepareProgress?.call(0, selectedFiles.length);
+
+    for (var start = 0; start < selectedFiles.length; start += prepareConcurrency) {
+      final end = (start + prepareConcurrency) < selectedFiles.length
+          ? start + prepareConcurrency
+          : selectedFiles.length;
+      final batch = await Future.wait(
+        selectedFiles.sublist(start, end).map(_preparePhotoFile),
+      );
+      photos.addAll(batch);
+      completed += batch.length;
+      onPrepareProgress?.call(completed, selectedFiles.length);
+    }
+
+    return photos;
+  }
+
   static Future<List<html.File>> _pickWebFiles() async {
     final input = html.FileUploadInputElement()
       ..multiple = true
@@ -181,39 +214,6 @@ class TaskPhotoBrowserService {
       await focusSubscription.cancel();
       input.remove();
     }
-  }
-
-  static Future<List<TaskPhotoFile>> pickPhotoFiles({
-    void Function(int completed, int total)? onPrepareProgress,
-  }) async {
-    if (!kIsWeb) {
-      final photos = await TaskPhotoNativePickerService.pickPhotoFiles();
-      if (photos.isNotEmpty) {
-        onPrepareProgress?.call(photos.length, photos.length);
-      }
-      return photos;
-    }
-
-    final selectedFiles = await _pickWebFiles();
-    if (selectedFiles.isEmpty) return <TaskPhotoFile>[];
-
-    final photos = <TaskPhotoFile>[];
-    var completed = 0;
-    onPrepareProgress?.call(0, selectedFiles.length);
-
-    for (var start = 0; start < selectedFiles.length; start += prepareConcurrency) {
-      final end = (start + prepareConcurrency) < selectedFiles.length
-          ? start + prepareConcurrency
-          : selectedFiles.length;
-      final batch = await Future.wait(
-        selectedFiles.sublist(start, end).map(_preparePhotoFile),
-      );
-      photos.addAll(batch);
-      completed += batch.length;
-      onPrepareProgress?.call(completed, selectedFiles.length);
-    }
-
-    return photos;
   }
 
   static void openUrl(String url) {
