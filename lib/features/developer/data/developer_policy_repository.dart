@@ -10,6 +10,7 @@ class DeveloperPolicyRepository {
   static final Map<String, Future<TaskPolicy>> _inFlight =
       <String, Future<TaskPolicy>>{};
   static const Duration _cacheTtl = Duration(minutes: 3);
+  static const Duration _fieldNetworkDeadline = Duration(seconds: 3);
   static int _cacheGeneration = 0;
 
   static String _key(String objectName) => objectName.trim().toLowerCase();
@@ -56,10 +57,12 @@ class DeveloperPolicyRepository {
     int generation,
   ) async {
     try {
-      final result = await _client.rpc<dynamic>(
-        'get_effective_task_policy',
-        params: <String, dynamic>{'p_object_name': objectName.trim()},
-      );
+      final result = await _client
+          .rpc<dynamic>(
+            'get_effective_task_policy',
+            params: <String, dynamic>{'p_object_name': objectName.trim()},
+          )
+          .timeout(_fieldNetworkDeadline);
       final policy = TaskPolicy.fromJson(_map(result));
       if (generation == _cacheGeneration) {
         _cache[key] = _PolicyCacheEntry(policy, DateTime.now());
