@@ -84,8 +84,10 @@ void main() {
       '!_isOnline || state.isSyncing || state.pendingCount > 0',
       'Icons.signal_wifi_connected_no_internet_4_rounded',
       'CircularProgressIndicator(',
-      'Данные отправляются на сервер',
-      'будут автоматически отправлены на сервер после восстановления связи',
+      'Сейчас идёт попытка отправки',
+      'будут отправлены после восстановления связи',
+      'Сервер ещё не подтвердил эти изменения',
+      'Последняя успешная связь с сервером',
     ]) {
       expect(status, contains(fragment));
     }
