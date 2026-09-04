@@ -20,7 +20,7 @@ void main() {
     expect(screen, contains('реально авторизованная роль этой сессии'));
     expect(screen, contains('Результат не считается подтверждением'));
     expect(screen, isNot(contains('ChoiceChip')));
-    expect(screen, isNot(contains('Выбери профессию')));
+    expect(screen, isNot(contains('Выбери профессию'));
     expect('$repository\n$screen', isNot(contains('.insert(')));
     expect('$repository\n$screen', isNot(contains('.update(')));
     expect('$repository\n$screen', isNot(contains('.delete(')));
@@ -58,17 +58,20 @@ void main() {
     final main = File(
       'lib/features/accounting/presentation/accounting_main_screen.dart',
     ).readAsStringSync();
-    final reports = File(
-      'lib/features/accounting/presentation/accounting_reports_screen.dart',
+    final control = File(
+      'lib/features/accounting/presentation/accounting_control_screen.dart',
     ).readAsStringSync();
     final launcher = File(
       'lib/features/ai/presentation/operational_audit_launcher_screen.dart',
     ).readAsStringSync();
 
-    expect(main, contains('pageCount = 4'));
+    expect(main, contains('pageCount = 5'));
+    expect(main, contains("label: 'Операции'"));
+    expect(main, contains("label: 'Документы'"));
     expect(main, contains("label: 'Контроль'"));
-    expect(main, contains('onOpenReports: () => select(1)'));
-    expect(reports, contains("title: 'Единый контроль'"));
+    expect(main, contains('onOpenReports: () => select(3)'));
+    expect(main, contains('AccountingControlScreen'));
+    expect(control, contains('AccountingControlScreen'));
     expect(launcher, contains('AiAssistantRepository.request'));
     expect(launcher, contains("action.type != 'find_operational_anomalies'"));
     expect(launcher, contains('Прямой read-only аудит без команды в чате'));
