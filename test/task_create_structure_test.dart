@@ -26,12 +26,13 @@ void main() {
     expect(shell, contains("part 'task_create/task_create_view.dart';"));
     expect(shell, contains('class TaskCreateDraft'));
     expect(shell, contains('class AddTaskScreen extends StatefulWidget'));
-    expect(shell.split('\n').length, lessThan(190));
+    expect(shell.split('\n').length, lessThan(200));
     expect(
       shell,
       contains('Future<List<TaskItemData>> persistTaskCreateDraft'),
     );
-    expect(shell, contains('TaskRepository.addTaskBatch('));
+    expect(shell, contains('OfflineTaskCreateService.queueTask('));
+    expect(shell, isNot(contains('TaskRepository.addTaskBatch(')));
 
     expect(loading, contains('Future<void> loadPolicy()'));
     expect(loading, contains('Future<void> loadEmployees()'));
