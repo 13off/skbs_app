@@ -63,11 +63,11 @@ void main() {
     ]);
   });
 
-  test('голосовая панель и скрытый автозапуск отключены', () {
+  test('панель голосового создания задачи полностью убрана из формы', () {
     final view = source('lib/screens/task_create/task_create_view.dart');
     final loading = source('lib/screens/task_create/task_create_loading.dart');
-    expect(view, contains('bool get _voicePanelEnabled => false;'));
-    expect(view, contains('if (_voicePanelEnabled)'));
+    expect(view, isNot(contains('buildVoiceAssistantCard()')));
+    expect(view, isNot(contains('_voicePanelEnabled')));
     expect(view, isNot(contains('Icons.mic_rounded')));
     expect(loading, isNot(contains('captureVoiceTask()')));
     expect(loading, isNot(contains('startVoiceImmediately')));
