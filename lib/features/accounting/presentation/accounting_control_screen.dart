@@ -239,7 +239,8 @@ class _AccountingControlScreenState extends State<AccountingControlScreen> {
           const AccountingEmptyState(
             icon: Icons.verified_outlined,
             title: 'Критичных замечаний нет',
-            description: 'Выплаты подтверждены, первичные документы не требуют внимания.',
+            description:
+                'Выплаты подтверждены, первичные документы не требуют внимания.',
           )
         else ...[
           if (data.dashboard.missingReceipts.isNotEmpty)
@@ -257,10 +258,13 @@ class _AccountingControlScreenState extends State<AccountingControlScreen> {
                     (row) => SpecialistTableRowData(
                       cells: [
                         specialistCellText(accountingDate(row.paymentDate)),
-                        specialistCellText(row.employeeName, weight: FontWeight.w900),
+                        specialistCellText(
+                          row.employeeName,
+                          weight: FontWeight.w900,
+                        ),
                         specialistCellText(row.objectName),
                         specialistCellText(accountingMoney(row.amount)),
-                        const AccountingStatusBadge(
+                        AccountingStatusBadge(
                           label: 'Нет чека',
                           color: specialistDanger,
                         ),
@@ -346,7 +350,10 @@ class _AccountingControlScreenState extends State<AccountingControlScreen> {
 
   Widget reporting(List<AccountingCalendarTask> tasks) {
     final reportingTasks = tasks
-        .where((e) => e.kind == 'report' || e.kind == 'tax' || e.kind == 'salary')
+        .where(
+          (e) =>
+              e.kind == 'report' || e.kind == 'tax' || e.kind == 'salary',
+        )
         .toList();
     return Column(
       children: [
@@ -381,7 +388,8 @@ class _AccountingControlScreenState extends State<AccountingControlScreen> {
           const SizedBox(height: 16),
         ];
 
-        if (snapshot.connectionState == ConnectionState.waiting && !snapshot.hasData) {
+        if (snapshot.connectionState == ConnectionState.waiting &&
+            !snapshot.hasData) {
           children.add(
             const SpecialistMessageCard(
               icon: Icons.fact_check_outlined,
@@ -487,7 +495,11 @@ class _TaskDraft {
   final String title;
   final String kind;
 
-  const _TaskDraft({required this.date, required this.title, required this.kind});
+  const _TaskDraft({
+    required this.date,
+    required this.title,
+    required this.kind,
+  });
 }
 
 class _AddTaskDialog extends StatefulWidget {
@@ -517,19 +529,31 @@ class _AddTaskDialogState extends State<_AddTaskDialog> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            TextField(controller: title, decoration: const InputDecoration(labelText: 'Что нужно сделать')),
+            TextField(
+              controller: title,
+              decoration: const InputDecoration(
+                labelText: 'Что нужно сделать',
+              ),
+            ),
             const SizedBox(height: 12),
             DropdownButtonFormField<String>(
               initialValue: kind,
               decoration: const InputDecoration(labelText: 'Тип'),
               items: const [
-                DropdownMenuItem(value: 'report', child: Text('Отчётность')),
+                DropdownMenuItem(
+                  value: 'report',
+                  child: Text('Отчётность'),
+                ),
                 DropdownMenuItem(value: 'tax', child: Text('Налог')),
-                DropdownMenuItem(value: 'salary', child: Text('Зарплата')),
+                DropdownMenuItem(
+                  value: 'salary',
+                  child: Text('Зарплата'),
+                ),
                 DropdownMenuItem(value: 'payment', child: Text('Платёж')),
                 DropdownMenuItem(value: 'other', child: Text('Другое')),
               ],
-              onChanged: (value) => setState(() => kind = value ?? 'report'),
+              onChanged: (value) =>
+                  setState(() => kind = value ?? 'report'),
             ),
             const SizedBox(height: 12),
             OutlinedButton.icon(
@@ -549,11 +573,21 @@ class _AddTaskDialogState extends State<_AddTaskDialog> {
         ),
       ),
       actions: [
-        TextButton(onPressed: () => Navigator.pop(context), child: const Text('Отмена')),
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Отмена'),
+        ),
         FilledButton(
           onPressed: () {
             if (title.text.trim().isEmpty) return;
-            Navigator.pop(context, _TaskDraft(date: date, title: title.text.trim(), kind: kind));
+            Navigator.pop(
+              context,
+              _TaskDraft(
+                date: date,
+                title: title.text.trim(),
+                kind: kind,
+              ),
+            );
           },
           child: const Text('Сохранить'),
         ),
@@ -582,10 +616,12 @@ class _AddManualOperationDialog extends StatefulWidget {
   const _AddManualOperationDialog();
 
   @override
-  State<_AddManualOperationDialog> createState() => _AddManualOperationDialogState();
+  State<_AddManualOperationDialog> createState() =>
+      _AddManualOperationDialogState();
 }
 
-class _AddManualOperationDialogState extends State<_AddManualOperationDialog> {
+class _AddManualOperationDialogState
+    extends State<_AddManualOperationDialog> {
   final debit = TextEditingController();
   final credit = TextEditingController();
   final amount = TextEditingController();
@@ -613,26 +649,61 @@ class _AddManualOperationDialogState extends State<_AddManualOperationDialog> {
           children: [
             Row(
               children: [
-                Expanded(child: TextField(controller: debit, decoration: const InputDecoration(labelText: 'Дебет счёта'))),
+                Expanded(
+                  child: TextField(
+                    controller: debit,
+                    decoration: const InputDecoration(
+                      labelText: 'Дебет счёта',
+                    ),
+                  ),
+                ),
                 const SizedBox(width: 10),
-                Expanded(child: TextField(controller: credit, decoration: const InputDecoration(labelText: 'Кредит счёта'))),
+                Expanded(
+                  child: TextField(
+                    controller: credit,
+                    decoration: const InputDecoration(
+                      labelText: 'Кредит счёта',
+                    ),
+                  ),
+                ),
               ],
             ),
             const SizedBox(height: 10),
-            TextField(controller: amount, decoration: const InputDecoration(labelText: 'Сумма')),
+            TextField(
+              controller: amount,
+              decoration: const InputDecoration(labelText: 'Сумма'),
+            ),
             const SizedBox(height: 10),
-            TextField(controller: description, decoration: const InputDecoration(labelText: 'Содержание операции')),
+            TextField(
+              controller: description,
+              decoration: const InputDecoration(
+                labelText: 'Содержание операции',
+              ),
+            ),
             const SizedBox(height: 10),
-            TextField(controller: documentNumber, decoration: const InputDecoration(labelText: 'Документ / основание')),
+            TextField(
+              controller: documentNumber,
+              decoration: const InputDecoration(
+                labelText: 'Документ / основание',
+              ),
+            ),
           ],
         ),
       ),
       actions: [
-        TextButton(onPressed: () => Navigator.pop(context), child: const Text('Отмена')),
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Отмена'),
+        ),
         FilledButton(
           onPressed: () {
             final parsed = double.tryParse(amount.text.replaceAll(',', '.'));
-            if (parsed == null || parsed <= 0 || debit.text.trim().isEmpty || credit.text.trim().isEmpty) return;
+            if (parsed == null ||
+                parsed <= 0 ||
+                debit.text.trim().isEmpty ||
+                credit.text.trim().isEmpty) {
+              return;
+            }
             Navigator.pop(
               context,
               _ManualOperationDraft(
