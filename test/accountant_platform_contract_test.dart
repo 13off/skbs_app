@@ -16,19 +16,22 @@ void containsAll(String path, Iterable<String> fragments) {
 }
 
 void main() {
-  test('платформа бухгалтера объединяет выплаты и отчёты в одном рабочем разделе', () {
+  test('платформа бухгалтера отражает реальный рабочий контур', () {
     containsAll(
       'lib/features/accounting/presentation/accounting_main_screen.dart',
       const [
-        'pageCount = 4',
+        'pageCount = 5',
         "label: 'Сегодня'",
-        "label: 'Выплаты'",
+        "label: 'Операции'",
+        "label: 'Документы'",
         "label: 'Контроль'",
         "label: 'Профиль'",
         'AdaptiveAccountingDashboardScreen(',
-        'AdaptiveAccountingPaymentsScreen()',
+        'AdaptiveAccountingOperationsScreen()',
+        'AccountingDocumentsScreen()',
+        'AccountingControlScreen()',
         'onOpenPayments: () => select(1)',
-        'onOpenReports: () => select(1)',
+        'onOpenReports: () => select(3)',
       ],
     );
     final main = source(
@@ -36,6 +39,44 @@ void main() {
     );
     expect(main, isNot(contains("label: 'Отчёты'")));
     expect(main, isNot(contains('AdaptiveAccountingReportsScreen')));
+
+    containsAll(
+      'lib/features/accounting/presentation/adaptive_accounting_operations_screen.dart',
+      const [
+        "('bank', 'Банк'",
+        "('expenses', 'Расходы'",
+        "('payments', 'Выплаты'",
+        'AdaptiveAccountingPaymentsScreen()',
+        'fetchBankTransactions(',
+        'fetchSnapshot(',
+      ],
+    );
+
+    containsAll(
+      'lib/features/accounting/presentation/accounting_documents_screen.dart',
+      const [
+        "('purchase', 'Поступления'",
+        "('sale', 'Реализация'",
+        "('counterparties', 'Контрагенты'",
+        "('materials', 'Материалы'",
+        'createDocument(',
+        'createCounterparty(',
+        'createMaterialWriteOff(',
+      ],
+    );
+
+    containsAll(
+      'lib/features/accounting/presentation/accounting_control_screen.dart',
+      const [
+        "('calendar', 'Календарь'",
+        "('checks', 'Проверки'",
+        "('osv', 'ОСВ'",
+        "('reporting', 'Отчётность'",
+        'get_accounting_trial_balance',
+        'accounting_journal_entries',
+        'accounting_journal_lines',
+      ],
+    );
 
     containsAll(
       'lib/features/accounting/presentation/adaptive_accounting_payments_screen.dart',
@@ -47,6 +88,24 @@ void main() {
         'PaymentReportExporter.download(',
         'PeriodTimesheetScreen(',
         'selectedObjectName: objectName',
+      ],
+    );
+  });
+
+  test('новые бухгалтерские данные имеют отдельный репозиторий', () {
+    containsAll(
+      'lib/features/accounting/data/accounting_workbench_repository.dart',
+      const [
+        "from('accounting_bank_transactions')",
+        "from('accounting_primary_documents')",
+        "from('accounting_counterparties')",
+        "from('accounting_material_movements')",
+        "from('accounting_calendar_tasks')",
+        'createBankTransaction(',
+        'createDocument(',
+        'createCounterparty(',
+        'createMaterialWriteOff(',
+        'createCalendarTask(',
       ],
     );
   });
