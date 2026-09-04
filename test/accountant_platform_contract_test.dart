@@ -16,49 +16,37 @@ void containsAll(String path, Iterable<String> fragments) {
 }
 
 void main() {
-  test('платформа бухгалтера имеет отдельные вкладки и рабочие экраны', () {
+  test('платформа бухгалтера объединяет выплаты и отчёты в одном рабочем разделе', () {
     containsAll(
       'lib/features/accounting/presentation/accounting_main_screen.dart',
       const [
+        'pageCount = 4',
         "label: 'Сегодня'",
         "label: 'Выплаты'",
-        "label: 'Отчёты'",
+        "label: 'Контроль'",
         "label: 'Профиль'",
-        'AccountingDashboardScreen(',
-        'PaymentsScreen()',
-        'AccountingReportsScreen()',
+        'AdaptiveAccountingDashboardScreen(',
+        'AdaptiveAccountingPaymentsScreen()',
+        'onOpenPayments: () => select(1)',
+        'onOpenReports: () => select(1)',
       ],
     );
-    containsAll(
-      'lib/features/accounting/presentation/accounting_dashboard_screen.dart',
-      const [
-        "title: 'Сегодня'",
-        "'Финансовая сводка'",
-        "'Сотрудников с остатком'",
-        "'Выплат проведено'",
-        "'Выплат без чека'",
-        "label: 'Добавить выплату'",
-        'AddPaymentScreen(',
-      ],
+    final main = source(
+      'lib/features/accounting/presentation/accounting_main_screen.dart',
     );
-    final dashboard = source(
-      'lib/features/accounting/presentation/accounting_dashboard_screen.dart',
-    );
-    expect(dashboard, isNot(contains("label: 'Открыть отчёты'")));
+    expect(main, isNot(contains("label: 'Отчёты'")));
+    expect(main, isNot(contains('AdaptiveAccountingReportsScreen')));
 
     containsAll(
-      'lib/features/accounting/presentation/accounting_reports_screen.dart',
+      'lib/features/accounting/presentation/adaptive_accounting_payments_screen.dart',
       const [
-        "title: 'Отчёты'",
-        "title: 'Отчёт по выплатам'",
-        "title: 'Табель и начисления'",
-        "'Реестр выплат'",
+        'return const PaymentsScreen();',
+        "title: 'Выплаты и остатки'",
+        "label: const Text('Табель и начисления')",
+        "label: const Text('Скачать XLSX')",
         'PaymentReportExporter.download(',
-        'Widget objectPanel()',
-        "child: Text('Все объекты')",
-        'selectedObjectName: selectedObjectName',
-        'objectName: selectedObjectName',
-        'selectedObjectScope == null',
+        'PeriodTimesheetScreen(',
+        'selectedObjectName: objectName',
       ],
     );
   });
