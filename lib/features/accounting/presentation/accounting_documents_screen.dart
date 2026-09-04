@@ -1,4 +1,6 @@
+import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../shared/presentation/specialist_desktop_table.dart';
 import '../../shared/presentation/specialist_desktop_ui.dart';
@@ -28,12 +30,14 @@ class _AccountingDocumentsScreenState extends State<AccountingDocumentsScreen> {
     final result = await Future.wait<dynamic>([
       repository.fetchDocuments(),
       repository.fetchCounterparties(),
+      repository.fetchNomenclature(),
       repository.fetchMaterialMovements(),
     ]);
     return _DocumentsData(
       documents: result[0] as List<AccountingPrimaryDocument>,
       counterparties: result[1] as List<AccountingCounterparty>,
-      materials: result[2] as List<AccountingMaterialMovement>,
+      nomenclature: result[2] as List<AccountingNomenclature>,
+      materials: result[3] as List<AccountingMaterialMovement>,
     );
   }
 
@@ -49,19 +53,43 @@ class _AccountingDocumentsScreenState extends State<AccountingDocumentsScreen> {
       builder: (_) => _AddDocumentDialog(documentType: type),
     );
     if (draft == null) return;
-    await repository.createDocument(
-      documentType: type,
-      number: draft.number,
-      date: draft.date,
-      counterparty: draft.counterparty,
-      objectName: draft.objectName,
-      amount: draft.amount,
-      vatAmount: draft.vatAmount,
-      invoiceNumber: draft.invoiceNumber,
-      invoiceDate: draft.invoiceDate,
-      comment: draft.comment,
-    );
-    await refresh();
+    try {
+      final documentId = await repository.createDocument(
+        documentType: type,
+        number: draft.number,
+        date: draft.date,
+        counterparty: draft.counterparty,
+        objectName: draft.objectName,
+        amount: draft.amount,
+        vatAmount: draft.vatAmount,
+        invoiceNumber: draft.invoiceNumber,
+        invoiceDate: draft.invoiceDate,
+        comment: draft.comment,
+      );
+      if (draft.file != null && documentId.isNotEmpty) {
+        await repository.uploadDocumentFile(
+          documentId: documentId,
+          fileName: draft.file!.name,
+          bytes: await draft.file!.readAsBytes(),
+        );
+      }
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            draft.file == null
+                ? 'Документ сохранён'
+                : 'Документ и файл сохранены',
+          ),
+        ),
+      );
+      await refresh();
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Не удалось сохранить документ: $error')),
+      );
+    }
   }
 
   Future<void> addCounterparty() async {
@@ -75,6 +103,22 @@ class _AccountingDocumentsScreenState extends State<AccountingDocumentsScreen> {
       inn: draft.inn,
       kpp: draft.kpp,
       contractNumber: draft.contractNumber,
+    );
+    await refresh();
+  }
+
+  Future<void> addNomenclature() async {
+    final draft = await showDialog<_NomenclatureDraft>(
+      context: context,
+      builder: (_) => const _AddNomenclatureDialog(),
+    );
+    if (draft == null) return;
+    await repository.createNomenclature(
+      name: draft.name,
+      kind: draft.kind,
+      unit: draft.unit,
+      vatRate: draft.vatRate,
+      comment: draft.comment,
     );
     await refresh();
   }
@@ -97,21 +141,56 @@ class _AccountingDocumentsScreenState extends State<AccountingDocumentsScreen> {
     await refresh();
   }
 
+  Future<void> showDocumentFiles(AccountingPrimaryDocument document) async {
+    if (document.files.isEmpty) return;
+    await showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(
+          document.number.isEmpty
+              ? 'Файлы документа'
+              : 'Файлы документа № ${document.number}',
+        ),
+        content: SizedBox(
+          width: 560,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: document.files
+                .map(
+                  (file) => ListTile(
+                    leading: const Icon(Icons.attach_file_rounded),
+                    title: Text(
+                      file.fileName.isEmpty ? 'Файл' : file.fileName,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    subtitle: Text(file.contentType),
+                    trailing: const Icon(Icons.open_in_new_rounded),
+                    onTap: () async {
+                      final url = await repository.createDocumentFileSignedUrl(
+                        file,
+                      );
+                      await launchUrl(
+                        Uri.parse(url),
+                        mode: LaunchMode.externalApplication,
+                      );
+                    },
+                  ),
+                )
+                .toList(growable: false),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Закрыть'),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget actions() {
-    final callback = switch (view) {
-      'purchase' => () => addDocument('purchase'),
-      'sale' => () => addDocument('sale'),
-      'counterparties' => addCounterparty,
-      'materials' => addMaterialWriteOff,
-      _ => null,
-    };
-    final label = switch (view) {
-      'purchase' => 'Добавить поступление',
-      'sale' => 'Добавить реализацию',
-      'counterparties' => 'Добавить контрагента',
-      'materials' => 'Списать материал',
-      _ => 'Добавить',
-    };
     return Wrap(
       spacing: 10,
       runSpacing: 10,
@@ -122,9 +201,25 @@ class _AccountingDocumentsScreenState extends State<AccountingDocumentsScreen> {
           icon: const Icon(Icons.refresh_rounded),
         ),
         FilledButton.icon(
-          onPressed: callback,
+          onPressed: switch (view) {
+            'purchase' => () => addDocument('purchase'),
+            'sale' => () => addDocument('sale'),
+            'counterparties' => addCounterparty,
+            'nomenclature' => addNomenclature,
+            'materials' => addMaterialWriteOff,
+            _ => null,
+          },
           icon: const Icon(Icons.add_rounded),
-          label: Text(label),
+          label: Text(
+            switch (view) {
+              'purchase' => 'Добавить поступление',
+              'sale' => 'Добавить реализацию',
+              'counterparties' => 'Добавить контрагента',
+              'nomenclature' => 'Добавить позицию',
+              'materials' => 'Списать материал',
+              _ => 'Добавить',
+            },
+          ),
         ),
       ],
     );
@@ -133,7 +228,7 @@ class _AccountingDocumentsScreenState extends State<AccountingDocumentsScreen> {
   Widget documentSummary(List<AccountingPrimaryDocument> rows) {
     final total = rows.fold<double>(0, (sum, e) => sum + e.amount);
     final vat = rows.fold<double>(0, (sum, e) => sum + e.vatAmount);
-    final attention = rows.where((e) => e.status == 'attention').length;
+    final withoutFiles = rows.where((e) => e.files.isEmpty).length;
     return Row(
       children: [
         Expanded(
@@ -163,10 +258,10 @@ class _AccountingDocumentsScreenState extends State<AccountingDocumentsScreen> {
         const SizedBox(width: 12),
         Expanded(
           child: SpecialistMetricCard(
-            icon: Icons.warning_amber_rounded,
-            label: 'Требуют внимания',
-            value: '$attention',
-            accent: attention > 0 ? specialistDanger : specialistSuccess,
+            icon: Icons.attach_file_rounded,
+            label: 'Без файла',
+            value: '$withoutFiles',
+            accent: withoutFiles > 0 ? specialistWarning : specialistSuccess,
           ),
         ),
       ],
@@ -181,11 +276,11 @@ class _AccountingDocumentsScreenState extends State<AccountingDocumentsScreen> {
             ? 'Поступлений пока нет'
             : 'Документов реализации пока нет',
         description:
-            'Здесь будут первичные документы с номером, датой, контрагентом, суммой и НДС.',
+            'Здесь будут первичные документы с номером, датой, контрагентом, суммой, НДС и файлами.',
       );
     }
     return SpecialistDesktopTable(
-      minWidth: 1250,
+      minWidth: 1320,
       columns: const [
         SpecialistTableColumn('Дата', flex: 2),
         SpecialistTableColumn('Номер', flex: 2),
@@ -194,11 +289,13 @@ class _AccountingDocumentsScreenState extends State<AccountingDocumentsScreen> {
         SpecialistTableColumn('Сумма', flex: 2),
         SpecialistTableColumn('НДС', flex: 2),
         SpecialistTableColumn('Счёт-фактура', flex: 3),
+        SpecialistTableColumn('Файлы', flex: 2),
         SpecialistTableColumn('Статус', flex: 2),
       ],
       rows: rows
           .map(
             (row) => SpecialistTableRowData(
+              onTap: row.files.isEmpty ? null : () => showDocumentFiles(row),
               cells: [
                 specialistCellText(accountingDate(row.date)),
                 specialistCellText(
@@ -206,13 +303,27 @@ class _AccountingDocumentsScreenState extends State<AccountingDocumentsScreen> {
                   weight: FontWeight.w900,
                 ),
                 specialistCellText(row.counterparty),
-                specialistCellText(row.objectName.isEmpty ? '—' : row.objectName),
-                specialistCellText(accountingMoney(row.amount), weight: FontWeight.w900),
+                specialistCellText(
+                  row.objectName.isEmpty ? '—' : row.objectName,
+                ),
+                specialistCellText(
+                  accountingMoney(row.amount),
+                  weight: FontWeight.w900,
+                ),
                 specialistCellText(accountingMoney(row.vatAmount)),
                 specialistCellText(
                   row.invoiceNumber.isEmpty
                       ? '—'
                       : '${row.invoiceNumber}${row.invoiceDate == null ? '' : ' • ${accountingDate(row.invoiceDate!)}'}',
+                ),
+                AccountingStatusBadge(
+                  label: row.files.isEmpty
+                      ? 'Нет файла'
+                      : 'Файлов: ${row.files.length}',
+                  color: row.files.isEmpty
+                      ? specialistWarning
+                      : specialistSuccess,
+                  icon: Icons.attach_file_rounded,
                 ),
                 AccountingStatusBadge(
                   label: accountingDocStatusLabel(row.status),
@@ -254,7 +365,48 @@ class _AccountingDocumentsScreenState extends State<AccountingDocumentsScreen> {
                   row.contractNumber.isEmpty ? '—' : row.contractNumber,
                 ),
                 specialistCellText(
-                  row.contractDate == null ? '—' : accountingDate(row.contractDate!),
+                  row.contractDate == null
+                      ? '—'
+                      : accountingDate(row.contractDate!),
+                ),
+              ],
+            ),
+          )
+          .toList(),
+    );
+  }
+
+  Widget nomenclatureTable(List<AccountingNomenclature> rows) {
+    if (rows.isEmpty) {
+      return const AccountingEmptyState(
+        icon: Icons.list_alt_outlined,
+        title: 'Номенклатура пока пустая',
+        description:
+            'Добавьте услуги, материалы и товары, которые встречаются в первичных документах.',
+      );
+    }
+    return SpecialistDesktopTable(
+      minWidth: 900,
+      columns: const [
+        SpecialistTableColumn('Наименование', flex: 6),
+        SpecialistTableColumn('Тип', flex: 2),
+        SpecialistTableColumn('Ед.', flex: 2),
+        SpecialistTableColumn('Ставка НДС', flex: 2),
+        SpecialistTableColumn('Комментарий', flex: 4),
+      ],
+      rows: rows
+          .map(
+            (row) => SpecialistTableRowData(
+              cells: [
+                specialistCellText(row.name, weight: FontWeight.w900),
+                specialistCellText(_nomenclatureKind(row.kind)),
+                specialistCellText(row.unit.isEmpty ? '—' : row.unit),
+                specialistCellText(
+                  row.vatRate == null ? 'Без НДС' : '${row.vatRate!.toStringAsFixed(0)}%',
+                ),
+                specialistCellText(
+                  row.comment.isEmpty ? '—' : row.comment,
+                  color: specialistMuted,
                 ),
               ],
             ),
@@ -315,6 +467,7 @@ class _AccountingDocumentsScreenState extends State<AccountingDocumentsScreen> {
               ('purchase', 'Поступления', Icons.call_received_rounded),
               ('sale', 'Реализация', Icons.call_made_rounded),
               ('counterparties', 'Контрагенты', Icons.apartment_outlined),
+              ('nomenclature', 'Номенклатура', Icons.list_alt_outlined),
               ('materials', 'Материалы', Icons.inventory_2_outlined),
             ],
             onChanged: (value) => setState(() => view = value),
@@ -352,6 +505,8 @@ class _AccountingDocumentsScreenState extends State<AccountingDocumentsScreen> {
             children.add(documentsTable(rows));
           } else if (view == 'counterparties') {
             children.add(counterpartiesTable(data.counterparties));
+          } else if (view == 'nomenclature') {
+            children.add(nomenclatureTable(data.nomenclature));
           } else {
             children.add(materialsTable(data.materials));
           }
@@ -361,7 +516,7 @@ class _AccountingDocumentsScreenState extends State<AccountingDocumentsScreen> {
           storageKey: 'desktop-accounting-documents',
           title: 'Документы и учёт',
           subtitle:
-              'Поступления, реализация, контрагенты и списание материалов',
+              'Поступления, реализация, контрагенты, номенклатура и списание материалов',
           trailing: actions(),
           onRefresh: refresh,
           children: children,
@@ -369,16 +524,27 @@ class _AccountingDocumentsScreenState extends State<AccountingDocumentsScreen> {
       },
     );
   }
+
+  String _nomenclatureKind(String kind) {
+    return switch (kind) {
+      'service' => 'Услуга',
+      'material' => 'Материал',
+      'goods' => 'Товар',
+      _ => 'Другое',
+    };
+  }
 }
 
 class _DocumentsData {
   final List<AccountingPrimaryDocument> documents;
   final List<AccountingCounterparty> counterparties;
+  final List<AccountingNomenclature> nomenclature;
   final List<AccountingMaterialMovement> materials;
 
   const _DocumentsData({
     required this.documents,
     required this.counterparties,
+    required this.nomenclature,
     required this.materials,
   });
 }
@@ -393,6 +559,7 @@ class _DocumentDraft {
   final String invoiceNumber;
   final DateTime? invoiceDate;
   final String comment;
+  final XFile? file;
 
   const _DocumentDraft({
     required this.number,
@@ -404,6 +571,7 @@ class _DocumentDraft {
     required this.invoiceNumber,
     required this.invoiceDate,
     required this.comment,
+    required this.file,
   });
 }
 
@@ -424,6 +592,9 @@ class _AddDocumentDialogState extends State<_AddDocumentDialog> {
   final vat = TextEditingController();
   final invoice = TextEditingController();
   final comment = TextEditingController();
+  DateTime documentDate = DateTime.now();
+  DateTime? invoiceDate;
+  XFile? file;
 
   @override
   void dispose() {
@@ -437,70 +608,181 @@ class _AddDocumentDialogState extends State<_AddDocumentDialog> {
     super.dispose();
   }
 
+  Future<void> chooseFile() async {
+    const type = XTypeGroup(
+      label: 'Первичные документы',
+      extensions: ['pdf', 'jpg', 'jpeg', 'png', 'webp', 'xlsx', 'xls'],
+    );
+    final selected = await openFile(acceptedTypeGroups: const [type]);
+    if (selected != null) setState(() => file = selected);
+  }
+
+  Future<void> chooseDocumentDate() async {
+    final selected = await showDatePicker(
+      context: context,
+      firstDate: DateTime(2020),
+      lastDate: DateTime(2035),
+      initialDate: documentDate,
+    );
+    if (selected != null) setState(() => documentDate = selected);
+  }
+
+  Future<void> chooseInvoiceDate() async {
+    final selected = await showDatePicker(
+      context: context,
+      firstDate: DateTime(2020),
+      lastDate: DateTime(2035),
+      initialDate: invoiceDate ?? documentDate,
+    );
+    if (selected != null) setState(() => invoiceDate = selected);
+  }
+
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: Text(widget.documentType == 'purchase'
-          ? 'Новое поступление'
-          : 'Новая реализация'),
+      title: Text(
+        widget.documentType == 'purchase'
+            ? 'Новое поступление'
+            : 'Новая реализация',
+      ),
       content: SizedBox(
-        width: 560,
+        width: 620,
         child: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              TextField(controller: number, decoration: const InputDecoration(labelText: 'Номер документа')),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: number,
+                      decoration: const InputDecoration(
+                        labelText: 'Номер документа',
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  OutlinedButton.icon(
+                    onPressed: chooseDocumentDate,
+                    icon: const Icon(Icons.event_outlined),
+                    label: Text(accountingDate(documentDate)),
+                  ),
+                ],
+              ),
               const SizedBox(height: 10),
-              TextField(controller: counterparty, decoration: const InputDecoration(labelText: 'Контрагент')),
+              TextField(
+                controller: counterparty,
+                decoration: const InputDecoration(labelText: 'Контрагент'),
+              ),
               const SizedBox(height: 10),
-              TextField(controller: objectName, decoration: const InputDecoration(labelText: 'Объект')),
+              TextField(
+                controller: objectName,
+                decoration: const InputDecoration(labelText: 'Объект'),
+              ),
               const SizedBox(height: 10),
               Row(
                 children: [
                   Expanded(
                     child: TextField(
                       controller: amount,
-                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                      decoration: const InputDecoration(labelText: 'Сумма документа'),
+                      keyboardType:
+                          const TextInputType.numberWithOptions(decimal: true),
+                      decoration: const InputDecoration(
+                        labelText: 'Сумма документа',
+                      ),
                     ),
                   ),
                   const SizedBox(width: 10),
                   Expanded(
                     child: TextField(
                       controller: vat,
-                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      keyboardType:
+                          const TextInputType.numberWithOptions(decimal: true),
                       decoration: const InputDecoration(labelText: 'НДС'),
                     ),
                   ),
                 ],
               ),
               const SizedBox(height: 10),
-              TextField(controller: invoice, decoration: const InputDecoration(labelText: 'Номер счёта-фактуры')),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: invoice,
+                      decoration: const InputDecoration(
+                        labelText: 'Номер счёта-фактуры',
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  OutlinedButton.icon(
+                    onPressed: chooseInvoiceDate,
+                    icon: const Icon(Icons.event_outlined),
+                    label: Text(
+                      invoiceDate == null
+                          ? 'Дата счёт-фактуры'
+                          : accountingDate(invoiceDate!),
+                    ),
+                  ),
+                ],
+              ),
               const SizedBox(height: 10),
-              TextField(controller: comment, decoration: const InputDecoration(labelText: 'Комментарий')),
+              TextField(
+                controller: comment,
+                decoration: const InputDecoration(labelText: 'Комментарий'),
+              ),
+              const SizedBox(height: 14),
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      file == null ? 'Файл не выбран' : file!.name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  OutlinedButton.icon(
+                    onPressed: chooseFile,
+                    icon: const Icon(Icons.attach_file_rounded),
+                    label: const Text('Прикрепить файл'),
+                  ),
+                ],
+              ),
             ],
           ),
         ),
       ),
       actions: [
-        TextButton(onPressed: () => Navigator.pop(context), child: const Text('Отмена')),
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Отмена'),
+        ),
         FilledButton(
           onPressed: () {
-            final parsedAmount = double.tryParse(amount.text.replaceAll(',', '.'));
-            final parsedVat = double.tryParse(vat.text.replaceAll(',', '.')) ?? 0;
-            if (parsedAmount == null || parsedAmount <= 0 || counterparty.text.trim().isEmpty) return;
+            final parsedAmount = double.tryParse(
+              amount.text.replaceAll(',', '.'),
+            );
+            final parsedVat =
+                double.tryParse(vat.text.replaceAll(',', '.')) ?? 0;
+            if (parsedAmount == null ||
+                parsedAmount <= 0 ||
+                counterparty.text.trim().isEmpty) {
+              return;
+            }
             Navigator.pop(
               context,
               _DocumentDraft(
                 number: number.text.trim(),
-                date: DateTime.now(),
+                date: documentDate,
                 counterparty: counterparty.text.trim(),
                 objectName: objectName.text.trim(),
                 amount: parsedAmount,
                 vatAmount: parsedVat,
                 invoiceNumber: invoice.text.trim(),
-                invoiceDate: invoice.text.trim().isEmpty ? null : DateTime.now(),
+                invoiceDate: invoice.text.trim().isEmpty ? null : invoiceDate,
                 comment: comment.text.trim(),
+                file: file,
               ),
             );
           },
@@ -556,18 +838,33 @@ class _AddCounterpartyDialogState extends State<_AddCounterpartyDialog> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            TextField(controller: name, decoration: const InputDecoration(labelText: 'Наименование')),
+            TextField(
+              controller: name,
+              decoration: const InputDecoration(labelText: 'Наименование'),
+            ),
             const SizedBox(height: 10),
-            TextField(controller: inn, decoration: const InputDecoration(labelText: 'ИНН')),
+            TextField(
+              controller: inn,
+              decoration: const InputDecoration(labelText: 'ИНН'),
+            ),
             const SizedBox(height: 10),
-            TextField(controller: kpp, decoration: const InputDecoration(labelText: 'КПП')),
+            TextField(
+              controller: kpp,
+              decoration: const InputDecoration(labelText: 'КПП'),
+            ),
             const SizedBox(height: 10),
-            TextField(controller: contract, decoration: const InputDecoration(labelText: 'Номер договора')),
+            TextField(
+              controller: contract,
+              decoration: const InputDecoration(labelText: 'Номер договора'),
+            ),
           ],
         ),
       ),
       actions: [
-        TextButton(onPressed: () => Navigator.pop(context), child: const Text('Отмена')),
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Отмена'),
+        ),
         FilledButton(
           onPressed: () {
             if (name.text.trim().isEmpty) return;
@@ -578,6 +875,129 @@ class _AddCounterpartyDialogState extends State<_AddCounterpartyDialog> {
                 inn: inn.text.trim(),
                 kpp: kpp.text.trim(),
                 contractNumber: contract.text.trim(),
+              ),
+            );
+          },
+          child: const Text('Сохранить'),
+        ),
+      ],
+    );
+  }
+}
+
+class _NomenclatureDraft {
+  final String name;
+  final String kind;
+  final String unit;
+  final double? vatRate;
+  final String comment;
+
+  const _NomenclatureDraft({
+    required this.name,
+    required this.kind,
+    required this.unit,
+    required this.vatRate,
+    required this.comment,
+  });
+}
+
+class _AddNomenclatureDialog extends StatefulWidget {
+  const _AddNomenclatureDialog();
+
+  @override
+  State<_AddNomenclatureDialog> createState() => _AddNomenclatureDialogState();
+}
+
+class _AddNomenclatureDialogState extends State<_AddNomenclatureDialog> {
+  final name = TextEditingController();
+  final unit = TextEditingController();
+  final vat = TextEditingController();
+  final comment = TextEditingController();
+  String kind = 'service';
+
+  @override
+  void dispose() {
+    name.dispose();
+    unit.dispose();
+    vat.dispose();
+    comment.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Номенклатура'),
+      content: SizedBox(
+        width: 480,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: name,
+              decoration: const InputDecoration(labelText: 'Наименование'),
+            ),
+            const SizedBox(height: 10),
+            DropdownButtonFormField<String>(
+              initialValue: kind,
+              decoration: const InputDecoration(labelText: 'Тип'),
+              items: const [
+                DropdownMenuItem(value: 'service', child: Text('Услуга')),
+                DropdownMenuItem(value: 'material', child: Text('Материал')),
+                DropdownMenuItem(value: 'goods', child: Text('Товар')),
+                DropdownMenuItem(value: 'other', child: Text('Другое')),
+              ],
+              onChanged: (value) => setState(() => kind = value ?? 'service'),
+            ),
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: unit,
+                    decoration: const InputDecoration(labelText: 'Единица'),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: TextField(
+                    controller: vat,
+                    keyboardType:
+                        const TextInputType.numberWithOptions(decimal: true),
+                    decoration: const InputDecoration(
+                      labelText: 'Ставка НДС, %',
+                      hintText: 'пусто = без НДС',
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            TextField(
+              controller: comment,
+              decoration: const InputDecoration(labelText: 'Комментарий'),
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Отмена'),
+        ),
+        FilledButton(
+          onPressed: () {
+            if (name.text.trim().isEmpty) return;
+            Navigator.pop(
+              context,
+              _NomenclatureDraft(
+                name: name.text.trim(),
+                kind: kind,
+                unit: unit.text.trim(),
+                vatRate: vat.text.trim().isEmpty
+                    ? null
+                    : double.tryParse(vat.text.replaceAll(',', '.')),
+                comment: comment.text.trim(),
               ),
             );
           },
@@ -643,31 +1063,60 @@ class _AddMaterialWriteOffDialogState
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            TextField(controller: objectName, decoration: const InputDecoration(labelText: 'Объект')),
+            TextField(
+              controller: objectName,
+              decoration: const InputDecoration(labelText: 'Объект'),
+            ),
             const SizedBox(height: 10),
-            TextField(controller: materialName, decoration: const InputDecoration(labelText: 'Материал')),
+            TextField(
+              controller: materialName,
+              decoration: const InputDecoration(labelText: 'Материал'),
+            ),
             const SizedBox(height: 10),
             Row(
               children: [
-                Expanded(child: TextField(controller: quantity, decoration: const InputDecoration(labelText: 'Количество'))),
+                Expanded(
+                  child: TextField(
+                    controller: quantity,
+                    decoration: const InputDecoration(labelText: 'Количество'),
+                  ),
+                ),
                 const SizedBox(width: 10),
-                Expanded(child: TextField(controller: unit, decoration: const InputDecoration(labelText: 'Единица'))),
+                Expanded(
+                  child: TextField(
+                    controller: unit,
+                    decoration: const InputDecoration(labelText: 'Единица'),
+                  ),
+                ),
               ],
             ),
             const SizedBox(height: 10),
-            TextField(controller: amount, decoration: const InputDecoration(labelText: 'Сумма')),
+            TextField(
+              controller: amount,
+              decoration: const InputDecoration(labelText: 'Сумма'),
+            ),
             const SizedBox(height: 10),
-            TextField(controller: documentNumber, decoration: const InputDecoration(labelText: 'М-29 / номер документа')),
+            TextField(
+              controller: documentNumber,
+              decoration: const InputDecoration(
+                labelText: 'М-29 / номер документа',
+              ),
+            ),
           ],
         ),
       ),
       actions: [
-        TextButton(onPressed: () => Navigator.pop(context), child: const Text('Отмена')),
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Отмена'),
+        ),
         FilledButton(
           onPressed: () {
             final q = double.tryParse(quantity.text.replaceAll(',', '.'));
             final a = double.tryParse(amount.text.replaceAll(',', '.')) ?? 0;
-            if (q == null || q <= 0 || materialName.text.trim().isEmpty) return;
+            if (q == null || q <= 0 || materialName.text.trim().isEmpty) {
+              return;
+            }
             Navigator.pop(
               context,
               _MaterialDraft(
