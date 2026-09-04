@@ -42,7 +42,7 @@ class _OfflineSyncHostState extends State<OfflineSyncHost>
     _isOnline = !kIsWeb || html.window.navigator.onLine == true;
     _configure();
     _retryTimer = Timer.periodic(_retryInterval, (_) {
-      if (_isOnline) unawaited(OfflineSyncService.flush());
+      if (_isOnline) unawaited(_flushAndRefresh());
     });
     _dataChangeSubscription = AppDataSync.changes.listen((change) {
       if (change.isRemote) unawaited(_syncAfterConnectivitySignal());
@@ -72,7 +72,24 @@ class _OfflineSyncHostState extends State<OfflineSyncHost>
       userId: widget.userId,
       companyId: widget.companyId,
     );
-    if (_isOnline) await OfflineSyncService.flush();
+    if (_isOnline) await _flushAndRefresh();
+  }
+
+  Future<void> _flushAndRefresh() async {
+    final before = OfflineSyncService.pendingCount;
+    if (before <= 0) return;
+    await OfflineSyncService.flush();
+    final after = OfflineSyncService.pendingCount;
+    if (after < before) {
+      AppDataSync.notifyLocal(
+        const <AppDataDomain>{AppDataDomain.tasks},
+        context: <String, dynamic>{
+          'table': 'tasks',
+          'source': 'offline_flush',
+          'flushed_count': before - after,
+        },
+      );
+    }
   }
 
   Future<void> _syncAfterConnectivitySignal() async {
@@ -82,7 +99,7 @@ class _OfflineSyncHostState extends State<OfflineSyncHost>
     }
     if (mounted && !_isOnline) setState(() => _isOnline = true);
     if (OfflineSyncService.pendingCount > 0) {
-      await OfflineSyncService.flush();
+      await _flushAndRefresh();
       return;
     }
     await OfflineSyncService.markSynced();
@@ -91,7 +108,7 @@ class _OfflineSyncHostState extends State<OfflineSyncHost>
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed && _isOnline) {
-      unawaited(OfflineSyncService.flush());
+      unawaited(_flushAndRefresh());
     }
   }
 
@@ -106,19 +123,21 @@ class _OfflineSyncHostState extends State<OfflineSyncHost>
   }
 
   void _showStatus(OfflineSyncState state) {
-    final lastSyncText = state.lastSyncAt == null
-        ? 'Последняя синхронизация ещё не выполнялась.'
-        : 'Последняя синхронизация: ${DateFormat('HH:mm').format(state.lastSyncAt!.toLocal())}.';
+    final lastContactText = state.lastSyncAt == null
+        ? 'Успешной связи с сервером после запуска ещё не было.'
+        : 'Последняя успешная связь с сервером: ${DateFormat('HH:mm').format(state.lastSyncAt!.toLocal())}.';
     final String message;
     if (!_isOnline) {
       message =
-          'Нет соединения с интернетом. Продолжайте работать — изменения сохраняются на устройстве и будут автоматически отправлены на сервер после восстановления связи. $lastSyncText';
+          'Нет соединения с интернетом. Изменения сохранены на устройстве и будут отправлены после восстановления связи. $lastContactText';
     } else if (state.isSyncing) {
       message =
-          'Связь есть. Данные отправляются на сервер. Осталось операций: ${state.pendingCount}.';
-    } else {
+          'Сейчас идёт попытка отправки. Осталось операций: ${state.pendingCount}.';
+    } else if (state.pendingCount > 0) {
       message =
-          'Ожидает отправки: ${state.pendingCount}. Данные сохранены на устройстве и будут автоматически отправлены на сервер. $lastSyncText';
+          'Ожидает отправки: ${state.pendingCount}. Сервер ещё не подтвердил эти изменения. Данные сохранены на устройстве; повтор выполняется автоматически каждые 20 секунд. $lastContactText';
+    } else {
+      message = 'Все локальные изменения отправлены. $lastContactText';
     }
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
@@ -145,7 +164,7 @@ class _OfflineSyncHostState extends State<OfflineSyncHost>
                   state: state,
                   onTap: () => _showStatus(state),
                   onRetry: _isOnline && !state.isSyncing
-                      ? () => unawaited(OfflineSyncService.flush())
+                      ? () => unawaited(_flushAndRefresh())
                       : null,
                 ),
               ),
@@ -186,7 +205,7 @@ class _OfflineStatusButton extends StatelessWidget {
             ? 'Нет сети'
             : syncing
             ? 'Данные отправляются'
-            : 'Ожидает отправки',
+            : 'Ожидает подтверждения сервера',
         child: InkWell(
           onTap: onTap,
           onLongPress: onRetry,
