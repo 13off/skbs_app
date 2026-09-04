@@ -3,10 +3,11 @@ import 'package:flutter/material.dart';
 import '../../../models/app_user_profile.dart';
 import '../../../screens/profile_screen.dart';
 import '../../../widgets/premium_ui.dart';
-import '../../ai/presentation/operational_audit_launcher_screen.dart';
 import '../../shell/presentation/persistent_tab_shell.dart';
 import 'adaptive_accounting_dashboard_screen.dart';
-import 'adaptive_accounting_payments_screen.dart';
+import 'adaptive_accounting_operations_screen.dart';
+import 'accounting_documents_screen.dart';
+import 'accounting_control_screen.dart';
 
 class AccountingMainScreen extends StatefulWidget {
   final AppUserProfile profile;
@@ -18,7 +19,7 @@ class AccountingMainScreen extends StatefulWidget {
 }
 
 class _AccountingMainScreenState extends State<AccountingMainScreen> {
-  static const int pageCount = 4;
+  static const int pageCount = 5;
   late final PersistentTabController tabs;
 
   @override
@@ -40,13 +41,12 @@ class _AccountingMainScreenState extends State<AccountingMainScreen> {
       0 => AdaptiveAccountingDashboardScreen(
         profile: widget.profile,
         onOpenPayments: () => select(1),
-        onOpenReports: () => select(1),
+        onOpenReports: () => select(3),
       ),
-      1 => const AdaptiveAccountingPaymentsScreen(),
-      2 => OperationalAuditLauncherScreen(
-        initialObjectName: widget.profile.objectName,
-      ),
-      3 => ProfileScreen(profile: widget.profile),
+      1 => const AdaptiveAccountingOperationsScreen(),
+      2 => const AccountingDocumentsScreen(),
+      3 => const AccountingControlScreen(),
+      4 => ProfileScreen(profile: widget.profile),
       _ => const SizedBox.shrink(),
     };
   }
@@ -63,9 +63,14 @@ class _AccountingMainScreenState extends State<AccountingMainScreen> {
           selectedIcon: Icons.home_rounded,
         ),
         ProfessionalBottomNavigationItem(
-          label: 'Выплаты',
-          icon: Icons.payments_outlined,
-          selectedIcon: Icons.payments_rounded,
+          label: 'Операции',
+          icon: Icons.account_balance_wallet_outlined,
+          selectedIcon: Icons.account_balance_wallet_rounded,
+        ),
+        ProfessionalBottomNavigationItem(
+          label: 'Документы',
+          icon: Icons.description_outlined,
+          selectedIcon: Icons.description_rounded,
         ),
         ProfessionalBottomNavigationItem(
           label: 'Контроль',
