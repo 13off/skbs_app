@@ -1,6 +1,6 @@
-import 'package:flutter/foundation.dart';
+import 'dart:async';
+
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:universal_html/html.dart' as html;
 
 import '../features/auth/data/user_repository.dart';
 import '../features/developer/data/developer_policy_repository.dart';
@@ -9,14 +9,13 @@ import 'app_data_sync.dart';
 import 'offline_sync_service.dart';
 import 'task_repository.dart';
 
-/// Fast path for task creation when the browser already knows that it is
-/// offline. It avoids waiting for a doomed HTTP request before showing the
-/// freshly-created task in the foreman list.
+/// Local-first task creation for field work.
+///
+/// The task is persisted on the device before any network request starts.
+/// This deliberately treats a slow connection the same way as no connection:
+/// the UI stays fast, while the persistent queue synchronizes asynchronously.
 class OfflineTaskCreateService {
   const OfflineTaskCreateService._();
-
-  static bool get shouldQueueImmediately =>
-      kIsWeb && html.window.navigator.onLine != true;
 
   static String _dateKey(DateTime date) {
     final clean = DateTime(date.year, date.month, date.day);
@@ -76,10 +75,9 @@ class OfflineTaskCreateService {
         )
         .toList(growable: false);
 
-    // `is_draft` deliberately preserves the user's intended final state in
-    // the payload. The database INSERT guard converts a final offline task to
-    // a safe draft first; OfflineSyncService then publishes it only after
-    // assignees, links and photos have been persisted.
+    // `is_draft` preserves the intended final state in the payload. The
+    // database INSERT guard creates a safe draft first; OfflineSyncService
+    // publishes it only after assignees, links and photos have been persisted.
     final row = <String, dynamic>{
       'id': taskId,
       'task_date': _dateKey(localTask.date),
@@ -95,6 +93,8 @@ class OfflineTaskCreateService {
       'updated_at': DateTime.now().toUtc().toIso8601String(),
     };
 
+    // Persist the mutation first. Never wait for the server before returning
+    // the newly-created task to the screen.
     await OfflineSyncService.enqueue(
       kind: 'task.create',
       dedupeKey: taskId,
@@ -150,9 +150,14 @@ class OfflineTaskCreateService {
         'task_id': taskId,
         'task_date': _dateKey(localTask.date),
         'object_name': cleanObject,
-        'source': 'offline_task_create',
+        'source': 'local_first_task_create',
       },
     );
+
+    // Strong network: this normally clears almost immediately. Weak/no
+    // network: the call is intentionally detached and the durable queue stays
+    // available for the host retry/online/resume hooks.
+    unawaited(OfflineSyncService.flush());
     return localTask;
   }
 
