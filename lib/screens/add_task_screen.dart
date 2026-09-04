@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../app/app_adaptive_palette.dart';
 import '../data/offline_master_repository.dart';
+import '../data/offline_task_create_service.dart';
 import '../data/task_repository.dart';
 import '../features/developer/data/developer_policy_repository.dart';
 import '../features/developer/models/task_policy.dart';
@@ -56,6 +57,16 @@ Future<List<TaskItemData>> persistTaskCreateDraft(
 }) async {
   final drafts = draft.allTasks;
   if (drafts.length == 1) {
+    if (OfflineTaskCreateService.shouldQueueImmediately) {
+      return <TaskItemData>[
+        await OfflineTaskCreateService.queueTask(
+          draft.task,
+          objectName: objectName,
+          assigneeIds: draft.assigneeIds,
+          photos: draft.photos,
+        ),
+      ];
+    }
     return <TaskItemData>[
       await TaskRepository.addTaskWithDetails(
         draft.task,
@@ -67,6 +78,20 @@ Future<List<TaskItemData>> persistTaskCreateDraft(
   }
   if (drafts.any((item) => item.photos.isNotEmpty)) {
     throw Exception('Пакет задач с фотографиями нужно сохранять по одной');
+  }
+  if (OfflineTaskCreateService.shouldQueueImmediately) {
+    final created = <TaskItemData>[];
+    for (final item in drafts) {
+      created.add(
+        await OfflineTaskCreateService.queueTask(
+          item.task,
+          objectName: objectName,
+          assigneeIds: item.assigneeIds,
+          photos: const <TaskPhotoFile>[],
+        ),
+      );
+    }
+    return created;
   }
   return TaskRepository.addTaskBatch(
     objectName: objectName,
