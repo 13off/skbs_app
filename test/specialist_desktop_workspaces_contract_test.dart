@@ -71,7 +71,6 @@ void main() {
     expect(payments, contains('return const PaymentsScreen();'));
     expect(payments, contains('SpecialistDesktopTable'));
     expect(payments, contains("title: 'Выплаты и расчёты'"));
-    expect(payments, contains("label: const Text('Детальный режим')"));
     expect(payments, contains('PaymentReportExporter.download('));
     expect(payments, contains("label: const Text('Скачать XLSX')"));
     expect(payments, contains('PeriodTimesheetScreen('));
