@@ -6,6 +6,8 @@ import 'employee_repository.dart';
 import 'object_repository.dart';
 import 'offline_sync_service.dart';
 
+const Duration _fieldNetworkDeadline = Duration(seconds: 3);
+
 class OfflineEmployeeRepository {
   OfflineEmployeeRepository._();
 
@@ -27,7 +29,7 @@ class OfflineEmployeeRepository {
         objectName: objectName,
         includeFired: includeFired,
         forceRefresh: forceRefresh,
-      );
+      ).timeout(_fieldNetworkDeadline);
       await OfflineSyncService.saveSnapshot(
         key,
         rows.map(_serializeEmployee).toList(growable: false),
@@ -73,7 +75,7 @@ class OfflineObjectRepository {
     try {
       final objects = await ObjectRepository.fetchObjects(
         forceRefresh: forceRefresh,
-      );
+      ).timeout(_fieldNetworkDeadline);
       await OfflineSyncService.saveSnapshot(
         _key,
         objects
@@ -184,7 +186,7 @@ class OfflineAttendanceRepository {
         date,
         objectName: objectName,
         forceRefresh: forceRefresh,
-      );
+      ).timeout(_fieldNetworkDeadline);
       var values = serverValues;
       if (await OfflineSyncService.hasPending(
         kind: 'attendance.upsert',
@@ -233,7 +235,7 @@ class OfflineAttendanceRepository {
         date,
         objectName: objectName,
         forceRefresh: forceRefresh,
-      );
+      ).timeout(_fieldNetworkDeadline);
       await OfflineSyncService.saveSnapshot(
         key,
         result.map(
@@ -271,7 +273,7 @@ class OfflineAttendanceRepository {
         employees: employees,
         shiftValuesByEmployeeId: shiftValuesByEmployeeId,
         originalShiftValuesByEmployeeId: originalShiftValuesByEmployeeId,
-      );
+      ).timeout(_fieldNetworkDeadline);
       await OfflineSyncService.saveSnapshot(
         _key(date, objectName),
         shiftValuesByEmployeeId,
