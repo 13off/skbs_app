@@ -70,7 +70,7 @@ void main() {
     expect(dashboard, contains("title: 'Финансовый контроль'"));
     expect(payments, contains('return const PaymentsScreen();'));
     expect(payments, contains('SpecialistDesktopTable'));
-    expect(payments, contains("title: 'Выплаты и остатки'"));
+    expect(payments, contains("title: 'Выплаты и расчёты'"));
     expect(payments, contains("label: const Text('Детальный режим')"));
     expect(payments, contains('PaymentReportExporter.download('));
     expect(payments, contains("label: const Text('Скачать XLSX')"));
