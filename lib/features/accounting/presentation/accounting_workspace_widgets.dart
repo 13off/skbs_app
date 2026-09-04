@@ -22,22 +22,88 @@ class AccountingSectionSwitcher extends StatelessWidget {
       padding: const EdgeInsets.all(8),
       child: Align(
         alignment: Alignment.centerLeft,
-        child: SegmentedButton<String>(
-          showSelectedIcon: false,
-          segments: items
-              .map(
-                (item) => ButtonSegment<String>(
-                  value: item.$1,
-                  label: Text(item.$2),
-                  icon: Icon(item.$3),
-                ),
-              )
-              .toList(growable: false),
-          selected: <String>{selected},
-          onSelectionChanged: (values) {
-            if (values.isNotEmpty) onChanged(values.first);
-          },
+        child: SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: SegmentedButton<String>(
+            showSelectedIcon: false,
+            segments: items
+                .map(
+                  (item) => ButtonSegment<String>(
+                    value: item.$1,
+                    label: Text(item.$2),
+                    icon: Icon(item.$3),
+                  ),
+                )
+                .toList(growable: false),
+            selected: <String>{selected},
+            onSelectionChanged: (values) {
+              if (values.isNotEmpty) onChanged(values.first);
+            },
+          ),
         ),
+      ),
+    );
+  }
+}
+
+class SpecialistDesktopSection extends StatelessWidget {
+  final String title;
+  final String subtitle;
+  final Widget child;
+  final Widget? trailing;
+
+  const SpecialistDesktopSection({
+    super.key,
+    required this.title,
+    this.subtitle = '',
+    required this.child,
+    this.trailing,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return PremiumWorkCard(
+      radius: 24,
+      padding: const EdgeInsets.all(18),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    if (subtitle.trim().isNotEmpty) ...[
+                      const SizedBox(height: 3),
+                      Text(
+                        subtitle,
+                        style: TextStyle(
+                          color: specialistMuted,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              if (trailing != null) ...[
+                const SizedBox(width: 12),
+                trailing!,
+              ],
+            ],
+          ),
+          const SizedBox(height: 14),
+          child,
+        ],
       ),
     );
   }
@@ -48,7 +114,7 @@ class AccountingEmptyState extends StatelessWidget {
   final String title;
   final String description;
   final String? actionLabel;
-  final VoidCallback? onAction;
+  final Future<void> Function()? onAction;
 
   const AccountingEmptyState({
     super.key,
@@ -99,12 +165,16 @@ class AccountingStatusBadge extends StatelessWidget {
             Icon(icon, size: 14, color: color),
             const SizedBox(width: 5),
           ],
-          Text(
-            label,
-            style: TextStyle(
-              color: color,
-              fontWeight: FontWeight.w800,
-              fontSize: 12,
+          Flexible(
+            child: Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: color,
+                fontWeight: FontWeight.w800,
+                fontSize: 12,
+              ),
             ),
           ),
         ],
