@@ -118,7 +118,7 @@ class _OfflineSyncHostState extends State<OfflineSyncHost>
           'Связь есть. Данные отправляются на сервер. Осталось операций: ${state.pendingCount}.';
     } else {
       message =
-          'Данные сохранены на устройстве и ожидают отправки на сервер. Осталось операций: ${state.pendingCount}. $lastSyncText';
+          'Ожидает отправки: ${state.pendingCount}. Данные сохранены на устройстве и будут автоматически отправлены на сервер. $lastSyncText';
     }
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
