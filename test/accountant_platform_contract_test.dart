@@ -41,7 +41,7 @@ void main() {
       'lib/features/accounting/presentation/adaptive_accounting_payments_screen.dart',
       const [
         'return const PaymentsScreen();',
-        "title: 'Выплаты и остатки'",
+        "title: 'Выплаты и расчёты'",
         "label: const Text('Табель и начисления')",
         "label: const Text('Скачать XLSX')",
         'PaymentReportExporter.download(',
