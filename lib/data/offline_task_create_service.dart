@@ -7,7 +7,6 @@ import '../features/developer/data/developer_policy_repository.dart';
 import '../models/task_item_data.dart';
 import 'app_data_sync.dart';
 import 'offline_sync_service.dart';
-import 'task_photo_models.dart';
 import 'task_repository.dart';
 
 /// Fast path for task creation when the browser already knows that it is
