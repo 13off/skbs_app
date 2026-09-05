@@ -207,18 +207,40 @@ class EmployeeRepository {
     }
   }
 
+  static int _resolveMonthlySalary({int? monthlySalary, int? dailyRate}) {
+    return monthlySalary ?? dailyRate ?? 0;
+  }
+
+  static Map<String, dynamic> _salaryPayload(int monthlySalary) {
+    return <String, dynamic>{
+      'monthly_salary': monthlySalary,
+      // Compatibility mirror for older clients/RPCs during rollout.
+      // This legacy column now carries the same monthly value and must not be
+      // interpreted as a per-shift rate by current code.
+      'daily_rate': monthlySalary,
+    };
+  }
+
   static Future<String?> addEmployee({
     required String fio,
     required String position,
     required String phone,
     required String objectName,
-    required int dailyRate,
+    int? monthlySalary,
+    @Deprecated('Use monthlySalary') int? dailyRate,
     required String comment,
   }) async {
     final cleanObjectName = objectName.trim();
+    final salary = _resolveMonthlySalary(
+      monthlySalary: monthlySalary,
+      dailyRate: dailyRate,
+    );
 
     if (cleanObjectName.isEmpty) {
       throw Exception('Выберите объект');
+    }
+    if (salary <= 0) {
+      throw Exception('Укажите зарплату за месяц');
     }
 
     await ObjectRepository.ensureObjectNameExists(cleanObjectName);
@@ -230,7 +252,7 @@ class EmployeeRepository {
           'position': position.trim(),
           'phone': phone.trim(),
           'object_name': cleanObjectName,
-          'daily_rate': dailyRate,
+          ..._salaryPayload(salary),
           'is_active': true,
           'comment': comment.trim(),
           'updated_at': DateTime.now().toUtc().toIso8601String(),
@@ -263,13 +285,21 @@ class EmployeeRepository {
     required String position,
     required String phone,
     required String objectName,
-    required int dailyRate,
+    int? monthlySalary,
+    @Deprecated('Use monthlySalary') int? dailyRate,
     required String comment,
   }) async {
     final cleanObjectName = objectName.trim();
+    final salary = _resolveMonthlySalary(
+      monthlySalary: monthlySalary,
+      dailyRate: dailyRate,
+    );
 
     if (cleanObjectName.isEmpty) {
       throw Exception('Выберите объект');
+    }
+    if (salary <= 0) {
+      throw Exception('Укажите зарплату за месяц');
     }
 
     await ObjectRepository.ensureObjectNameExists(cleanObjectName);
@@ -281,7 +311,7 @@ class EmployeeRepository {
           'position': position.trim(),
           'phone': phone.trim(),
           'object_name': cleanObjectName,
-          'daily_rate': dailyRate,
+          ..._salaryPayload(salary),
           'comment': comment.trim(),
           'updated_at': DateTime.now().toUtc().toIso8601String(),
         })
@@ -318,7 +348,7 @@ class EmployeeRepository {
     }
 
     const fields =
-        'id, person_id, object_id, fio, position, phone, object_name, daily_rate, is_active, comment';
+        'id, person_id, object_id, fio, position, phone, object_name, monthly_salary, daily_rate, is_active, comment';
 
     final sourceRow = await _client
         .from('employees')
@@ -331,6 +361,10 @@ class EmployeeRepository {
         sourceRow['person_id']?.toString().trim() ??
         employee.personId?.trim() ??
         '';
+    final sourceSalary =
+        (sourceRow['monthly_salary'] as num?)?.round() ??
+        (sourceRow['daily_rate'] as num?)?.round() ??
+        employee.monthlySalary;
 
     final existingDuplicate = await _client
         .from('employees')
@@ -358,7 +392,7 @@ class EmployeeRepository {
           'phone':
               sourceRow['phone']?.toString().trim() ?? employee.phone.trim(),
           'object_name': cleanTargetObjectName,
-          'daily_rate': sourceRow['daily_rate'] as int? ?? employee.dailyRate,
+          ..._salaryPayload(sourceSalary),
           'is_active': true,
           'comment':
               sourceRow['comment']?.toString().trim() ??
@@ -450,8 +484,6 @@ class EmployeeRepository {
 
     final existingPhone = existing['phone']?.toString().trim() ?? '';
 
-    // Если в личных данных телефон уже вручную изменили,
-    // не перетираем его телефоном из карточки сотрудника.
     if (existingPhone.isNotEmpty) return;
 
     await _client
