@@ -21,14 +21,13 @@ class Employee {
     this.phone = '',
     this.objectName = 'Мурманск',
     int? monthlySalary,
-    @Deprecated('Use monthlySalary') int? dailyRate,
+    int? dailyRate,
     this.isActive = true,
     this.comment = '',
   }) : monthlySalary = monthlySalary ?? dailyRate ?? 0;
 
   /// Transitional alias for code that has not been migrated yet.
   /// The value is a fixed monthly salary and must never be multiplied by shifts.
-  @Deprecated('Use monthlySalary')
   int get dailyRate => monthlySalary;
 
   String get positionTitle {
