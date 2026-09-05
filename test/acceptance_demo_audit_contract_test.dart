@@ -20,7 +20,7 @@ void main() {
     expect(screen, contains('реально авторизованная роль этой сессии'));
     expect(screen, contains('Результат не считается подтверждением'));
     expect(screen, isNot(contains('ChoiceChip')));
-    expect(screen, isNot(contains('Выбери профессию'));
+    expect(screen, isNot(contains('Выбери профессию')));
     expect('$repository\n$screen', isNot(contains('.insert(')));
     expect('$repository\n$screen', isNot(contains('.update(')));
     expect('$repository\n$screen', isNot(contains('.delete(')));
