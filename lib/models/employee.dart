@@ -7,7 +7,7 @@ class Employee {
   final String status;
   final String phone;
   final String objectName;
-  final int dailyRate;
+  final int monthlySalary;
   final bool isActive;
   final String comment;
 
@@ -20,10 +20,16 @@ class Employee {
     this.objectId,
     this.phone = '',
     this.objectName = 'Мурманск',
-    this.dailyRate = 6000,
+    int? monthlySalary,
+    @Deprecated('Use monthlySalary') int? dailyRate,
     this.isActive = true,
     this.comment = '',
-  });
+  }) : monthlySalary = monthlySalary ?? dailyRate ?? 0;
+
+  /// Transitional alias for code that has not been migrated yet.
+  /// The value is a fixed monthly salary and must never be multiplied by shifts.
+  @Deprecated('Use monthlySalary')
+  int get dailyRate => monthlySalary;
 
   String get positionTitle {
     final cleanPosition = position.trim();
@@ -50,6 +56,10 @@ class Employee {
       position.trim(),
       if (phone.trim().isNotEmpty) phone.trim(),
     ].where((value) => value.isNotEmpty).join(' • ');
+    final monthlySalary =
+        (json['monthly_salary'] as num?)?.round() ??
+        (json['daily_rate'] as num?)?.round() ??
+        0;
 
     return Employee(
       json['fio'] as String? ?? '',
@@ -60,7 +70,7 @@ class Employee {
       objectId: json['object_id'] as String?,
       phone: phone.trim(),
       objectName: json['object_name'] as String? ?? 'Мурманск',
-      dailyRate: json['daily_rate'] as int? ?? 6000,
+      monthlySalary: monthlySalary,
       isActive: json['is_active'] as bool? ?? true,
       comment: json['comment'] as String? ?? '',
     );
