@@ -18,7 +18,7 @@ class _AiEmployeeDraftScreenState extends State<AiEmployeeDraftScreen> {
   late final TextEditingController fioController;
   late final TextEditingController positionController;
   late final TextEditingController phoneController;
-  late final TextEditingController dailyRateController;
+  late final TextEditingController monthlySalaryController;
   late final TextEditingController commentController;
   late String objectName;
   List<String> objectNames = const <String>[];
@@ -37,9 +37,11 @@ class _AiEmployeeDraftScreenState extends State<AiEmployeeDraftScreen> {
     phoneController = TextEditingController(
       text: phone.isEmpty ? '+7 ' : formatRussianPhone(phone),
     );
-    final rate = widget.action.number('daily_rate').round();
-    dailyRateController = TextEditingController(
-      text: rate > 0 ? rate.toString() : '',
+    final salary = widget.action.number('monthly_salary').round();
+    final legacyRate = widget.action.number('daily_rate').round();
+    final initialSalary = salary > 0 ? salary : legacyRate;
+    monthlySalaryController = TextEditingController(
+      text: initialSalary > 0 ? initialSalary.toString() : '',
     );
     commentController = TextEditingController(
       text: widget.action.text('comment'),
@@ -53,7 +55,7 @@ class _AiEmployeeDraftScreenState extends State<AiEmployeeDraftScreen> {
     fioController.dispose();
     positionController.dispose();
     phoneController.dispose();
-    dailyRateController.dispose();
+    monthlySalaryController.dispose();
     commentController.dispose();
     super.dispose();
   }
@@ -95,11 +97,11 @@ class _AiEmployeeDraftScreenState extends State<AiEmployeeDraftScreen> {
       setState(() => errorText = 'Выберите объект');
       return;
     }
-    final rate = int.tryParse(
-      dailyRateController.text.replaceAll(' ', '').trim(),
+    final salary = int.tryParse(
+      monthlySalaryController.text.replaceAll(' ', '').trim(),
     );
-    if (rate == null || rate <= 0) {
-      setState(() => errorText = 'Введите корректную ставку');
+    if (salary == null || salary <= 0) {
+      setState(() => errorText = 'Введите корректную зарплату за месяц');
       return;
     }
 
@@ -113,7 +115,7 @@ class _AiEmployeeDraftScreenState extends State<AiEmployeeDraftScreen> {
         position: positionController.text,
         phone: cleanPhoneForSave(phoneController.text),
         objectName: objectName,
-        dailyRate: rate,
+        monthlySalary: salary,
         comment: commentController.text,
       );
       if (!mounted) return;
@@ -144,7 +146,7 @@ class _AiEmployeeDraftScreenState extends State<AiEmployeeDraftScreen> {
             ),
             const SizedBox(height: 8),
             const Text(
-              'Помощник переносит только известные данные. Ставка и объект требуют ручной проверки перед сохранением.',
+              'Помощник переносит только известные данные. Зарплата за месяц и объект требуют ручной проверки перед сохранением.',
             ),
             const SizedBox(height: 18),
             if (loadingObjects)
@@ -208,21 +210,21 @@ class _AiEmployeeDraftScreenState extends State<AiEmployeeDraftScreen> {
             ),
             const SizedBox(height: 14),
             TextFormField(
-              controller: dailyRateController,
+              controller: monthlySalaryController,
               enabled: !saving,
               keyboardType: TextInputType.number,
               decoration: const InputDecoration(
-                labelText: 'Ставка за смену',
+                labelText: 'Зарплата в месяц, ₽',
                 helperText:
                     'Обязательное поле: проверь по согласованным условиям',
                 prefixIcon: Icon(Icons.payments_outlined),
               ),
               validator: (value) {
-                final rate = int.tryParse(
+                final salary = int.tryParse(
                   (value ?? '').replaceAll(' ', '').trim(),
                 );
-                return rate == null || rate <= 0
-                    ? 'Введите согласованную ставку'
+                return salary == null || salary <= 0
+                    ? 'Введите согласованную зарплату за месяц'
                     : null;
               },
             ),
