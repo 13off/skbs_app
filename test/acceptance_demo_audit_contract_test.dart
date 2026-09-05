@@ -20,7 +20,7 @@ void main() {
     expect(screen, contains('реально авторизованная роль этой сессии'));
     expect(screen, contains('Результат не считается подтверждением'));
     expect(screen, isNot(contains('ChoiceChip')));
-    expect(screen, isNot(contains('Выбери профессию')));
+    expect(screen, isNot(contains('Выбери профессию'));
     expect('$repository\n$screen', isNot(contains('.insert(')));
     expect('$repository\n$screen', isNot(contains('.update(')));
     expect('$repository\n$screen', isNot(contains('.delete(')));
@@ -107,7 +107,7 @@ void main() {
     },
   );
 
-  test('кадровый путь сохраняет тестовый режим и не придумывает ставку', () {
+  test('кадровый путь не придумывает зарплату и требует ручной проверки', () {
     final onboarding = File(
       'lib/features/recruitment/presentation/recruitment_onboarding_screen.dart',
     ).readAsStringSync();
@@ -116,12 +116,15 @@ void main() {
     ).readAsStringSync();
 
     expect(onboarding, contains('isTestRecord: candidate.isTestRecord'));
-    expect(onboarding, contains("'daily_rate': 0"));
+    expect(onboarding, contains("type: 'create_employee_draft'"));
     expect(onboarding, contains('Готовность оформления'));
     expect(onboarding, contains('Следующий шаг:'));
     expect(onboarding, contains('Блокер: не заполнено обязательных полей'));
-    expect(draft, contains('Ставка и объект требуют ручной проверки'));
-    expect(draft, contains('Введите согласованную ставку'));
+    expect(
+      draft,
+      contains('Зарплата за месяц и объект требуют ручной проверки'),
+    );
+    expect(draft, contains('Введите согласованную зарплату за месяц'));
     expect(draft, isNot(contains('rate > 0 ? rate : 6000')));
     expect(draft, isNot(contains('(rate > 0 ? rate : 6000)')));
   });
