@@ -71,7 +71,7 @@ void main() {
 
     expect(dashboard, contains('AccountingDashboardScreen('));
     expect(dashboard, contains('specialistDesktopBreakpoint'));
-    expect(dashboard, contains("title: 'Финансовый контроль'"));
+    expect(dashboard, contains("title: 'Сегодня'"));
     expect(operations, contains("view == 'payments'"));
     expect(operations, contains('AdaptiveAccountingPaymentsScreen'));
     expect(operations, contains("('bank', 'Банк'"));
