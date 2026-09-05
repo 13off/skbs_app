@@ -30,21 +30,22 @@ void main() {
     expect(hr, isNot(contains("child: const Text('Открыть все')")));
   });
 
-  test('бухгалтерия сохраняет выплаты без дублирующей навигации', () {
-    final mobile = source(
-      'lib/features/accounting/presentation/accounting_dashboard_screen.dart',
+  test('бухгалтерия использует единый рабочий экран операций без дубля навигации', () {
+    final main = source(
+      'lib/features/accounting/presentation/accounting_main_screen.dart',
     );
-    final desktop = source(
-      'lib/features/accounting/presentation/adaptive_accounting_dashboard_screen.dart',
+    final operations = source(
+      'lib/features/accounting/presentation/adaptive_accounting_operations_screen.dart',
     );
 
-    expect(mobile, contains('AddPaymentScreen('));
-    expect(mobile, contains("label: 'Добавить выплату'"));
-    expect(mobile, isNot(contains("label: 'Открыть отчёты'")));
-    expect(mobile, isNot(contains('Проверьте подтверждающие файлы')));
-    expect(desktop, contains('Future<void> addPayment()'));
-    expect(desktop, contains("label: const Text('Добавить выплату')"));
-    expect(desktop, isNot(contains("label: const Text('Отчёты')")));
+    expect(main, contains('AdaptiveAccountingOperationsScreen'));
+    expect(main, contains("label: 'Операции'"));
+    expect(main, contains("label: 'Документы'"));
+    expect(main, contains("label: 'Контроль'"));
+    expect(operations, contains('Future<void> addBankTransaction()'));
+    expect(operations, contains('Future<void> addExpense()'));
+    expect(operations, contains("label: const Text('Добавить операцию')"));
+    expect(operations, contains("label: const Text('Импорт выписки')"));
   });
 
   test('юрист использует чистые карточки без лишних кнопок открытия', () {

@@ -45,12 +45,15 @@ void main() {
     expect(matters, contains("('claim', 'Претензии')"));
   });
 
-  test('accountant platform uses merged adaptive desktop workspace', () {
+  test('accountant platform uses current operations desktop workspace', () {
     final main = source(
       'lib/features/accounting/presentation/accounting_main_screen.dart',
     );
     final dashboard = source(
       'lib/features/accounting/presentation/adaptive_accounting_dashboard_screen.dart',
+    );
+    final operations = source(
+      'lib/features/accounting/presentation/adaptive_accounting_operations_screen.dart',
     );
     final payments = source(
       'lib/features/accounting/presentation/adaptive_accounting_payments_screen.dart',
@@ -60,14 +63,20 @@ void main() {
     );
 
     expect(main, contains('AdaptiveAccountingDashboardScreen'));
-    expect(main, contains('AdaptiveAccountingPaymentsScreen'));
-    expect(main, isNot(contains('AdaptiveAccountingReportsScreen')));
-    expect(main, contains('ProfessionalBottomNavigation'));
-    expect(main, contains('onOpenReports: () => select(1)'));
+    expect(main, contains('AdaptiveAccountingOperationsScreen'));
+    expect(main, contains('AccountingDocumentsScreen'));
+    expect(main, contains('AccountingControlScreen'));
+    expect(main, contains('PersistentTabShell'));
+    expect(main, contains('onOpenReports: () => select(3)'));
 
     expect(dashboard, contains('AccountingDashboardScreen('));
     expect(dashboard, contains('specialistDesktopBreakpoint'));
-    expect(dashboard, contains("title: 'Финансовый контроль'"));
+    expect(dashboard, contains("title: 'Сегодня'"));
+    expect(operations, contains("view == 'payments'"));
+    expect(operations, contains('AdaptiveAccountingPaymentsScreen'));
+    expect(operations, contains("('bank', 'Банк'"));
+    expect(operations, contains("('expenses', 'Расходы'"));
+    expect(operations, contains("('payments', 'Выплаты'"));
     expect(payments, contains('return const PaymentsScreen();'));
     expect(payments, contains('SpecialistDesktopTable'));
     expect(payments, contains("title: 'Выплаты и расчёты'"));

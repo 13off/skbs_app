@@ -193,9 +193,10 @@ class UserRepository {
       throw const AuthException('Не удалось создать сессию пользователя');
     }
 
-    unawaited(
-      PushNotificationService.syncForCurrentSession(requestPermission: true),
-    );
+    // Silent sync only. Notification permission is never requested from an
+    // automatic startup/sign-in path; it must come from an explicit user
+    // action in notification settings.
+    unawaited(PushNotificationService.syncForCurrentSession());
   }
 
   static Future<bool> signUpCompany({
@@ -223,9 +224,7 @@ class UserRepository {
     if (response.session == null) return false;
 
     await createCompanyProfile(companyName: companyName, fullName: fullName);
-    unawaited(
-      PushNotificationService.syncForCurrentSession(requestPermission: true),
-    );
+    unawaited(PushNotificationService.syncForCurrentSession());
     return true;
   }
 
@@ -253,9 +252,7 @@ class UserRepository {
     await _client.rpc('accept_current_company_invitation');
     clearProfileCache();
     await _client.auth.refreshSession();
-    unawaited(
-      PushNotificationService.syncForCurrentSession(requestPermission: true),
-    );
+    unawaited(PushNotificationService.syncForCurrentSession());
   }
 
   static Future<void> setActiveCompany(String companyId) async {
