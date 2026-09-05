@@ -19,12 +19,14 @@ void main() {
     expect(repository, contains('.select(probe.selectColumns)'));
     expect(screen, contains('реально авторизованная роль этой сессии'));
     expect(screen, contains('Результат не считается подтверждением'));
-    expect(screen, isNot(contains('ChoiceChip')));
-    expect(screen, isNot(contains('Выбери профессию'));
-    expect('$repository\n$screen', isNot(contains('.insert(')));
-    expect('$repository\n$screen', isNot(contains('.update(')));
-    expect('$repository\n$screen', isNot(contains('.delete(')));
-    expect('$repository\n$screen', isNot(contains('service_role')));
+    expect(screen.contains('ChoiceChip'), isFalse);
+    expect(screen.contains('Выбери профессию'), isFalse);
+
+    final combined = '$repository\n$screen';
+    expect(combined.contains('.insert('), isFalse);
+    expect(combined.contains('.update('), isFalse);
+    expect(combined.contains('.delete('), isFalse);
+    expect(combined.contains('service_role'), isFalse);
   });
 
   test('машинная матрица содержит live-приёмку каждой роли', () {
@@ -75,9 +77,9 @@ void main() {
     expect(launcher, contains('AiAssistantRepository.request'));
     expect(launcher, contains("action.type != 'find_operational_anomalies'"));
     expect(launcher, contains('Прямой read-only аудит без команды в чате'));
-    expect(launcher, isNot(contains('.insert(')));
-    expect(launcher, isNot(contains('.update(')));
-    expect(launcher, isNot(contains('.delete(')));
+    expect(launcher.contains('.insert('), isFalse);
+    expect(launcher.contains('.update('), isFalse);
+    expect(launcher.contains('.delete('), isFalse);
   });
 
   test(
@@ -95,10 +97,10 @@ void main() {
 
       expect(screen, contains('все данные вымышлены'));
       expect(screen, contains('не подключается к Supabase'));
-      expect(screen, isNot(contains('supabase_flutter')));
-      expect(screen, isNot(contains('Supabase.instance')));
-      expect(system, isNot(contains('DeveloperDemoCenterScreen')));
-      expect(system, isNot(contains("title: 'Демонстрационный центр'")));
+      expect(screen.contains('supabase_flutter'), isFalse);
+      expect(screen.contains('Supabase.instance'), isFalse);
+      expect(system.contains('DeveloperDemoCenterScreen'), isFalse);
+      expect(system.contains("title: 'Демонстрационный центр'"), isFalse);
       expect(demo['mode'], 'synthetic_only');
       expect(demo['contains_personal_data'], isFalse);
       expect(demo['uses_production_company'], isFalse);
@@ -125,8 +127,8 @@ void main() {
       contains('Зарплата за месяц и объект требуют ручной проверки'),
     );
     expect(draft, contains('Введите согласованную зарплату за месяц'));
-    expect(draft, isNot(contains('rate > 0 ? rate : 6000')));
-    expect(draft, isNot(contains('(rate > 0 ? rate : 6000)')));
+    expect(draft.contains('rate > 0 ? rate : 6000'), isFalse);
+    expect(draft.contains('(rate > 0 ? rate : 6000)'), isFalse);
   });
 
   test('коммерческая приёмка и сценарий показа задокументированы', () {
@@ -155,6 +157,6 @@ void main() {
     expect(system, contains("title: 'Напоминания и системные параметры'"));
     expect(system, contains('DeveloperRoleAcceptanceScreen'));
     expect(system, contains('OperationalAuditLauncherScreen'));
-    expect(system, isNot(contains('DeveloperDemoCenterScreen')));
+    expect(system.contains('DeveloperDemoCenterScreen'), isFalse);
   });
 }
