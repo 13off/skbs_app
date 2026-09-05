@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../models/app_user_profile.dart';
@@ -28,8 +27,7 @@ class AdaptiveEmployeesScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final useDesktopTable =
-            kIsWeb && constraints.maxWidth >= desktopBreakpoint;
+        final useDesktopTable = constraints.maxWidth >= desktopBreakpoint;
 
         if (!useDesktopTable) {
           return EmployeesScreen(

@@ -1,10 +1,9 @@
 # Project-level configuration.
 cmake_minimum_required(VERSION 3.14)
-project(skbs_app LANGUAGES CXX)
+project(appstroy LANGUAGES CXX)
 
-# The name of the executable created for the application. Change this to change
-# the on-disk name of your application.
-set(BINARY_NAME "skbs_app")
+# The native Windows executable name.
+set(BINARY_NAME "AppStroy")
 
 # Explicitly opt in to modern CMake behaviors to avoid warnings with recent
 # versions of CMake.

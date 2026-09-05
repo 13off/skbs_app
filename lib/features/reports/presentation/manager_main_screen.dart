@@ -11,11 +11,11 @@ import '../../../models/app_user_profile.dart';
 import '../../../models/task_item_data.dart';
 import '../../../screens/adaptive_employees_screen.dart';
 import '../../../screens/adaptive_home_screen.dart';
+import '../../../screens/adaptive_tasks_screen.dart';
 import '../../../screens/adaptive_timesheet_screen.dart';
 import '../../../screens/payments_screen.dart';
 import '../../../screens/profile_screen.dart';
 import '../../../screens/task_details_screen.dart';
-import '../../../screens/tasks_screen.dart';
 import '../../../widgets/premium_ui.dart';
 import '../../ai/data/global_voice_context_controller.dart';
 import '../../company/presentation/company_setup_recommendation_card.dart';
@@ -127,8 +127,6 @@ class _ManagerMainScreenState extends State<ManagerMainScreen>
       unawaited(warmUpVisibleData());
     }
 
-    // Dropdown отчёта после callback ещё обновляет своё локальное состояние.
-    // Даём ему закончить текущий кадр, а затем синхронизируем остальные вкладки.
     if (tabs.currentIndex == 2) {
       WidgetsBinding.instance.addPostFrameCallback((_) => applySelection());
       return;
@@ -171,7 +169,7 @@ class _ManagerMainScreenState extends State<ManagerMainScreen>
     if (navigator == null) return;
     await navigator.push<void>(
       AppPageRoute<void>(
-        builder: (_) => TasksScreen(
+        builder: (_) => AdaptiveTasksScreen(
           profile: widget.profile,
           selectedObjectName: selectedObjectNameNotifier.value,
         ),
