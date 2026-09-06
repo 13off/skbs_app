@@ -10,6 +10,7 @@ class TaskPolicy {
   final bool foremanCanCreateAnyDate;
   final bool foremanCanEditPastTasks;
   final int? editWindowDays;
+  final int? foremanTimesheetEditWindowDays;
   final bool foremanCanEditDate;
   final bool foremanCanEditAxesWork;
   final bool foremanCanEditAssignees;
@@ -32,6 +33,7 @@ class TaskPolicy {
     this.foremanCanCreateAnyDate = false,
     this.foremanCanEditPastTasks = false,
     this.editWindowDays = 0,
+    this.foremanTimesheetEditWindowDays,
     this.foremanCanEditDate = true,
     this.foremanCanEditAxesWork = true,
     this.foremanCanEditAssignees = true,
@@ -59,6 +61,12 @@ class TaskPolicy {
       return value.toString().toLowerCase() == 'true';
     }
 
+    int? nullableDays(String key) {
+      final value = json[key];
+      if (value == null) return null;
+      return int.tryParse(value.toString())?.clamp(0, 3650).toInt();
+    }
+
     final windowValue = json['edit_window_days'];
     return TaskPolicy(
       id: json['id']?.toString() ?? '',
@@ -77,6 +85,9 @@ class TaskPolicy {
       editWindowDays: windowValue == null
           ? null
           : int.tryParse(windowValue.toString())?.clamp(0, 3650).toInt(),
+      foremanTimesheetEditWindowDays: nullableDays(
+        'foreman_timesheet_edit_window_days',
+      ),
       foremanCanEditDate: boolean('foreman_can_edit_date', true),
       foremanCanEditAxesWork: boolean('foreman_can_edit_axes_work', true),
       foremanCanEditAssignees: boolean('foreman_can_edit_assignees', true),
@@ -107,6 +118,7 @@ class TaskPolicy {
       'foreman_can_create_any_date': foremanCanCreateAnyDate,
       'foreman_can_edit_past_tasks': foremanCanEditPastTasks,
       'edit_window_days': editWindowDays,
+      'foreman_timesheet_edit_window_days': foremanTimesheetEditWindowDays,
       'foreman_can_edit_date': foremanCanEditDate,
       'foreman_can_edit_axes_work': foremanCanEditAxesWork,
       'foreman_can_edit_assignees': foremanCanEditAssignees,
@@ -115,6 +127,16 @@ class TaskPolicy {
       'foreman_can_delete_after_photos': foremanCanDeleteAfterPhotos,
       'foreman_can_delete_task': foremanCanDeleteTask,
     };
+  }
+
+  bool canForemanEditTimesheetDate(DateTime date, {DateTime? today}) {
+    final current = today ?? DateTime.now();
+    final cleanToday = DateTime(current.year, current.month, current.day);
+    final cleanDate = DateTime(date.year, date.month, date.day);
+    final windowDays = foremanTimesheetEditWindowDays;
+    if (windowDays == null) return true;
+    final earliestDate = cleanToday.subtract(Duration(days: windowDays));
+    return !cleanDate.isBefore(earliestDate);
   }
 
   TaskPolicy copyWith({
@@ -129,6 +151,7 @@ class TaskPolicy {
     bool? foremanCanCreateAnyDate,
     bool? foremanCanEditPastTasks,
     Object? editWindowDays = _notProvided,
+    Object? foremanTimesheetEditWindowDays = _notProvided,
     bool? foremanCanEditDate,
     bool? foremanCanEditAxesWork,
     bool? foremanCanEditAssignees,
@@ -157,6 +180,10 @@ class TaskPolicy {
       editWindowDays: identical(editWindowDays, _notProvided)
           ? this.editWindowDays
           : editWindowDays as int?,
+      foremanTimesheetEditWindowDays:
+          identical(foremanTimesheetEditWindowDays, _notProvided)
+          ? this.foremanTimesheetEditWindowDays
+          : foremanTimesheetEditWindowDays as int?,
       foremanCanEditDate: foremanCanEditDate ?? this.foremanCanEditDate,
       foremanCanEditAxesWork:
           foremanCanEditAxesWork ?? this.foremanCanEditAxesWork,
