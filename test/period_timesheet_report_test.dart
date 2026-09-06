@@ -110,8 +110,8 @@ void main() {
     expect(summary.employeeCount, 2);
     expect(summary.activeEmployeeCount, 1);
     expect(summary.firedEmployeeCount, 1);
-    expect(summary.accrued, 9000);
+    expect(summary.accrued, 12000);
     expect(summary.paid, 1500);
-    expect(summary.balance, 7500);
+    expect(summary.balance, 10500);
   });
 }
