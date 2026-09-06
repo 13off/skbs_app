@@ -19,7 +19,7 @@ class _EditEmployeeScreenState extends State<EditEmployeeScreen> {
   final fioController = TextEditingController();
   final positionController = TextEditingController();
   final phoneController = TextEditingController();
-  final dailyRateController = TextEditingController();
+  final monthlySalaryController = TextEditingController();
   final commentController = TextEditingController();
 
   late String selectedObjectName;
@@ -34,7 +34,9 @@ class _EditEmployeeScreenState extends State<EditEmployeeScreen> {
     fioController.text = widget.employee.name;
     positionController.text = widget.employee.position;
     phoneController.text = formatRussianPhone(widget.employee.phone);
-    dailyRateController.text = widget.employee.dailyRate.toString();
+    monthlySalaryController.text = widget.employee.monthlySalary > 0
+        ? widget.employee.monthlySalary.toString()
+        : '';
     commentController.text = widget.employee.comment;
 
     final objectName = widget.employee.objectName.trim();
@@ -48,7 +50,7 @@ class _EditEmployeeScreenState extends State<EditEmployeeScreen> {
     fioController.dispose();
     positionController.dispose();
     phoneController.dispose();
-    dailyRateController.dispose();
+    monthlySalaryController.dispose();
     commentController.dispose();
     super.dispose();
   }
@@ -64,15 +66,15 @@ class _EditEmployeeScreenState extends State<EditEmployeeScreen> {
     return objects;
   }
 
-  int parseDailyRate() {
-    final cleanText = dailyRateController.text
+  int parseMonthlySalary() {
+    final cleanText = monthlySalaryController.text
         .trim()
         .replaceAll(' ', '')
         .replaceAll(',', '.');
 
     final value = double.tryParse(cleanText);
 
-    if (value == null) return widget.employee.dailyRate;
+    if (value == null) return widget.employee.monthlySalary;
 
     return value.round();
   }
@@ -96,7 +98,7 @@ class _EditEmployeeScreenState extends State<EditEmployeeScreen> {
       errorText = null;
     });
 
-    final dailyRate = parseDailyRate();
+    final monthlySalary = parseMonthlySalary();
 
     try {
       await EmployeeRepository.updateEmployee(
@@ -105,7 +107,7 @@ class _EditEmployeeScreenState extends State<EditEmployeeScreen> {
         position: positionController.text,
         phone: cleanPhoneForSave(phoneController.text),
         objectName: selectedObjectName,
-        dailyRate: dailyRate,
+        monthlySalary: monthlySalary,
         comment: commentController.text,
       );
 
@@ -118,7 +120,7 @@ class _EditEmployeeScreenState extends State<EditEmployeeScreen> {
         id: employeeId,
         phone: cleanPhoneForSave(phoneController.text),
         objectName: selectedObjectName,
-        dailyRate: dailyRate,
+        monthlySalary: monthlySalary,
         isActive: widget.employee.isActive,
         comment: commentController.text.trim(),
       );
@@ -271,12 +273,13 @@ class _EditEmployeeScreenState extends State<EditEmployeeScreen> {
                 buildObjectSelector(),
                 const SizedBox(height: 14),
                 TextFormField(
-                  controller: dailyRateController,
+                  controller: monthlySalaryController,
                   enabled: !isSaving,
                   keyboardType: TextInputType.number,
                   decoration: const InputDecoration(
-                    labelText: 'Ставка за смену',
-                    hintText: 'Например: 6000',
+                    labelText: 'Зарплата в месяц, ₽',
+                    hintText: 'Например: 180000',
+                    helperText: 'Начисляется за расчётный месяц независимо от табеля',
                     border: OutlineInputBorder(),
                     prefixIcon: Icon(Icons.payments_outlined),
                   ),
@@ -284,13 +287,13 @@ class _EditEmployeeScreenState extends State<EditEmployeeScreen> {
                     final text = value?.trim().replaceAll(' ', '') ?? '';
 
                     if (text.isEmpty) {
-                      return 'Введите ставку';
+                      return 'Введите зарплату за месяц';
                     }
 
                     final number = double.tryParse(text.replaceAll(',', '.'));
 
                     if (number == null || number <= 0) {
-                      return 'Введите корректную ставку';
+                      return 'Введите корректную зарплату';
                     }
 
                     return null;

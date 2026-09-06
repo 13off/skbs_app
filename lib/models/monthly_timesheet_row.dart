@@ -19,9 +19,7 @@ class MonthlyTimesheetRow {
     return shiftsByDay.values.fold<double>(0.0, (sum, value) => sum + value);
   }
 
-  double get accrued {
-    return totalShifts * employee.dailyRate;
-  }
+  double get accrued => employee.monthlySalary.toDouble();
 
   double get balance {
     return accrued - paid;

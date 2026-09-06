@@ -18,7 +18,7 @@ class _AddEmployeeScreenState extends State<AddEmployeeScreen> {
   final fioController = TextEditingController();
   final positionController = TextEditingController();
   final phoneController = TextEditingController(text: '+7 ');
-  final dailyRateController = TextEditingController(text: '6000');
+  final monthlySalaryController = TextEditingController();
   final commentController = TextEditingController();
 
   String selectedObjectName = '';
@@ -40,7 +40,7 @@ class _AddEmployeeScreenState extends State<AddEmployeeScreen> {
     fioController.dispose();
     positionController.dispose();
     phoneController.dispose();
-    dailyRateController.dispose();
+    monthlySalaryController.dispose();
     commentController.dispose();
     super.dispose();
   }
@@ -80,14 +80,14 @@ class _AddEmployeeScreenState extends State<AddEmployeeScreen> {
     });
   }
 
-  int parseDailyRate() {
-    final cleanText = dailyRateController.text
+  int parseMonthlySalary() {
+    final cleanText = monthlySalaryController.text
         .trim()
         .replaceAll(' ', '')
         .replaceAll(',', '.');
     final value = double.tryParse(cleanText);
 
-    return value?.round() ?? 6000;
+    return value?.round() ?? 0;
   }
 
   Future<void> saveEmployee() async {
@@ -113,7 +113,7 @@ class _AddEmployeeScreenState extends State<AddEmployeeScreen> {
         position: positionController.text,
         phone: cleanPhoneForSave(phoneController.text),
         objectName: objectName,
-        dailyRate: parseDailyRate(),
+        monthlySalary: parseMonthlySalary(),
         comment: commentController.text,
       );
 
@@ -344,12 +344,13 @@ class _AddEmployeeScreenState extends State<AddEmployeeScreen> {
               title: 'Работа',
               children: [
                 TextFormField(
-                  controller: dailyRateController,
+                  controller: monthlySalaryController,
                   enabled: !isSaving,
                   keyboardType: TextInputType.number,
                   decoration: const InputDecoration(
-                    labelText: 'Ставка за смену',
-                    hintText: 'Например: 6000',
+                    labelText: 'Зарплата в месяц, ₽',
+                    hintText: 'Например: 180000',
+                    helperText: 'Начисляется за расчётный месяц независимо от табеля',
                     border: OutlineInputBorder(),
                     prefixIcon: Icon(Icons.payments_outlined),
                   ),
@@ -357,9 +358,9 @@ class _AddEmployeeScreenState extends State<AddEmployeeScreen> {
                     final text = (value ?? '').trim().replaceAll(' ', '');
                     final number = double.tryParse(text.replaceAll(',', '.'));
 
-                    if (text.isEmpty) return 'Введите ставку';
+                    if (text.isEmpty) return 'Введите зарплату за месяц';
                     if (number == null || number <= 0) {
-                      return 'Введите корректную ставку';
+                      return 'Введите корректную зарплату';
                     }
                     return null;
                   },

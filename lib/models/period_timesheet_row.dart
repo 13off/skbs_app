@@ -17,7 +17,7 @@ class PeriodTimesheetRow {
     return shiftsByDate.values.fold<double>(0.0, (sum, value) => sum + value);
   }
 
-  double get accrued {
-    return totalShifts * employee.dailyRate;
-  }
+  /// Payroll is based on the employee's fixed monthly salary.
+  /// Timesheet shifts remain operational attendance data only.
+  double get accrued => employee.monthlySalary.toDouble();
 }

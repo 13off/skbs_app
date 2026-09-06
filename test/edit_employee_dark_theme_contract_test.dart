@@ -19,7 +19,7 @@ void main() {
     expect(source, isNot(contains('TextStyle(color: Colors.red)')));
   });
 
-  test('сохранение сотрудника остаётся прежним', () {
+  test('сохранение сотрудника использует месячную зарплату', () {
     final source = File(
       'lib/screens/edit_employee_screen.dart',
     ).readAsStringSync();
@@ -27,7 +27,9 @@ void main() {
     expect(source, contains('EmployeeRepository.updateEmployee('));
     expect(source, contains('employeeId: employeeId'));
     expect(source, contains('objectName: selectedObjectName'));
-    expect(source, contains('dailyRate: dailyRate'));
+    expect(source, contains('monthlySalary: monthlySalary'));
+    expect(source, contains("'Зарплата в месяц, ₽'"));
     expect(source, contains("'Сохранить изменения'"));
+    expect(source, isNot(contains("'Ставка за смену'")));
   });
 }

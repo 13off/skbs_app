@@ -20,7 +20,7 @@ class EmployeeTimesheetPeriodRow {
   double get totalShifts =>
       shiftsByDate.values.fold<double>(0.0, (sum, value) => sum + value);
 
-  double get accrued => totalShifts * employee.dailyRate;
+  double get accrued => employee.monthlySalary.toDouble();
 
   double get balance => accrued - paid;
 }
