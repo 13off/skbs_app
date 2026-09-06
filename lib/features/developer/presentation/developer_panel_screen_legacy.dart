@@ -4,6 +4,8 @@ import 'package:skbs_app/app/app_adaptive_palette.dart';
 import '../../../models/app_user_profile.dart';
 import '../../../widgets/premium_ui.dart';
 import '../data/developer_policy_repository.dart';
+import '../data/role_permission_repository.dart';
+import '../models/role_permission_matrix.dart';
 import '../models/task_policy.dart';
 
 class DeveloperPanelScreen extends StatefulWidget {
@@ -16,15 +18,26 @@ class DeveloperPanelScreen extends StatefulWidget {
 }
 
 class _DeveloperPanelScreenState extends State<DeveloperPanelScreen> {
+  static const _foremanRoleCode = 'foreman';
+  static const _attendanceEditPermission = 'attendance.edit';
+
   DeveloperTaskPolicyCenter? center;
+  RolePermissionCenter? permissionCenter;
   TaskPolicy editing = TaskPolicy.defaults;
   String? selectedObjectId;
   bool selectedHasOverride = false;
+  bool timesheetEditAllowed = true;
+  bool persistedTimesheetEditAllowed = true;
+  bool timesheetHasOverride = false;
   bool loading = true;
   bool saving = false;
   String? errorText;
 
   bool get companyMode => selectedObjectId == null;
+  bool get timesheetDirty =>
+      timesheetEditAllowed != persistedTimesheetEditAllowed;
+  bool get selectedHasAnyOverride =>
+      selectedHasOverride || timesheetHasOverride;
 
   DeveloperObjectPolicy? get selectedObject {
     final id = selectedObjectId;
@@ -47,10 +60,16 @@ class _DeveloperPanelScreenState extends State<DeveloperPanelScreen> {
       errorText = null;
     });
     try {
-      final value = await DeveloperPolicyRepository.fetchCenter();
+      final values = await Future.wait<dynamic>([
+        DeveloperPolicyRepository.fetchCenter(),
+        RolePermissionRepository.fetchCenter(),
+      ]);
       if (!mounted) return;
+      final taskCenter = values[0] as DeveloperTaskPolicyCenter;
+      final accessCenter = values[1] as RolePermissionCenter;
       setState(() {
-        center = value;
+        center = taskCenter;
+        permissionCenter = accessCenter;
         selectCompanyPolicy(updateState: false);
         loading = false;
       });
@@ -63,6 +82,34 @@ class _DeveloperPanelScreenState extends State<DeveloperPanelScreen> {
     }
   }
 
+  void _applyTimesheetPermission(String? objectId) {
+    final accessCenter = permissionCenter;
+    if (accessCenter == null) return;
+    final allowed = accessCenter.allowed(
+      roleCode: _foremanRoleCode,
+      permissionCode: _attendanceEditPermission,
+      objectId: objectId,
+    );
+    timesheetEditAllowed = allowed;
+    persistedTimesheetEditAllowed = allowed;
+    timesheetHasOverride = accessCenter.hasOverride(
+      roleCode: _foremanRoleCode,
+      permissionCode: _attendanceEditPermission,
+      objectId: objectId,
+    );
+  }
+
+  bool _objectHasAnyOverride(DeveloperObjectPolicy object) {
+    final accessOverride =
+        permissionCenter?.hasOverride(
+          roleCode: _foremanRoleCode,
+          permissionCode: _attendanceEditPermission,
+          objectId: object.id,
+        ) ??
+        false;
+    return object.hasOverride || accessOverride;
+  }
+
   void selectCompanyPolicy({bool updateState = true}) {
     final value = center;
     if (value == null) return;
@@ -70,6 +117,7 @@ class _DeveloperPanelScreenState extends State<DeveloperPanelScreen> {
       selectedObjectId = null;
       selectedHasOverride = true;
       editing = value.companyPolicy;
+      _applyTimesheetPermission(null);
       errorText = null;
     }
 
@@ -85,6 +133,7 @@ class _DeveloperPanelScreenState extends State<DeveloperPanelScreen> {
       selectedObjectId = object.id;
       selectedHasOverride = object.hasOverride;
       editing = object.policy.copyWith(objectId: object.id);
+      _applyTimesheetPermission(object.id);
       errorText = null;
     });
   }
@@ -96,14 +145,24 @@ class _DeveloperPanelScreenState extends State<DeveloperPanelScreen> {
       errorText = null;
     });
     try {
+      final currentObjectId = selectedObjectId;
       final next = await DeveloperPolicyRepository.savePolicy(
-        objectId: selectedObjectId,
+        objectId: currentObjectId,
         policy: editing,
       );
+      var nextPermissionCenter = permissionCenter;
+      if (timesheetDirty) {
+        nextPermissionCenter = await RolePermissionRepository.saveOverride(
+          roleCode: _foremanRoleCode,
+          permissionCode: _attendanceEditPermission,
+          isAllowed: timesheetEditAllowed,
+          objectId: currentObjectId,
+        );
+      }
       if (!mounted) return;
-      final currentObjectId = selectedObjectId;
       setState(() {
         center = next;
+        permissionCenter = nextPermissionCenter;
         if (currentObjectId == null) {
           editing = next.companyPolicy;
           selectedHasOverride = true;
@@ -114,6 +173,7 @@ class _DeveloperPanelScreenState extends State<DeveloperPanelScreen> {
           editing = object.policy;
           selectedHasOverride = object.hasOverride;
         }
+        _applyTimesheetPermission(currentObjectId);
       });
       ScaffoldMessenger.of(
         context,
@@ -158,15 +218,29 @@ class _DeveloperPanelScreenState extends State<DeveloperPanelScreen> {
       errorText = null;
     });
     try {
-      final next = await DeveloperPolicyRepository.resetObjectOverride(
-        objectId,
-      );
+      var nextPermissionCenter = permissionCenter;
+      if (timesheetHasOverride) {
+        nextPermissionCenter = await RolePermissionRepository.resetOverride(
+          roleCode: _foremanRoleCode,
+          permissionCode: _attendanceEditPermission,
+          objectId: objectId,
+        );
+      }
+
+      DeveloperTaskPolicyCenter next;
+      if (selectedHasOverride) {
+        next = await DeveloperPolicyRepository.resetObjectOverride(objectId);
+      } else {
+        next = center!;
+      }
       if (!mounted) return;
       final object = next.objects.firstWhere((item) => item.id == objectId);
       setState(() {
         center = next;
+        permissionCenter = nextPermissionCenter;
         editing = object.policy;
         selectedHasOverride = false;
+        _applyTimesheetPermission(objectId);
       });
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Объект наследует настройки компании')),
@@ -203,7 +277,7 @@ class _DeveloperPanelScreenState extends State<DeveloperPanelScreen> {
       body: PremiumBackdrop(
         child: loading
             ? const Center(child: CircularProgressIndicator())
-            : center == null
+            : center == null || permissionCenter == null
             ? _ErrorState(
                 message: errorText ?? 'Настройки недоступны',
                 retry: load,
@@ -274,22 +348,23 @@ class _DeveloperPanelScreenState extends State<DeveloperPanelScreen> {
                 onTap: selectCompanyPolicy,
               ),
               const SizedBox(height: 8),
-              ...value.objects.map(
-                (object) => Padding(
+              ...value.objects.map((object) {
+                final hasAnyOverride = _objectHasAnyOverride(object);
+                return Padding(
                   padding: const EdgeInsets.only(bottom: 8),
                   child: _ScopeTile(
                     title: object.name,
-                    subtitle: object.hasOverride
+                    subtitle: hasAnyOverride
                         ? 'Индивидуальные ограничения'
                         : 'Наследует настройки компании',
                     selected: selectedObjectId == object.id,
-                    icon: object.hasOverride
+                    icon: hasAnyOverride
                         ? Icons.tune_rounded
                         : Icons.account_tree_outlined,
                     onTap: () => selectObjectPolicy(object),
                   ),
-                ),
-              ),
+                );
+              }),
             ],
           ),
         ),
@@ -346,7 +421,7 @@ class _DeveloperPanelScreenState extends State<DeveloperPanelScreen> {
                         Text(
                           companyMode
                               ? 'Базовое поведение всех объектов'
-                              : selectedHasOverride
+                              : selectedHasAnyOverride
                               ? 'Для объекта действуют индивидуальные правила'
                               : 'Сейчас показаны унаследованные правила. Сохранение создаст исключение.',
                           style: const TextStyle(fontWeight: FontWeight.w600),
@@ -354,7 +429,7 @@ class _DeveloperPanelScreenState extends State<DeveloperPanelScreen> {
                       ],
                     ),
                   ),
-                  if (!companyMode && selectedHasOverride)
+                  if (!companyMode && selectedHasAnyOverride)
                     TextButton.icon(
                       onPressed: saving ? null : resetOverride,
                       icon: const Icon(Icons.account_tree_outlined),
@@ -363,6 +438,17 @@ class _DeveloperPanelScreenState extends State<DeveloperPanelScreen> {
                 ],
               ),
               const SizedBox(height: 18),
+              _sectionTitle('Табель'),
+              _switch(
+                title: 'Разрешить прорабу редактировать табель',
+                subtitle:
+                    'Ограничение действует на сервере: без разрешения прораб не сможет записывать или менять смены.',
+                value: timesheetEditAllowed,
+                onChanged: (value) {
+                  setState(() => timesheetEditAllowed = value);
+                },
+              ),
+              const SizedBox(height: 12),
               _sectionTitle('Фотографии'),
               _switch(
                 title: 'Обязательно фото «До»',
@@ -499,7 +585,7 @@ class _DeveloperPanelScreenState extends State<DeveloperPanelScreen> {
                 icon: Icons.save_outlined,
                 label: companyMode
                     ? 'Сохранить настройки компании'
-                    : selectedHasOverride
+                    : selectedHasAnyOverride
                     ? 'Сохранить настройки объекта'
                     : 'Создать исключение для объекта',
                 isLoading: saving,

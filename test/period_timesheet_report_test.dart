@@ -10,7 +10,7 @@ void main() {
     'не отмечен',
     id: 'employee-1',
     objectName: 'Мурманск',
-    dailyRate: 6000,
+    monthlySalary: 180000,
   );
   const firedCopy = Employee(
     '  иванов   иван ',
@@ -18,7 +18,7 @@ void main() {
     'не отмечен',
     id: 'employee-2',
     objectName: 'Талнах',
-    dailyRate: 6000,
+    monthlySalary: 180000,
     isActive: false,
   );
 
@@ -110,8 +110,8 @@ void main() {
     expect(summary.employeeCount, 2);
     expect(summary.activeEmployeeCount, 1);
     expect(summary.firedEmployeeCount, 1);
-    expect(summary.accrued, 12000);
+    expect(summary.accrued, closeTo(9000, 0.001));
     expect(summary.paid, 1500);
-    expect(summary.balance, 10500);
+    expect(summary.balance, closeTo(7500, 0.001));
   });
 }

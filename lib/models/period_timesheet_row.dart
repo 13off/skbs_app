@@ -1,4 +1,5 @@
 import 'employee.dart';
+import 'monthly_salary_calculator.dart';
 
 class PeriodTimesheetRow {
   final Employee employee;
@@ -17,7 +18,9 @@ class PeriodTimesheetRow {
     return shiftsByDate.values.fold<double>(0.0, (sum, value) => sum + value);
   }
 
-  /// Payroll is based on the employee's fixed monthly salary.
-  /// Timesheet shifts remain operational attendance data only.
-  double get accrued => employee.monthlySalary.toDouble();
+  double get accrued => calculateMonthlySalaryAccrued(
+    monthlySalary: employee.monthlySalary,
+    countedShifts: totalShifts,
+    ignoreTimesheet: employee.ignoreTimesheet,
+  );
 }

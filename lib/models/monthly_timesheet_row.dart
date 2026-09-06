@@ -1,4 +1,5 @@
 import 'employee.dart';
+import 'monthly_salary_calculator.dart';
 
 class MonthlyTimesheetRow {
   final Employee employee;
@@ -19,7 +20,11 @@ class MonthlyTimesheetRow {
     return shiftsByDay.values.fold<double>(0.0, (sum, value) => sum + value);
   }
 
-  double get accrued => employee.monthlySalary.toDouble();
+  double get accrued => calculateMonthlySalaryAccrued(
+    monthlySalary: employee.monthlySalary,
+    countedShifts: totalShifts,
+    ignoreTimesheet: employee.ignoreTimesheet,
+  );
 
   double get balance {
     return accrued - paid;
