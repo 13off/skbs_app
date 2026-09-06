@@ -20,6 +20,59 @@ extension _TimesheetLoading on _TimesheetScreenState {
   String get objectTitle =>
       cleanObjectName(widget.selectedObjectName) ?? 'Все объекты';
 
+  String? get timesheetPolicyObject =>
+      cleanObjectName(widget.selectedObjectName) ??
+      cleanObjectName(widget.profile.objectName);
+
+  Future<void> loadTimesheetPolicy({bool forceRefresh = false}) async {
+    if (!isForemanTimesheetRestrictionActive) {
+      if (!mounted) return;
+      setState(() {
+        timesheetPolicy = TaskPolicy.defaults;
+        timesheetPolicyObjectName = timesheetPolicyObject;
+        hasTimesheetPolicy = true;
+        isTimesheetPolicyLoading = false;
+      });
+      return;
+    }
+
+    final objectName = timesheetPolicyObject;
+    if (objectName == null) {
+      if (!mounted) return;
+      setState(() {
+        timesheetPolicyObjectName = null;
+        hasTimesheetPolicy = false;
+        isTimesheetPolicyLoading = false;
+      });
+      return;
+    }
+
+    if (mounted) setState(() => isTimesheetPolicyLoading = true);
+    try {
+      final policy = await DeveloperPolicyRepository.ensurePolicy(
+        objectName,
+        forceRefresh: forceRefresh,
+      );
+      if (!mounted || timesheetPolicyObject != objectName) return;
+      setState(() {
+        timesheetPolicy = policy;
+        timesheetPolicyObjectName = objectName;
+        hasTimesheetPolicy = true;
+      });
+    } catch (_) {
+      if (!mounted || timesheetPolicyObject != objectName) return;
+      setState(() {
+        final hasSameObjectPolicy =
+            hasTimesheetPolicy && timesheetPolicyObjectName == objectName;
+        hasTimesheetPolicy = hasSameObjectPolicy;
+      });
+    } finally {
+      if (mounted && timesheetPolicyObject == objectName) {
+        setState(() => isTimesheetPolicyLoading = false);
+      }
+    }
+  }
+
   Future<void> loadTimesheetGroups({bool forceRefresh = false}) async {
     if (mounted) setState(() => isGroupsLoading = true);
     try {
