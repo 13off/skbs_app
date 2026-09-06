@@ -8,6 +8,7 @@ class Employee {
   final String phone;
   final String objectName;
   final int monthlySalary;
+  final bool ignoreTimesheet;
   final bool isActive;
   final String comment;
 
@@ -22,12 +23,13 @@ class Employee {
     this.objectName = 'Мурманск',
     int? monthlySalary,
     int? dailyRate,
+    this.ignoreTimesheet = false,
     this.isActive = true,
     this.comment = '',
   }) : monthlySalary = monthlySalary ?? dailyRate ?? 0;
 
   /// Transitional alias for code that has not been migrated yet.
-  /// The value is a fixed monthly salary and must never be multiplied by shifts.
+  /// The value is a monthly salary compatibility mirror, not a per-shift rate.
   int get dailyRate => monthlySalary;
 
   String get positionTitle {
@@ -70,6 +72,7 @@ class Employee {
       phone: phone.trim(),
       objectName: json['object_name'] as String? ?? 'Мурманск',
       monthlySalary: monthlySalary,
+      ignoreTimesheet: json['ignore_timesheet'] as bool? ?? false,
       isActive: json['is_active'] as bool? ?? true,
       comment: json['comment'] as String? ?? '',
     );
