@@ -315,7 +315,7 @@ class EmployeeRepository {
           'phone': phone.trim(),
           'object_name': cleanObjectName,
           ..._salaryPayload(salary),
-          if (ignoreTimesheet != null) 'ignore_timesheet': ignoreTimesheet,
+          'ignore_timesheet': ?ignoreTimesheet,
           'comment': comment.trim(),
           'updated_at': DateTime.now().toUtc().toIso8601String(),
         })
