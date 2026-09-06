@@ -23,6 +23,7 @@ class _AddEmployeeScreenState extends State<AddEmployeeScreen> {
 
   String selectedObjectName = '';
   late Future<List<String>> objectNamesFuture;
+  bool ignoreTimesheet = false;
 
   bool isSaving = false;
   String? errorText;
@@ -114,6 +115,7 @@ class _AddEmployeeScreenState extends State<AddEmployeeScreen> {
         phone: cleanPhoneForSave(phoneController.text),
         objectName: objectName,
         monthlySalary: parseMonthlySalary(),
+        ignoreTimesheet: ignoreTimesheet,
         comment: commentController.text,
       );
 
@@ -347,12 +349,14 @@ class _AddEmployeeScreenState extends State<AddEmployeeScreen> {
                   controller: monthlySalaryController,
                   enabled: !isSaving,
                   keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     labelText: 'Зарплата в месяц, ₽',
                     hintText: 'Например: 180000',
-                    helperText: 'Начисляется за расчётный месяц независимо от табеля',
-                    border: OutlineInputBorder(),
-                    prefixIcon: Icon(Icons.payments_outlined),
+                    helperText: ignoreTimesheet
+                        ? 'Полная месячная ставка: табель не влияет на начисление'
+                        : 'Начисление: месячная ставка / 30 × учтённые смены',
+                    border: const OutlineInputBorder(),
+                    prefixIcon: const Icon(Icons.payments_outlined),
                   ),
                   validator: (value) {
                     final text = (value ?? '').trim().replaceAll(' ', '');
@@ -364,6 +368,22 @@ class _AddEmployeeScreenState extends State<AddEmployeeScreen> {
                     }
                     return null;
                   },
+                ),
+                const SizedBox(height: 8),
+                SwitchListTile.adaptive(
+                  contentPadding: EdgeInsets.zero,
+                  title: const Text('Не учитывать табель'),
+                  subtitle: const Text(
+                    'При включении сотруднику начисляется полная месячная ставка независимо от количества смен.',
+                  ),
+                  value: ignoreTimesheet,
+                  onChanged: isSaving
+                      ? null
+                      : (value) {
+                          setState(() {
+                            ignoreTimesheet = value;
+                          });
+                        },
                 ),
                 const SizedBox(height: 14),
                 TextFormField(
