@@ -215,7 +215,7 @@ class EmployeeRepository {
     return <String, dynamic>{
       'monthly_salary': monthlySalary,
       // Compatibility mirror for older clients/RPCs during rollout.
-      // This legacy column now carries the same monthly value and must not be
+      // This legacy column carries the same monthly value and must not be
       // interpreted as a per-shift rate by current code.
       'daily_rate': monthlySalary,
     };
@@ -228,6 +228,7 @@ class EmployeeRepository {
     required String objectName,
     int? monthlySalary,
     @Deprecated('Use monthlySalary') int? dailyRate,
+    bool ignoreTimesheet = false,
     required String comment,
   }) async {
     final cleanObjectName = objectName.trim();
@@ -253,6 +254,7 @@ class EmployeeRepository {
           'phone': phone.trim(),
           'object_name': cleanObjectName,
           ..._salaryPayload(salary),
+          'ignore_timesheet': ignoreTimesheet,
           'is_active': true,
           'comment': comment.trim(),
           'updated_at': DateTime.now().toUtc().toIso8601String(),
@@ -287,6 +289,7 @@ class EmployeeRepository {
     required String objectName,
     int? monthlySalary,
     @Deprecated('Use monthlySalary') int? dailyRate,
+    bool? ignoreTimesheet,
     required String comment,
   }) async {
     final cleanObjectName = objectName.trim();
@@ -312,6 +315,7 @@ class EmployeeRepository {
           'phone': phone.trim(),
           'object_name': cleanObjectName,
           ..._salaryPayload(salary),
+          if (ignoreTimesheet != null) 'ignore_timesheet': ignoreTimesheet,
           'comment': comment.trim(),
           'updated_at': DateTime.now().toUtc().toIso8601String(),
         })
@@ -348,7 +352,7 @@ class EmployeeRepository {
     }
 
     const fields =
-        'id, person_id, object_id, fio, position, phone, object_name, monthly_salary, daily_rate, is_active, comment';
+        'id, person_id, object_id, fio, position, phone, object_name, monthly_salary, daily_rate, ignore_timesheet, is_active, comment';
 
     final sourceRow = await _client
         .from('employees')
@@ -365,6 +369,8 @@ class EmployeeRepository {
         (sourceRow['monthly_salary'] as num?)?.round() ??
         (sourceRow['daily_rate'] as num?)?.round() ??
         employee.monthlySalary;
+    final sourceIgnoreTimesheet =
+        sourceRow['ignore_timesheet'] as bool? ?? employee.ignoreTimesheet;
 
     final existingDuplicate = await _client
         .from('employees')
@@ -393,6 +399,7 @@ class EmployeeRepository {
               sourceRow['phone']?.toString().trim() ?? employee.phone.trim(),
           'object_name': cleanTargetObjectName,
           ..._salaryPayload(sourceSalary),
+          'ignore_timesheet': sourceIgnoreTimesheet,
           'is_active': true,
           'comment':
               sourceRow['comment']?.toString().trim() ??
