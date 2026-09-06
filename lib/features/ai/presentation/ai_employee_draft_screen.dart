@@ -22,6 +22,7 @@ class _AiEmployeeDraftScreenState extends State<AiEmployeeDraftScreen> {
   late final TextEditingController commentController;
   late String objectName;
   List<String> objectNames = const <String>[];
+  bool ignoreTimesheet = false;
   bool loadingObjects = true;
   bool saving = false;
   String? errorText;
@@ -116,6 +117,7 @@ class _AiEmployeeDraftScreenState extends State<AiEmployeeDraftScreen> {
         phone: cleanPhoneForSave(phoneController.text),
         objectName: objectName,
         monthlySalary: salary,
+        ignoreTimesheet: ignoreTimesheet,
         comment: commentController.text,
       );
       if (!mounted) return;
@@ -213,11 +215,12 @@ class _AiEmployeeDraftScreenState extends State<AiEmployeeDraftScreen> {
               controller: monthlySalaryController,
               enabled: !saving,
               keyboardType: TextInputType.number,
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 labelText: 'Зарплата в месяц, ₽',
-                helperText:
-                    'Обязательное поле: проверь по согласованным условиям',
-                prefixIcon: Icon(Icons.payments_outlined),
+                helperText: ignoreTimesheet
+                    ? 'Полная месячная ставка: табель не влияет на начисление'
+                    : 'Начисление: месячная ставка / 30 × учтённые смены',
+                prefixIcon: const Icon(Icons.payments_outlined),
               ),
               validator: (value) {
                 final salary = int.tryParse(
@@ -227,6 +230,20 @@ class _AiEmployeeDraftScreenState extends State<AiEmployeeDraftScreen> {
                     ? 'Введите согласованную зарплату за месяц'
                     : null;
               },
+            ),
+            const SizedBox(height: 8),
+            SwitchListTile.adaptive(
+              contentPadding: EdgeInsets.zero,
+              title: const Text('Не учитывать табель'),
+              subtitle: const Text(
+                'При включении сотруднику начисляется полная месячная ставка независимо от количества смен.',
+              ),
+              value: ignoreTimesheet,
+              onChanged: saving
+                  ? null
+                  : (value) {
+                      setState(() => ignoreTimesheet = value);
+                    },
             ),
             const SizedBox(height: 14),
             TextFormField(
