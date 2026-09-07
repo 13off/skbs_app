@@ -125,12 +125,16 @@ class BackgroundOfflineSyncService {
   static Future<bool> runScheduledFlush() async {
     WidgetsFlutterBinding.ensureInitialized();
 
-    String userId = '';
-    String companyId = '';
+    // A native iOS relaunch starts a fresh headless Flutter engine. Give its
+    // generated plugins a brief moment to register before reading preferences.
+    if (_isIos && !Supabase.instance.isInitialized) {
+      await Future<void>.delayed(const Duration(milliseconds: 250));
+    }
+
     try {
       final preferences = await SharedPreferences.getInstance();
-      userId = preferences.getString(_backgroundScopeUserKey)?.trim() ?? '';
-      companyId =
+      final userId = preferences.getString(_backgroundScopeUserKey)?.trim() ?? '';
+      final companyId =
           preferences.getString(_backgroundScopeCompanyKey)?.trim() ?? '';
       if (userId.isEmpty || companyId.isEmpty) {
         await _recordResult('no-active-offline-scope');
@@ -172,15 +176,9 @@ class BackgroundOfflineSyncService {
             ? 'background-flush-complete'
             : 'background-flush-pending-${OfflineSyncService.pendingCount}',
       );
-      if (!complete && _isIos) {
-        await schedule(userId: userId, companyId: companyId);
-      }
       return complete;
     } catch (error) {
       await _recordError('flush: $error');
-      if (_isIos && userId.isNotEmpty && companyId.isNotEmpty) {
-        unawaited(schedule(userId: userId, companyId: companyId));
-      }
       return false;
     }
   }
