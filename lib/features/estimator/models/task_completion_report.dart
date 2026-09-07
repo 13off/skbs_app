@@ -31,7 +31,7 @@ class TaskCompletionReport {
     required this.submittedAt,
     required this.reviewedByName,
     required this.reviewedAt,
-    this.taskDate = const _FallbackDate(),
+    required this.taskDate,
     this.objectName = '',
     this.axes = '',
     this.work = '',
@@ -40,7 +40,6 @@ class TaskCompletionReport {
   bool get isPending => reviewStatus == 'pending';
   bool get isApproved => reviewStatus == 'approved';
   bool get isReturned => reviewStatus == 'returned';
-  bool get hasVolume => reportedQuantity != null;
 
   String get statusTitle {
     switch (reviewStatus) {
@@ -114,11 +113,4 @@ class TaskCompletionReport {
       work: task['work']?.toString() ?? '',
     );
   }
-}
-
-class _FallbackDate implements DateTime {
-  const _FallbackDate();
-
-  @override
-  dynamic noSuchMethod(Invocation invocation) => DateTime.fromMillisecondsSinceEpoch(0).noSuchMethod(invocation);
 }
