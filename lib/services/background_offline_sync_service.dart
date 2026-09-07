@@ -59,7 +59,7 @@ class BackgroundOfflineSyncService {
         return;
       }
       if (_isIos) {
-        await _iosChannel.setMethodCallHandler(_handleIosNativeCall);
+        _iosChannel.setMethodCallHandler(_handleIosNativeCall);
       }
     } catch (error) {
       await _recordError('initialize: $error');
