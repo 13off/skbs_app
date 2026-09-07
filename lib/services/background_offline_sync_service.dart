@@ -118,10 +118,7 @@ class BackgroundOfflineSyncService {
         return false;
       }
 
-      await OfflineSyncService.configure(
-        userId: userId,
-        companyId: companyId,
-      );
+      await OfflineSyncService.configure(userId: userId, companyId: companyId);
       if (OfflineSyncService.pendingCount == 0) return true;
 
       await OfflineSyncService.flush();

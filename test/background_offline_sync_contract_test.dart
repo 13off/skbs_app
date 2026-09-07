@@ -8,7 +8,9 @@ void main() {
       'lib/services/background_offline_sync_service.dart',
     ).readAsStringSync();
     final mainSource = File('lib/main.dart').readAsStringSync();
-    final host = File('lib/widgets/offline_sync_banner.dart').readAsStringSync();
+    final host = File(
+      'lib/widgets/offline_sync_banner.dart',
+    ).readAsStringSync();
     final pubspec = File('pubspec.yaml').readAsStringSync();
 
     expect(pubspec, contains('workmanager: 0.10.9'));

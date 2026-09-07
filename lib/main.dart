@@ -35,8 +35,9 @@ class SkbsApp extends StatefulWidget {
 }
 
 class _SkbsAppState extends State<SkbsApp> {
-  static const Duration _minimumNativeStartupPhase =
-      Duration(milliseconds: 900);
+  static const Duration _minimumNativeStartupPhase = Duration(
+    milliseconds: 900,
+  );
 
   StreamSubscription<AuthState>? _authStateSubscription;
   bool _pushNavigationScheduled = false;
