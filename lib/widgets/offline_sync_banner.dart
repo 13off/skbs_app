@@ -8,6 +8,7 @@ import 'package:universal_html/html.dart' as html;
 import '../app/app_adaptive_palette.dart';
 import '../data/app_data_sync.dart';
 import '../data/offline_sync_service.dart';
+import '../services/background_offline_sync_service.dart';
 
 class OfflineSyncHost extends StatefulWidget {
   final String userId;
@@ -41,6 +42,7 @@ class _OfflineSyncHostState extends State<OfflineSyncHost>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    OfflineSyncService.state.addListener(_handleOfflineStateChange);
     _isOnline = !kIsWeb || html.window.navigator.onLine == true;
     _configure();
     _retryTimer = Timer.periodic(_retryInterval, (_) {
@@ -82,7 +84,22 @@ class _OfflineSyncHostState extends State<OfflineSyncHost>
       userId: widget.userId,
       companyId: widget.companyId,
     );
+    if (OfflineSyncService.pendingCount > 0) {
+      await _scheduleBackgroundFlush();
+    }
     if (_isOnline) await _flushAndRefresh();
+  }
+
+  void _handleOfflineStateChange() {
+    if (OfflineSyncService.pendingCount <= 0) return;
+    unawaited(_scheduleBackgroundFlush());
+  }
+
+  Future<void> _scheduleBackgroundFlush() {
+    return BackgroundOfflineSyncService.schedule(
+      userId: widget.userId,
+      companyId: widget.companyId,
+    );
   }
 
   Future<void> _flushAndRefresh() async {
@@ -125,6 +142,7 @@ class _OfflineSyncHostState extends State<OfflineSyncHost>
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    OfflineSyncService.state.removeListener(_handleOfflineStateChange);
     _retryTimer?.cancel();
     _dataChangeSubscription?.cancel();
     _onlineSubscription?.cancel();
@@ -141,13 +159,13 @@ class _OfflineSyncHostState extends State<OfflineSyncHost>
     final String message;
     if (!_isOnline) {
       message =
-          'Нет соединения с интернетом. Изменения сохранены на устройстве и будут отправлены при первой доступной возможности. $lastContactText';
+          'Нет соединения с интернетом. Изменения сохранены на устройстве и будут отправлены при первой доступной возможности, в том числе системной фоновой синхронизацией на телефоне. $lastContactText';
     } else if (state.isSyncing) {
       message =
           'Сейчас идёт попытка отправки. Осталось операций: ${state.pendingCount}.';
     } else if (state.pendingCount > 0) {
       message =
-          'Ожидает отправки: ${state.pendingCount}. Сервер ещё не подтвердил эти изменения. Данные сохранены на устройстве; приложение повторяет отправку при восстановлении сети, возвращении на экран и каждые 20 секунд, пока оно активно. $lastContactText';
+          'Ожидает отправки: ${state.pendingCount}. Сервер ещё не подтвердил эти изменения. Данные сохранены на устройстве; приложение повторяет отправку при восстановлении сети, возвращении на экран, каждые 20 секунд во время работы и через системную фоновую задачу на телефоне. $lastContactText';
     } else {
       message = 'Все локальные изменения отправлены. $lastContactText';
     }
