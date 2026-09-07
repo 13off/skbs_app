@@ -3,7 +3,6 @@ import Flutter
 import PhotosUI
 import Speech
 import UIKit
-import workmanager_apple
 
 @main
 @objc class AppDelegate: FlutterAppDelegate, FlutterImplicitEngineDelegate {
@@ -23,18 +22,38 @@ import workmanager_apple
     _ application: UIApplication,
     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
   ) -> Bool {
-    WorkmanagerPlugin.registerLaunchHandlers()
-    WorkmanagerPlugin.setPluginRegistrantCallback { registry in
-      GeneratedPluginRegistrant.register(with: registry)
-    }
-    WorkmanagerPlugin.registerBGProcessingTask(
-      withIdentifier: "com.example.skbsApp.offlineSync"
-    )
+    OfflineBackgroundSyncWakeCoordinator.shared.prepare()
     return super.application(application, didFinishLaunchingWithOptions: launchOptions)
+  }
+
+  override func application(
+    _ application: UIApplication,
+    handleEventsForBackgroundURLSession identifier: String,
+    completionHandler: @escaping () -> Void
+  ) {
+    if OfflineBackgroundSyncWakeCoordinator.shared.handleEventsForBackgroundURLSession(
+      identifier: identifier,
+      completionHandler: completionHandler
+    ) {
+      return
+    }
+    super.application(
+      application,
+      handleEventsForBackgroundURLSession: identifier,
+      completionHandler: completionHandler
+    )
   }
 
   func didInitializeImplicitFlutterEngine(_ engineBridge: FlutterImplicitEngineBridge) {
     GeneratedPluginRegistrant.register(with: engineBridge.pluginRegistry)
+
+    if let backgroundRegistrar = engineBridge.pluginRegistry.registrar(
+      forPlugin: "AppStroyOfflineBackgroundSync"
+    ) {
+      OfflineBackgroundSyncWakeCoordinator.shared.attach(
+        messenger: backgroundRegistrar.messenger()
+      )
+    }
 
     guard let registrar = engineBridge.pluginRegistry.registrar(
       forPlugin: "AppStroyNativeFeatures"

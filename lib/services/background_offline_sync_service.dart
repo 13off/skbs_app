@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -9,25 +10,32 @@ import 'package:workmanager/workmanager.dart';
 import '../config/supabase_config.dart';
 import '../data/offline_sync_service.dart';
 
+const String iosBackgroundSyncChannelName =
+    'ru.appstroy.skbs/offline_background_sync';
 const String _backgroundOfflineSyncTaskName = 'appstroy.backgroundOfflineSync';
 const String _androidOfflineSyncUniqueName = 'appstroy-offline-sync';
-const String _iosOfflineSyncIdentifier = 'com.example.skbsApp.offlineSync';
 const String _backgroundScopeUserKey = 'appstroy_background_sync_user_id';
-const String _backgroundScopeCompanyKey = 'appstroy_background_sync_company_id';
+const String _backgroundScopeCompanyKey =
+    'appstroy_background_sync_company_id';
+const String _lastScheduleAtKey = 'appstroy_background_sync_last_schedule_at';
+const String _lastWakeAtKey = 'appstroy_background_sync_last_wake_at';
+const String _lastResultKey = 'appstroy_background_sync_last_result';
+const String _lastErrorKey = 'appstroy_background_sync_last_error';
 
 @pragma('vm:entry-point')
 void backgroundOfflineSyncDispatcher() {
   Workmanager().executeTask((taskName, inputData) async {
-    if (taskName != _backgroundOfflineSyncTaskName &&
-        taskName != _iosOfflineSyncIdentifier) {
-      return true;
-    }
+    if (taskName != _backgroundOfflineSyncTaskName) return true;
     return BackgroundOfflineSyncService.runScheduledFlush();
   });
 }
 
 class BackgroundOfflineSyncService {
   BackgroundOfflineSyncService._();
+
+  static const MethodChannel _iosChannel = MethodChannel(
+    iosBackgroundSyncChannelName,
+  );
 
   static Future<void>? _initializeFuture;
 
@@ -46,10 +54,22 @@ class BackgroundOfflineSyncService {
 
   static Future<void> _initializeSafely() async {
     try {
-      await Workmanager().initialize(backgroundOfflineSyncDispatcher);
-    } catch (_) {
-      // Foreground sync remains the fallback if the OS scheduler is unavailable.
+      if (_isAndroid) {
+        await Workmanager().initialize(backgroundOfflineSyncDispatcher);
+        return;
+      }
+      if (_isIos) {
+        _iosChannel.setMethodCallHandler(_handleIosNativeCall);
+      }
+    } catch (error) {
+      await _recordError('initialize: $error');
     }
+  }
+
+  static Future<dynamic> _handleIosNativeCall(MethodCall call) async {
+    if (call.method != 'networkWake') return null;
+    await _recordWake('ios-background-url-session');
+    return runScheduledFlush();
   }
 
   static Future<void> schedule({
@@ -66,30 +86,38 @@ class BackgroundOfflineSyncService {
     await Future.wait<bool>([
       preferences.setString(_backgroundScopeUserKey, cleanUserId),
       preferences.setString(_backgroundScopeCompanyKey, cleanCompanyId),
+      preferences.setString(_lastScheduleAtKey, DateTime.now().toIso8601String()),
     ]);
 
     await initialize();
 
     try {
-      final connected = Constraints(networkType: NetworkType.connected);
       if (_isAndroid) {
         await Workmanager().registerOneOffTask(
           _androidOfflineSyncUniqueName,
           _backgroundOfflineSyncTaskName,
-          constraints: connected,
+          constraints: Constraints(networkType: NetworkType.connected),
           tag: _androidOfflineSyncUniqueName,
+          backoffPolicy: BackoffPolicy.linear,
+          backoffPolicyDelay: const Duration(seconds: 30),
         );
+        await _recordResult('android-workmanager-scheduled');
         return;
       }
 
       if (_isIos) {
-        await Workmanager().registerProcessingTask(
-          _iosOfflineSyncIdentifier,
-          _iosOfflineSyncIdentifier,
-          constraints: connected,
+        final baseUrl = supabaseUrl.trim().replaceFirst(RegExp(r'/+$'), '');
+        final scheduled = await _iosChannel.invokeMethod<bool>(
+          'scheduleWake',
+          <String, dynamic>{'probeUrl': '$baseUrl/auth/v1/health'},
         );
+        if (scheduled != true) {
+          throw StateError('native iOS wake was not scheduled');
+        }
+        await _recordResult('ios-background-transfer-scheduled');
       }
-    } catch (_) {
+    } catch (error) {
+      await _recordError('schedule: $error');
       // The durable queue stays intact. Foreground/resume sync will retry too.
     }
   }
@@ -97,14 +125,21 @@ class BackgroundOfflineSyncService {
   static Future<bool> runScheduledFlush() async {
     WidgetsFlutterBinding.ensureInitialized();
 
-    String userId = '';
-    String companyId = '';
+    // A native iOS relaunch starts a fresh headless Flutter engine. Give its
+    // generated plugins a brief moment to register before reading preferences.
+    if (_isIos && !Supabase.instance.isInitialized) {
+      await Future<void>.delayed(const Duration(milliseconds: 250));
+    }
+
     try {
       final preferences = await SharedPreferences.getInstance();
-      userId = preferences.getString(_backgroundScopeUserKey)?.trim() ?? '';
-      companyId =
+      final userId = preferences.getString(_backgroundScopeUserKey)?.trim() ?? '';
+      final companyId =
           preferences.getString(_backgroundScopeCompanyKey)?.trim() ?? '';
-      if (userId.isEmpty || companyId.isEmpty) return true;
+      if (userId.isEmpty || companyId.isEmpty) {
+        await _recordResult('no-active-offline-scope');
+        return true;
+      }
 
       if (!Supabase.instance.isInitialized) {
         await Supabase.initialize(
@@ -113,25 +148,78 @@ class BackgroundOfflineSyncService {
         );
       }
 
-      final currentUser = Supabase.instance.client.auth.currentUser;
-      if (currentUser == null || currentUser.id != userId) {
-        return false;
+      await OfflineSyncService.configure(userId: userId, companyId: companyId);
+      if (OfflineSyncService.pendingCount == 0) {
+        await _recordResult('queue-already-empty');
+        return true;
       }
 
-      await OfflineSyncService.configure(userId: userId, companyId: companyId);
-      if (OfflineSyncService.pendingCount == 0) return true;
+      final auth = Supabase.instance.client.auth;
+      var session = auth.currentSession;
+      if (session == null || session.user.id != userId) {
+        await _recordError('flush: no matching restored Supabase session');
+        return false;
+      }
+      if (session.isExpired) {
+        final refreshed = await auth.refreshSession();
+        session = refreshed.session;
+        if (session == null || session.user.id != userId) {
+          await _recordError('flush: Supabase session refresh failed');
+          return false;
+        }
+      }
 
       await OfflineSyncService.flush();
       final complete = OfflineSyncService.pendingCount == 0;
-      if (!complete && _isIos) {
-        await schedule(userId: userId, companyId: companyId);
-      }
+      await _recordResult(
+        complete
+            ? 'background-flush-complete'
+            : 'background-flush-pending-${OfflineSyncService.pendingCount}',
+      );
       return complete;
-    } catch (_) {
-      if (_isIos && userId.isNotEmpty && companyId.isNotEmpty) {
-        unawaited(schedule(userId: userId, companyId: companyId));
-      }
+    } catch (error) {
+      await _recordError('flush: $error');
       return false;
     }
+  }
+
+  static Future<void> reportIosHeadlessFlushResult(bool success) async {
+    if (!_isIos) return;
+    try {
+      await _iosChannel.invokeMethod<void>(
+        'backgroundFlushFinished',
+        <String, dynamic>{'success': success},
+      );
+    } catch (error) {
+      await _recordError('ios-headless-result: $error');
+    }
+  }
+
+  static Future<void> _recordWake(String source) async {
+    try {
+      final preferences = await SharedPreferences.getInstance();
+      await Future.wait<bool>([
+        preferences.setString(_lastWakeAtKey, DateTime.now().toIso8601String()),
+        preferences.setString(_lastResultKey, 'wake:$source'),
+        preferences.remove(_lastErrorKey),
+      ]);
+    } catch (_) {}
+  }
+
+  static Future<void> _recordResult(String result) async {
+    try {
+      final preferences = await SharedPreferences.getInstance();
+      await Future.wait<bool>([
+        preferences.setString(_lastResultKey, result),
+        preferences.remove(_lastErrorKey),
+      ]);
+    } catch (_) {}
+  }
+
+  static Future<void> _recordError(String error) async {
+    try {
+      final preferences = await SharedPreferences.getInstance();
+      await preferences.setString(_lastErrorKey, error);
+    } catch (_) {}
   }
 }

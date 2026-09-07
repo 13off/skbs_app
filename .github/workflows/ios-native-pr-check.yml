@@ -1,0 +1,59 @@
+name: iOS Native Check
+
+on:
+  pull_request:
+    paths:
+      - 'ios/**'
+      - 'lib/main.dart'
+      - 'lib/services/background_offline_sync_service.dart'
+      - 'pubspec.yaml'
+      - 'pubspec.lock'
+      - '.fvmrc'
+      - '.github/workflows/ios-native-pr-check.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ios-native-pr-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  ios-simulator-build:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
+        with:
+          flutter-version-file: .fvmrc
+          cache: true
+
+      - name: Install locked dependencies
+        run: flutter pub get --enforce-lockfile
+
+      - name: Validate iOS property list
+        run: plutil -lint ios/Runner/Info.plist
+
+      - name: Match production iOS deployment target
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          project = Path('ios/Runner.xcodeproj/project.pbxproj')
+          text = project.read_text(encoding='utf-8')
+          text = text.replace(
+              'IPHONEOS_DEPLOYMENT_TARGET = 14.0;',
+              'IPHONEOS_DEPLOYMENT_TARGET = 15.0;',
+          )
+          if 'IPHONEOS_DEPLOYMENT_TARGET = 14.0;' in text:
+              raise SystemExit('failed to raise iOS target to 15.0')
+          if 'IPHONEOS_DEPLOYMENT_TARGET = 15.0;' not in text:
+              raise SystemExit('iOS 15 target is missing')
+          project.write_text(text, encoding='utf-8')
+          PY
+
+      - name: Compile iOS simulator app
+        run: flutter build ios --simulator --debug
