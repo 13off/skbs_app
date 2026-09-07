@@ -27,6 +27,17 @@ void main() {
   runApp(const SkbsApp());
 }
 
+@pragma('vm:entry-point')
+void iosBackgroundNetworkWakeMain() {
+  WidgetsFlutterBinding.ensureInitialized();
+  unawaited(_runIosBackgroundNetworkWake());
+}
+
+Future<void> _runIosBackgroundNetworkWake() async {
+  final success = await BackgroundOfflineSyncService.runScheduledFlush();
+  await BackgroundOfflineSyncService.reportIosHeadlessFlushResult(success);
+}
+
 class SkbsApp extends StatefulWidget {
   const SkbsApp({super.key});
 
