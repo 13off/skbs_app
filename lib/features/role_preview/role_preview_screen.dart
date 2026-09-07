@@ -42,6 +42,8 @@ class _RolePreviewScreenState extends State<RolePreviewScreen> {
 
   void selectProcurement() => RolePreviewController.showProcurement();
 
+  void selectEstimator() => RolePreviewController.showEstimator();
+
   Future<void> selectEmployee(List<Employee> employees) async {
     final available = employees
         .where((employee) => employee.id?.trim().isNotEmpty == true)
@@ -459,6 +461,13 @@ class _RolePreviewScreenState extends State<RolePreviewScreen> {
                         title: 'Снабженец',
                         selected: preview.isProcurementMode,
                         onTap: selectProcurement,
+                      ),
+                      roleCard(
+                        icon: Icons.calculate_outlined,
+                        title: 'Инженер-сметчик',
+                        selected: preview.isEstimatorMode,
+                        onTap: selectEstimator,
+                        badge: 'ВЫПОЛНЕННЫЕ РАБОТЫ',
                       ),
                       roleCard(
                         icon: Icons.person_search_rounded,

@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import '../app/app_adaptive_palette.dart';
 import '../data/task_contribution_repository.dart';
 import '../data/task_progress_repository.dart';
+import '../features/estimator/data/task_completion_report_repository.dart';
+import '../features/estimator/presentation/task_completion_report_dialog.dart';
 import '../features/tasks/presentation/task_contribution_dialog.dart';
 import '../models/app_user_profile.dart';
 import '../models/task_item_data.dart';
@@ -140,6 +142,7 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
               entries: contributionsToSave,
             );
           }
+          await _offerEstimatorSubmission(result);
         } else if (previousTask.status == 'Выполнено') {
           await TaskContributionRepository.clear(result.id!);
         }
@@ -153,6 +156,40 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
           SnackBar(content: Text('Не удалось сохранить выполнение: $error')),
         );
       }
+    }
+  }
+
+  Future<void> _offerEstimatorSubmission(TaskItemData task) async {
+    if (!mounted || (task.id?.trim() ?? '').isEmpty) return;
+    try {
+      final existing = await TaskCompletionReportRepository.fetchForTask(
+        task.id!,
+      );
+      if (!mounted) return;
+      if (existing != null && !existing.isReturned) return;
+
+      final submitted = await showTaskCompletionReportDialog(
+        context: context,
+        task: task,
+        existing: existing,
+      );
+      if (!mounted || !submitted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Выполненная работа передана инженеру-сметчику'),
+        ),
+      );
+    } catch (error) {
+      // The operational task is already saved. Estimator transport is an
+      // additional contour and must never roll the task completion back.
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Задача сохранена, но факт не удалось передать сметчику: $error',
+          ),
+        ),
+      );
     }
   }
 
