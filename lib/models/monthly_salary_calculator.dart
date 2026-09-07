@@ -1,3 +1,7 @@
+/// Monthly salary is a monthly fund, never a per-shift rate.
+///
+/// All timesheet-based accruals must go through this helper so legacy
+/// `daily_rate` compatibility data can never be multiplied by shifts again.
 const double monthlySalaryShiftNorm = 30.0;
 
 double calculateMonthlySalaryAccrued({
