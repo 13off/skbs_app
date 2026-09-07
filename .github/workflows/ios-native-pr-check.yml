@@ -37,5 +37,23 @@ jobs:
       - name: Validate iOS property list
         run: plutil -lint ios/Runner/Info.plist
 
+      - name: Match production iOS deployment target
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          project = Path('ios/Runner.xcodeproj/project.pbxproj')
+          text = project.read_text(encoding='utf-8')
+          text = text.replace(
+              'IPHONEOS_DEPLOYMENT_TARGET = 14.0;',
+              'IPHONEOS_DEPLOYMENT_TARGET = 15.0;',
+          )
+          if 'IPHONEOS_DEPLOYMENT_TARGET = 14.0;' in text:
+              raise SystemExit('failed to raise iOS target to 15.0')
+          if 'IPHONEOS_DEPLOYMENT_TARGET = 15.0;' not in text:
+              raise SystemExit('iOS 15 target is missing')
+          project.write_text(text, encoding='utf-8')
+          PY
+
       - name: Compile iOS simulator app
         run: flutter build ios --simulator --debug
