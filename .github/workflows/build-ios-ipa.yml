@@ -65,9 +65,16 @@ jobs:
           old_bundle_count = text.count('com.example.skbsApp')
           text = text.replace('com.example.skbsApp', 'ru.appstroy.mobile')
 
-          old_target_count = text.count('IPHONEOS_DEPLOYMENT_TARGET = 13.0;')
+          old_target_count = (
+              text.count('IPHONEOS_DEPLOYMENT_TARGET = 13.0;')
+              + text.count('IPHONEOS_DEPLOYMENT_TARGET = 14.0;')
+          )
           text = text.replace(
               'IPHONEOS_DEPLOYMENT_TARGET = 13.0;',
+              'IPHONEOS_DEPLOYMENT_TARGET = 15.0;',
+          )
+          text = text.replace(
+              'IPHONEOS_DEPLOYMENT_TARGET = 14.0;',
               'IPHONEOS_DEPLOYMENT_TARGET = 15.0;',
           )
 
@@ -91,8 +98,8 @@ jobs:
           entitlement_count = text.count(entitlement_line)
 
           print(f'Old bundle replacements: {old_bundle_count}')
+          print(f'Old iOS targets below 15 replaced: {old_target_count}')
           print(f'New bundle settings: {new_bundle_count}')
-          print(f'Old iOS 13 targets replaced: {old_target_count}')
           print(f'New iOS 15 targets: {new_target_count}')
           print(f'Info.plist settings patched: {info_count}')
           print(f'Entitlement settings: {entitlement_count}')
