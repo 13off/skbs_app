@@ -11,7 +11,7 @@ import '../data/offline_sync_service.dart';
 
 const String _backgroundOfflineSyncTaskName = 'appstroy.backgroundOfflineSync';
 const String _androidOfflineSyncUniqueName = 'appstroy-offline-sync';
-const String _iosOfflineSyncIdentifier = 'ru.appstroy.mobile.offlineSync';
+const String _iosOfflineSyncIdentifier = 'com.example.skbsApp.offlineSync';
 const String _backgroundScopeUserKey = 'appstroy_background_sync_user_id';
 const String _backgroundScopeCompanyKey = 'appstroy_background_sync_company_id';
 
