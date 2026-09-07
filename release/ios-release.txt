@@ -1,6 +1,6 @@
 AppСтрой iOS verification release
 version: 1.3.9+23
 release date: 2026-09-07
-accepted application commit: f6271b751e36c99426d8de66b0ce190fc013b612
-reason: publish iOS verification build with background offline synchronization for queued tasks, photos and timesheet data while preserving the existing OfflineSyncService logic
-expected output: unsigned verification IPA; Android release stays unpublished
+accepted application commit: d8e31547fd267425109e9fdb6f7239c0d4cd7762
+reason: publish iOS verification build with durable background offline synchronization using background URLSession network wake, headless Flutter queue flush and existing OfflineSyncService logic
+expected output: unsigned verification IPA for real-device background connectivity test; Android release stays unpublished
