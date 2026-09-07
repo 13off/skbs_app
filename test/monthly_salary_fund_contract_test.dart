@@ -52,6 +52,16 @@ void main() {
     );
   });
 
+  test('monthly salary never multiplies the monthly fund by shifts', () {
+    final accrued = calculateMonthlySalaryAccrued(
+      monthlySalary: 120000,
+      countedShifts: 22.4,
+    );
+
+    expect(accrued, closeTo(89600, 0.001));
+    expect(accrued, isNot(closeTo(2688000, 0.001)));
+  });
+
   test('ignore timesheet keeps full monthly salary', () {
     const employee = Employee(
       'Иванов Иван',
@@ -86,7 +96,8 @@ void main() {
       monthlySalary: 160000,
     );
     final shifts = <String, double>{
-      for (var day = 1; day <= 25; day++) '2026-09-${day.toString().padLeft(2, '0')}': 1,
+      for (var day = 1; day <= 25; day++)
+        '2026-09-${day.toString().padLeft(2, '0')}': 1,
     };
     final row = PeriodTimesheetRow(employee: employee, shiftsByDate: shifts);
 
@@ -99,7 +110,9 @@ void main() {
       'lib/features/employees/presentation/screens/add_employee_screen.dart',
     );
     final edit = source('lib/screens/edit_employee_screen.dart');
-    final ai = source('lib/features/ai/presentation/ai_employee_draft_screen.dart');
+    final ai = source(
+      'lib/features/ai/presentation/ai_employee_draft_screen.dart',
+    );
     final repository = source('lib/data/employee_repository.dart');
 
     for (final value in <String>[add, edit, ai]) {
