@@ -12,28 +12,18 @@ import 'app/app_typography.dart';
 import 'app/premium_depth_theme.dart';
 import 'app/premium_scroll_behavior.dart';
 import 'app/theme_controller.dart';
+import 'config/supabase_config.dart';
 import 'navigation/app_page_route.dart';
 import 'navigation/web_back_navigation.dart';
 import 'screens/auth_gate.dart';
 import 'screens/notifications_screen.dart';
+import 'services/background_offline_sync_service.dart';
 import 'services/push_notification_service.dart';
 import 'widgets/app_stroy_startup_phase.dart';
 
-const String _defaultSupabaseUrl = 'https://dxbrhsefgxcaxzmrbfrb.supabase.co';
-const String _defaultSupabasePublishableKey =
-    'sb_publishable_QBdH-vIQv4F_tVVNc4Ps_w_ssxwSaEm';
-
-const String supabaseUrl = String.fromEnvironment(
-  'SUPABASE_URL',
-  defaultValue: _defaultSupabaseUrl,
-);
-const String supabasePublishableKey = String.fromEnvironment(
-  'SUPABASE_PUBLISHABLE_KEY',
-  defaultValue: _defaultSupabasePublishableKey,
-);
-
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
+  unawaited(BackgroundOfflineSyncService.initialize());
   runApp(const SkbsApp());
 }
 
