@@ -1,0 +1,116 @@
+name: Bootstrap background offline sync branch
+
+on:
+  push:
+    branches:
+      - feature/background-offline-sync-20260907
+
+permissions:
+  contents: write
+
+concurrency:
+  group: background-offline-sync-bootstrap
+  cancel-in-progress: true
+
+jobs:
+  bootstrap:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: feature/background-offline-sync-20260907
+          fetch-depth: 0
+
+      - name: Setup pinned Flutter
+        uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
+        with:
+          flutter-version-file: .fvmrc
+          cache: true
+
+      - name: Configure native background processing
+        shell: python
+        run: |
+          from pathlib import Path
+
+          delegate = Path('ios/Runner/AppDelegate.swift')
+          text = delegate.read_text()
+          if 'import workmanager_apple' not in text:
+              text = text.replace('import UIKit\n', 'import UIKit\nimport workmanager_apple\n', 1)
+          old = '''  ) -> Bool {
+              return super.application(application, didFinishLaunchingWithOptions: launchOptions)
+            }
+          '''
+          new = '''  ) -> Bool {
+              WorkmanagerPlugin.registerLaunchHandlers()
+              WorkmanagerPlugin.setPluginRegistrantCallback { registry in
+                GeneratedPluginRegistrant.register(with: registry)
+              }
+              WorkmanagerPlugin.registerBGProcessingTask(
+                withIdentifier: "com.example.skbsApp.offlineSync"
+              )
+              return super.application(application, didFinishLaunchingWithOptions: launchOptions)
+            }
+          '''
+          if 'WorkmanagerPlugin.registerBGProcessingTask' not in text:
+              if old not in text:
+                  raise SystemExit('AppDelegate launch block changed unexpectedly')
+              text = text.replace(old, new, 1)
+          delegate.write_text(text)
+
+          info = Path('ios/Runner/Info.plist')
+          text = info.read_text()
+          if '<string>processing</string>' not in text:
+              text = text.replace(
+                  '\t\t<string>location</string>\n\t</array>',
+                  '\t\t<string>location</string>\n\t\t<string>processing</string>\n\t</array>',
+                  1,
+              )
+          if 'BGTaskSchedulerPermittedIdentifiers' not in text:
+              marker = '\t<key>UILaunchStoryboardName</key>\n'
+              block = (
+                  '\t<key>BGTaskSchedulerPermittedIdentifiers</key>\n'
+                  '\t<array>\n'
+                  '\t\t<string>com.example.skbsApp.offlineSync</string>\n'
+                  '\t</array>\n'
+              )
+              if marker not in text:
+                  raise SystemExit('Info.plist insertion point changed unexpectedly')
+              text = text.replace(marker, block + marker, 1)
+          info.write_text(text)
+
+          project = Path('ios/Runner.xcodeproj/project.pbxproj')
+          text = project.read_text()
+          text = text.replace(
+              'IPHONEOS_DEPLOYMENT_TARGET = 13.0;',
+              'IPHONEOS_DEPLOYMENT_TARGET = 14.0;',
+          )
+          project.write_text(text)
+
+      - name: Resolve dependency lock
+        run: flutter pub get
+
+      - name: Format changed Dart files
+        run: >-
+          dart format
+          lib/config/supabase_config.dart
+          lib/main.dart
+          lib/services/background_offline_sync_service.dart
+          lib/widgets/offline_sync_banner.dart
+          test/background_offline_sync_contract_test.dart
+
+      - name: Verify focused contract
+        run: flutter test test/background_offline_sync_contract_test.dart
+
+      - name: Commit generated branch changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add pubspec.lock ios/Runner/AppDelegate.swift ios/Runner/Info.plist ios/Runner.xcodeproj/project.pbxproj lib test
+          if git diff --cached --quiet; then
+            echo "No generated changes"
+            exit 0
+          fi
+          git commit -m "build: configure native background offline sync"
+          git push origin HEAD:feature/background-offline-sync-20260907
