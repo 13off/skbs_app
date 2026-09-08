@@ -78,19 +78,26 @@ void main() {
     expect(dashboard, contains('AccountingDashboardScreen('));
     expect(dashboard, contains('specialistDesktopBreakpoint'));
     expect(dashboard, contains("title: 'Сегодня'"));
-    expect(dashboard, contains("label: const Text('Открыть расходы')"));
     expect(dashboard, contains('onTap: widget.onOpenPeople'));
     expect(dashboard, contains('onTap: widget.onOpenExpenses'));
     expect(dashboard, contains('onTap: widget.onOpenDocuments'));
-    expect(dashboard, contains('onPressed: widget.onOpenControl'));
+    expect(dashboard, contains('onTap: widget.onOpenControl'));
     expect(dashboard, isNot(contains('onOpenPayments')));
     expect(dashboard, isNot(contains('onOpenReports')));
     expect(dashboard, isNot(contains('Открыть операции')));
+    expect(dashboard, isNot(contains("label: const Text('Открыть расходы')")));
+    expect(dashboard, isNot(contains("title: 'Крупные остатки сотрудникам'")));
+    expect(dashboard, isNot(contains("label: const Text('Контроль')")));
+    expect(dashboard, isNot(contains("label: const Text('Документы')")));
 
     expect(mobileDashboard, contains('widget.onOpenPeople'));
     expect(mobileDashboard, contains('widget.onOpenExpenses'));
-    expect(mobileDashboard, contains('widget.onOpenDocuments'));
-    expect(mobileDashboard, contains('widget.onOpenControl'));
+    expect(mobileDashboard, isNot(contains('Widget workspaceActions()')));
+    expect(mobileDashboard, isNot(contains("label: const Text('Люди')")));
+    expect(mobileDashboard, isNot(contains("label: const Text('Расходы')")));
+    expect(mobileDashboard, isNot(contains("label: const Text('Документы')")));
+    expect(mobileDashboard, isNot(contains("label: const Text('Контроль')")));
+    expect(mobileDashboard, isNot(contains("'Крупные остатки'")));
     expect(mobileDashboard, isNot(contains('AddPaymentScreen')));
     expect(mobileDashboard, isNot(contains('Добавить выплату')));
 
