@@ -6,7 +6,7 @@ String source(String path) => File(path).readAsStringSync();
 
 // This contract also triggers publication of the verified non-overlay shell.
 void main() {
-  test('all tab shells place navigation outside the screen body', () {
+  test('all tab shells keep navigation outside the screen body', () {
     final persistent = source(
       'lib/features/shell/presentation/persistent_tab_shell.dart',
     );
@@ -18,6 +18,7 @@ void main() {
       persistent,
       contains('bottomNavigationBar: ProfessionalBottomNavigation('),
     );
+    expect(persistent, isNot(contains('_DesktopTabRail(')));
     expect(legacy, contains('bottomNavigationBar: _PremiumBottomBar('));
 
     for (final shell in <String>[persistent, legacy]) {

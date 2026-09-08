@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../../../data/app_data_sync.dart';
@@ -25,7 +24,7 @@ class AdaptiveAccountingPaymentsScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        if (!kIsWeb || constraints.maxWidth < specialistDesktopBreakpoint) {
+        if (constraints.maxWidth < specialistDesktopBreakpoint) {
           return const PaymentsScreen();
         }
         return const _DesktopAccountingPaymentsScreen();
