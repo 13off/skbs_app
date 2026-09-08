@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../app/app_adaptive_palette.dart';
@@ -56,7 +55,7 @@ class AdaptiveHomeScreen extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         final useDesktopDashboard =
-            kIsWeb && constraints.maxWidth >= desktopBreakpoint;
+            constraints.maxWidth >= desktopBreakpoint;
 
         if (!useDesktopDashboard) {
           return HomeScreen(

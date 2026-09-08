@@ -11,8 +11,10 @@ abstract final class AppUi {
   static const double specialistDesktopBreakpoint = 820;
 
   static const double pageMobileHorizontalPadding = 16;
-  // Shared wide-PWA inset for panels, cards, filters and page actions.
-  static const double pageDesktopHorizontalPadding = 144;
+  // Desktop is a workstation canvas: keep breathing room at the edges without
+  // throwing away hundreds of pixels that tables, kanban boards and filters
+  // can use productively.
+  static const double pageDesktopHorizontalPadding = 48;
   static const double pageMobileTopPadding = 14;
   static const double pageDesktopTopPadding = 24;
   // The tab shell now reserves the complete floating navigation area.

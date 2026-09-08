@@ -5,7 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 String source(String path) => File(path).readAsStringSync();
 
 void main() {
-  test('all main shells reserve a real area for bottom navigation', () {
+  test('all main shells reserve a real navigation area', () {
     final mainShell = source(
       'lib/features/shell/presentation/premium_main_screen.dart',
     );
@@ -21,6 +21,7 @@ void main() {
       persistentShell,
       contains('bottomNavigationBar: ProfessionalBottomNavigation('),
     );
+    expect(persistentShell, isNot(contains('_DesktopTabRail(')));
     expect(persistentShell, isNot(contains('extendBody: true')));
     expect(
       persistentShell,

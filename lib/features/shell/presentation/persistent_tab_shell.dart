@@ -38,8 +38,6 @@ class PersistentTabController extends ChangeNotifier {
       return;
     }
 
-    // Bottom tabs are workspaces, not pages in one long carousel. Switching
-    // immediately avoids painting two heavyweight screens during a transition.
     currentIndex = index;
     notifyListeners();
   }
@@ -173,10 +171,6 @@ class _PersistentTabShellState extends State<PersistentTabShell> {
         if (!mounted || generation != _prewarmGeneration) return;
         setState(() => _ensureTabBuilt(indexToBuild));
 
-        // Wait for this hidden tab to finish a real frame before scheduling the
-        // next idle build. A post-frame handoff avoids Timer/Future.delayed
-        // wakeups and keeps both production and widget tests free of pending
-        // timers while still spreading prewarm work across frames.
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (!mounted || generation != _prewarmGeneration) return;
           _prewarmNextTab(generation);
@@ -196,9 +190,6 @@ class _PersistentTabShellState extends State<PersistentTabShell> {
           builder: (context) => AnimatedBuilder(
             animation: AppThemeController.instance,
             builder: (context, _) {
-              // PersistentTabShell keeps nested Navigators alive between tabs.
-              // Rebuild only their page content when the theme changes, while
-              // preserving the selected tab, route stack and screen state.
               Theme.of(context);
               final storageKey = widget.navigationStorageKey;
               final override = storageKey == null
@@ -228,10 +219,22 @@ class _PersistentTabShellState extends State<PersistentTabShell> {
     widget.onPageChanged?.call(index);
   }
 
+  Widget _buildWorkspace(int activeIndex) {
+    return IndexedStack(
+      index: activeIndex,
+      children: List<Widget>.generate(widget.controller.pageCount, (index) {
+        final child = _tabNavigators[index];
+        if (child == null) return const SizedBox.shrink();
+        return TickerMode(enabled: index == activeIndex, child: child);
+      }),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     assert(widget.items.length == widget.controller.pageCount);
     final activeIndex = widget.controller.currentIndex;
+
     return workVisualScope(
       // ignore: deprecated_member_use
       child: WillPopScope(
@@ -241,16 +244,7 @@ class _PersistentTabShellState extends State<PersistentTabShell> {
         child: AppSurfaceBackdrop(
           child: Scaffold(
             backgroundColor: Colors.transparent,
-            body: IndexedStack(
-              index: activeIndex,
-              children: List<Widget>.generate(widget.controller.pageCount, (
-                index,
-              ) {
-                final child = _tabNavigators[index];
-                if (child == null) return const SizedBox.shrink();
-                return TickerMode(enabled: index == activeIndex, child: child);
-              }),
-            ),
+            body: _buildWorkspace(activeIndex),
             bottomNavigationBar: ProfessionalBottomNavigation(
               items: widget.items,
               selectedIndex: activeIndex,
