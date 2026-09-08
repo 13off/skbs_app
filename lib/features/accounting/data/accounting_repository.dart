@@ -93,6 +93,58 @@ class AccountingRepository {
     );
   }
 
+  static Future<List<AccountingPaymentRegisterRow>> fetchSettlementPaymentRegister({
+    required DateTime month,
+    String? objectName,
+    bool forceRefresh = false,
+  }) async {
+    final targetMonth = DateTime(month.year, month.month, 1);
+    final employees = await EmployeeRepository.fetchEmployees(
+      objectName: objectName,
+      includeFired: true,
+      forceRefresh: forceRefresh,
+    );
+    final employeeById = <String, Employee>{};
+    final employeeIds = <String>[];
+
+    for (final employee in employees) {
+      final id = employee.id?.trim();
+      if (id == null || id.isEmpty) continue;
+      employeeById[id] = employee;
+      employeeIds.add(id);
+    }
+
+    final payments = await PaymentRepository.fetchPaymentsForEmployees(
+      employeeIds,
+      forceRefresh: forceRefresh,
+    );
+    final rows = payments
+        .where(
+          (payment) =>
+              payment.periodYear == targetMonth.year &&
+              payment.periodMonth == targetMonth.month,
+        )
+        .map((payment) {
+          final employee = employeeById[payment.employeeId];
+          return AccountingPaymentRegisterRow(
+            paymentId: payment.id,
+            employeeId: payment.employeeId,
+            employee: employee,
+            employeeName: employee?.name ?? 'Сотрудник',
+            objectName: employee?.objectName ?? '',
+            paymentDate: payment.paymentDate,
+            amount: payment.amount,
+            paymentType: payment.paymentType,
+            comment: payment.comment,
+            receiptCount: payment.receipts.length,
+          );
+        })
+        .toList()
+      ..sort((a, b) => b.paymentDate.compareTo(a.paymentDate));
+
+    return rows;
+  }
+
   static Future<List<AccountingPaymentRegisterRow>> fetchPaymentRegister({
     required DateTime startDate,
     required DateTime endDate,
@@ -131,6 +183,8 @@ class AccountingRepository {
               final employee = employeeById[payment.employeeId];
               return AccountingPaymentRegisterRow(
                 paymentId: payment.id,
+                employeeId: payment.employeeId,
+                employee: employee,
                 employeeName: employee?.name ?? 'Сотрудник',
                 objectName: employee?.objectName ?? '',
                 paymentDate: payment.paymentDate,
@@ -195,6 +249,8 @@ class AccountingMissingReceipt {
 
 class AccountingPaymentRegisterRow {
   final String paymentId;
+  final String employeeId;
+  final Employee? employee;
   final String employeeName;
   final String objectName;
   final DateTime paymentDate;
@@ -205,6 +261,8 @@ class AccountingPaymentRegisterRow {
 
   const AccountingPaymentRegisterRow({
     required this.paymentId,
+    required this.employeeId,
+    required this.employee,
     required this.employeeName,
     required this.objectName,
     required this.paymentDate,
