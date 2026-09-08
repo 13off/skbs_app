@@ -3,28 +3,16 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../../../data/app_data_sync.dart';
-import '../../../models/app_user_profile.dart';
+import '../../../navigation/app_page_route.dart';
 import '../../../widgets/app_page.dart';
 import '../../../widgets/notification_bell.dart';
 import '../../../widgets/premium_ui.dart';
 import '../data/accounting_repository.dart';
+import 'accounting_today_details_screen.dart';
 import 'accounting_widgets.dart';
 
 class AccountingDashboardScreen extends StatefulWidget {
-  final AppUserProfile profile;
-  final VoidCallback onOpenPeople;
-  final VoidCallback onOpenExpenses;
-  final VoidCallback onOpenDocuments;
-  final VoidCallback onOpenControl;
-
-  const AccountingDashboardScreen({
-    super.key,
-    required this.profile,
-    required this.onOpenPeople,
-    required this.onOpenExpenses,
-    required this.onOpenDocuments,
-    required this.onOpenControl,
-  });
+  const AccountingDashboardScreen({super.key});
 
   @override
   State<AccountingDashboardScreen> createState() =>
@@ -65,6 +53,57 @@ class _AccountingDashboardScreenState extends State<AccountingDashboardScreen> {
     );
     setState(() => future = next);
     await next;
+  }
+
+  Future<void> openDetails(
+    AccountingDashboardData data,
+    AccountingTodayDetailsMode mode,
+  ) async {
+    await Navigator.of(context).push<void>(
+      AppPageRoute<void>(
+        builder: (_) => AccountingTodayDetailsScreen(
+          month: data.month,
+          mode: mode,
+        ),
+      ),
+    );
+    if (mounted) await refresh(forceRefresh: true);
+  }
+
+  Future<void> openMissingReceipt(
+    AccountingDashboardData data,
+    AccountingMissingReceipt item,
+  ) async {
+    try {
+      final rows = await AccountingRepository.fetchSettlementPaymentRegister(
+        month: data.month,
+      );
+      AccountingPaymentRegisterRow? target;
+      for (final row in rows) {
+        if (row.paymentId == item.paymentId) {
+          target = row;
+          break;
+        }
+      }
+      if (!mounted) return;
+      if (target == null || target.employee == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Не удалось открыть эту выплату')),
+        );
+        return;
+      }
+      await Navigator.of(context).push<bool>(
+        AppPageRoute<bool>(
+          builder: (_) => AccountingPaymentDetailScreen(row: target!),
+        ),
+      );
+      if (mounted) await refresh(forceRefresh: true);
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Не удалось открыть выплату: $error')),
+      );
+    }
   }
 
   Widget summary(AccountingDashboardData data) {
@@ -159,13 +198,27 @@ class _AccountingDashboardScreenState extends State<AccountingDashboardScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Выплаты без чека',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w900,
-              letterSpacing: -0.25,
-            ),
+          Row(
+            children: [
+              const Expanded(
+                child: Text(
+                  'Выплаты без чека',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: -0.25,
+                  ),
+                ),
+              ),
+              if (data.missingReceiptCount > data.missingReceipts.length)
+                TextButton(
+                  onPressed: () => openDetails(
+                    data,
+                    AccountingTodayDetailsMode.missingReceipts,
+                  ),
+                  child: const Text('Все'),
+                ),
+            ],
           ),
           const SizedBox(height: 10),
           if (data.missingReceipts.isEmpty)
@@ -186,11 +239,18 @@ class _AccountingDashboardScreenState extends State<AccountingDashboardScreen> {
               subtitle: Text(
                 '${accountingDate(item.paymentDate)} · ${item.objectName}',
               ),
-              trailing: Text(
-                accountingMoney(item.amount),
-                style: const TextStyle(fontWeight: FontWeight.w900),
+              trailing: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    accountingMoney(item.amount),
+                    style: const TextStyle(fontWeight: FontWeight.w900),
+                  ),
+                  const SizedBox(width: 4),
+                  const Icon(Icons.chevron_right_rounded, size: 20),
+                ],
               ),
-              onTap: widget.onOpenExpenses,
+              onTap: () => openMissingReceipt(data, item),
             ),
           ),
         ],
@@ -249,24 +309,33 @@ class _AccountingDashboardScreenState extends State<AccountingDashboardScreen> {
                 icon: Icons.groups_outlined,
                 title: 'Сотрудников с остатком',
                 value: data.employeesWithBalance.toString(),
-                subtitle: 'Всего в расчёте: ${data.employeeCount}',
-                onTap: widget.onOpenPeople,
+                subtitle: 'Открыть конкретные расчёты',
+                onTap: () => openDetails(
+                  data,
+                  AccountingTodayDetailsMode.balances,
+                ),
               ),
               const SizedBox(height: 12),
               AccountingMetricCard(
                 icon: Icons.payments_outlined,
                 title: 'Выплат проведено',
                 value: data.paymentCount.toString(),
-                subtitle: accountingMonth(data.month),
-                onTap: widget.onOpenPeople,
+                subtitle: 'Открыть выплаты за ${accountingMonth(data.month)}',
+                onTap: () => openDetails(
+                  data,
+                  AccountingTodayDetailsMode.payments,
+                ),
               ),
               const SizedBox(height: 12),
               AccountingMetricCard(
                 icon: Icons.receipt_long_outlined,
                 title: 'Выплат без чека',
                 value: data.missingReceiptCount.toString(),
-                subtitle: 'Требуют подтверждающего файла',
-                onTap: widget.onOpenExpenses,
+                subtitle: 'Открыть только проблемные выплаты',
+                onTap: () => openDetails(
+                  data,
+                  AccountingTodayDetailsMode.missingReceipts,
+                ),
               ),
               const SizedBox(height: 16),
               receipts(data),
