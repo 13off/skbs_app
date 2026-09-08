@@ -30,7 +30,7 @@ void main() {
         "label: 'Профиль'",
         'AdaptiveAccountingDashboardScreen(',
         'AdaptiveEmployeesScreen(',
-        'ExpensesScreen()',
+        'ExpensesScreen(compactMobileHeader: true)',
         'AccountingDocumentsScreen()',
         'AccountingControlScreen()',
         'EstimatorClosingInboxScreen(profile: widget.profile)',
