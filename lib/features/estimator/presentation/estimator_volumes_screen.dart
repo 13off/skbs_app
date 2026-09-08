@@ -29,7 +29,7 @@ class _EstimatorVolumesScreenState extends State<EstimatorVolumesScreen> {
 
   Future<void> refresh() async {
     final next = TaskCompletionReportRepository.fetchQueue(status: 'approved');
-    setState(() => future = next);
+    if (mounted) setState(() => future = next);
     await next;
   }
 
@@ -37,8 +37,7 @@ class _EstimatorVolumesScreenState extends State<EstimatorVolumesScreen> {
 
   bool get canGoNext {
     final now = DateTime.now();
-    final current = DateTime(now.year, now.month);
-    return period.isBefore(current);
+    return period.isBefore(DateTime(now.year, now.month));
   }
 
   String get periodTitle {
@@ -60,9 +59,7 @@ class _EstimatorVolumesScreenState extends State<EstimatorVolumesScreen> {
   }
 
   void shiftPeriod(int months) {
-    setState(() {
-      period = DateTime(period.year, period.month + months);
-    });
+    setState(() => period = DateTime(period.year, period.month + months));
   }
 
   List<String> objectNames(List<TaskCompletionReport> reports) {
@@ -74,45 +71,58 @@ class _EstimatorVolumesScreenState extends State<EstimatorVolumesScreen> {
               : report.objectName.trim(),
         )
         .toSet()
-        .toList(growable: false);
-    values.sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
+        .toList(growable: false)
+      ..sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
     return values;
   }
 
-  bool matchesObject(TaskCompletionReport report) {
-    if (objectFilter.isEmpty) return true;
+  String effectiveObjectFilter(List<String> objects) {
+    if (objectFilter.isEmpty || objects.contains(objectFilter)) {
+      return objectFilter;
+    }
+    return '';
+  }
+
+  bool matchesObject(TaskCompletionReport report, String filter) {
+    if (filter.isEmpty) return true;
     final objectName = report.objectName.trim().isEmpty
         ? 'Без объекта'
         : report.objectName.trim();
-    return objectName.toLowerCase() == objectFilter.toLowerCase();
+    return objectName.toLowerCase() == filter.toLowerCase();
   }
 
-  List<TaskCompletionReport> sourceReports(List<TaskCompletionReport> reports) {
+  List<TaskCompletionReport> sourceReports(
+    List<TaskCompletionReport> reports,
+    String filter,
+  ) {
     return reports
         .where(
           (report) =>
               report.isApproved &&
               report.approvedQuantity != null &&
               report.taskDate.isBefore(nextPeriodStart) &&
-              matchesObject(report),
+              matchesObject(report, filter),
         )
         .toList(growable: false);
   }
 
-  int withoutVolumeCount(List<TaskCompletionReport> reports) {
+  int withoutVolumeCount(
+    List<TaskCompletionReport> reports,
+    String filter,
+  ) {
     return reports
         .where(
           (report) =>
               report.isApproved &&
               report.approvedQuantity == null &&
               report.taskDate.isBefore(nextPeriodStart) &&
-              matchesObject(report),
+              matchesObject(report, filter),
         )
         .length;
   }
 
-  int objectCount(List<TaskCompletionReport> reports) {
-    return sourceReports(reports)
+  int objectCount(List<TaskCompletionReport> reports, String filter) {
+    return sourceReports(reports, filter)
         .map(
           (report) => report.objectName.trim().isEmpty
               ? 'Без объекта'
@@ -167,10 +177,7 @@ class _EstimatorVolumesScreenState extends State<EstimatorVolumesScreen> {
     );
   }
 
-  Widget controls(List<String> objects) {
-    if (objectFilter.isNotEmpty && !objects.contains(objectFilter)) {
-      objectFilter = '';
-    }
+  Widget controls(List<String> objects, String activeFilter) {
     return PremiumWorkCard(
       radius: 22,
       padding: const EdgeInsets.all(14),
@@ -208,7 +215,8 @@ class _EstimatorVolumesScreenState extends State<EstimatorVolumesScreen> {
           SizedBox(
             width: 310,
             child: DropdownButtonFormField<String>(
-              value: objectFilter,
+              key: ValueKey<String>('estimator-object:$activeFilter'),
+              initialValue: activeFilter,
               isExpanded: true,
               decoration: const InputDecoration(
                 labelText: 'Объект',
@@ -281,7 +289,10 @@ class _EstimatorVolumesScreenState extends State<EstimatorVolumesScreen> {
     );
   }
 
-  Widget desktopTable(List<EstimatorVolumeSummary> summaries) {
+  Widget desktopTable(
+    List<EstimatorVolumeSummary> summaries,
+    String activeFilter,
+  ) {
     return PremiumWorkCard(
       radius: 22,
       padding: EdgeInsets.zero,
@@ -301,7 +312,7 @@ class _EstimatorVolumesScreenState extends State<EstimatorVolumesScreen> {
               Divider(height: 1, color: AppAdaptivePalette.border),
             _VolumeTableRow(
               work: summaries[index].work,
-              objectName: objectFilter.isEmpty
+              objectName: activeFilter.isEmpty
                   ? summaries[index].objectName
                   : '',
               unit: summaries[index].unit,
@@ -353,9 +364,18 @@ class _EstimatorVolumesScreenState extends State<EstimatorVolumesScreen> {
                         spacing: 24,
                         runSpacing: 12,
                         children: [
-                          _SmallFact(label: 'Ранее', value: summary.previousTitle),
-                          _SmallFact(label: 'За период', value: summary.periodTitle),
-                          _SmallFact(label: 'Всего', value: summary.totalTitle),
+                          _SmallFact(
+                            label: 'Ранее',
+                            value: summary.previousTitle,
+                          ),
+                          _SmallFact(
+                            label: 'За период',
+                            value: summary.periodTitle,
+                          ),
+                          _SmallFact(
+                            label: 'Всего',
+                            value: summary.totalTitle,
+                          ),
                           _SmallFact(
                             label: 'Источников',
                             value: '${summary.sourceCount}',
@@ -405,26 +425,35 @@ class _EstimatorVolumesScreenState extends State<EstimatorVolumesScreen> {
 
           final reports = snapshot.data ?? const <TaskCompletionReport>[];
           final objects = objectNames(reports);
+          final activeFilter = effectiveObjectFilter(objects);
           final summaries = EstimatorVolumeSummary.build(
             reports: reports,
             period: period,
-            objectFilter: objectFilter,
+            objectFilter: activeFilter,
           );
-          final sources = sourceReports(reports);
-          final withoutVolume = withoutVolumeCount(reports);
+          final sources = sourceReports(reports, activeFilter);
+          final withoutVolume = withoutVolumeCount(reports, activeFilter);
 
           return Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              controls(objects),
+              controls(objects, activeFilter),
               const SizedBox(height: 14),
               Wrap(
                 spacing: 12,
                 runSpacing: 12,
                 children: [
                   metric('Позиций', summaries.length, Icons.table_rows_rounded),
-                  metric('Работ-источников', sources.length, Icons.task_alt_rounded),
-                  metric('Объектов', objectCount(reports), Icons.apartment_rounded),
+                  metric(
+                    'Работ-источников',
+                    sources.length,
+                    Icons.task_alt_rounded,
+                  ),
+                  metric(
+                    'Объектов',
+                    objectCount(reports, activeFilter),
+                    Icons.apartment_rounded,
+                  ),
                   metric(
                     'Без объёма',
                     withoutVolume,
@@ -451,7 +480,7 @@ class _EstimatorVolumesScreenState extends State<EstimatorVolumesScreen> {
                   ),
                 )
               else if (isDesktop)
-                desktopTable(summaries)
+                desktopTable(summaries, activeFilter)
               else
                 mobileCards(summaries),
             ],
