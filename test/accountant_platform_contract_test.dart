@@ -16,39 +16,52 @@ void containsAll(String path, Iterable<String> fragments) {
 }
 
 void main() {
-  test('платформа бухгалтера отражает реальный рабочий контур', () {
+  test('панель бухгалтера переиспользует рабочие разделы руководителя', () {
     containsAll(
       'lib/features/accounting/presentation/accounting_main_screen.dart',
       const [
-        'pageCount = 5',
+        'pageCount = 6',
         "label: 'Сегодня'",
-        "label: 'Операции'",
+        "label: 'Люди'",
+        "label: 'Расходы'",
         "label: 'Документы'",
         "label: 'Контроль'",
         "label: 'Профиль'",
         'AdaptiveAccountingDashboardScreen(',
-        'AdaptiveAccountingOperationsScreen()',
+        'AdaptiveEmployeesScreen(',
+        'ExpensesScreen()',
         'AccountingDocumentsScreen()',
         'AccountingControlScreen()',
         'onOpenPayments: () => select(1)',
-        'onOpenReports: () => select(3)',
+        'onOpenReports: () => select(4)',
       ],
     );
+
     final main = source(
       'lib/features/accounting/presentation/accounting_main_screen.dart',
     );
+    expect(main, isNot(contains("label: 'Операции'")));
     expect(main, isNot(contains("label: 'Отчёты'")));
+    expect(main, isNot(contains('AdaptiveAccountingOperationsScreen')));
     expect(main, isNot(contains('AdaptiveAccountingReportsScreen')));
 
     containsAll(
-      'lib/features/accounting/presentation/adaptive_accounting_operations_screen.dart',
+      'lib/screens/adaptive_employees_screen.dart',
       const [
-        "('bank', 'Банк'",
-        "('expenses', 'Расходы'",
-        "('payments', 'Выплаты'",
-        'AdaptiveAccountingPaymentsScreen()',
-        'fetchBankTransactions(',
-        'fetchSnapshot(',
+        'widget.profile.isAccountant',
+        "role: 'admin'",
+        'DesktopEmployeesView(',
+        'EmployeeDetailsScreen(profile: widget.profile',
+        'PaymentsScreen(selectedObjectName:',
+        'AbsenceFinesScreen()',
+        'AddEmployeeScreen(',
+      ],
+    );
+
+    containsAll(
+      'lib/features/expenses/presentation/expenses_screen.dart',
+      const [
+        'ExpenseRepository',
       ],
     );
 
@@ -77,19 +90,6 @@ void main() {
         'accounting_journal_lines',
       ],
     );
-
-    containsAll(
-      'lib/features/accounting/presentation/adaptive_accounting_payments_screen.dart',
-      const [
-        'return const PaymentsScreen();',
-        "title: 'Выплаты и расчёты'",
-        "label: const Text('Табель и начисления')",
-        "label: const Text('Скачать XLSX')",
-        'PaymentReportExporter.download(',
-        'PeriodTimesheetScreen(',
-        'selectedObjectName: objectName',
-      ],
-    );
   });
 
   test('новые бухгалтерские данные имеют отдельный репозиторий', () {
@@ -110,27 +110,33 @@ void main() {
     );
   });
 
-  test('реальный бухгалтер получает только бухгалтерские права', () {
+  test('бухгалтер получает рабочие права раздела Люди без администрирования аккаунтов', () {
+    const path =
+        'supabase/migrations/20260908130000_expand_accountant_people_workspace_access.sql';
     containsAll(
-      'supabase/migrations/20260716060000_add_accounting_role_access.sql',
+      path,
       const [
-        "('accountant', 'accounting.directory.view')",
-        "('accountant', 'accounting.attendance.view')",
-        "('accountant', 'accounting.payments.view')",
-        "('accountant', 'accounting.payments.edit')",
-        "('accountant', 'accounting.receipts.view')",
-        "('accountant', 'accounting.receipts.edit')",
-        'employees_select_company_accountant',
-        'attendance_select_company_accountant',
-        'payments_insert_company_accountant',
-        'payment_receipts_storage_insert_company_accountant',
+        "('accountant', 'employees.create')",
+        "('accountant', 'employees.edit')",
+        "('accountant', 'employees.archive')",
+        "('accountant', 'documents.workflow.view')",
+        'employees_insert_company_accountant_workspace',
+        'employees_update_company_accountant_workspace',
+        'employee_private_data_select_company_accountant',
+        'employee_private_data_update_company_accountant',
+        'employee_comments_select_company_accountant',
+        'employee_documents_select_company_accountant',
+        "public.current_user_role() = 'accountant'",
+        'can_access_absence_fine_storage',
+        'get_pending_absence_fines',
+        'confirm_absence_fine',
+        'cancel_absence_fine',
       ],
     );
-    final migration = source(
-      'supabase/migrations/20260716060000_add_accounting_role_access.sql',
-    );
-    expect(migration, isNot(contains('employee_private_data')));
-    expect(migration, isNot(contains('attendance_insert_company_accountant')));
-    expect(migration, isNot(contains('attendance_update_company_accountant')));
+
+    final migration = source(path);
+    expect(migration, isNot(contains("('accountant', 'employees.delete')")));
+    expect(migration, isNot(contains('company_memberships')));
+    expect(migration, isNot(contains('employee_access')));
   });
 }
