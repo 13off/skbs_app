@@ -4,6 +4,7 @@ import '../../../app/app_adaptive_palette.dart';
 import '../../../data/object_repository.dart';
 import '../../../models/app_user_profile.dart';
 import '../../../models/construction_object.dart';
+import '../../../navigation/app_page_route.dart';
 import '../../../widgets/app_page.dart';
 import '../../../widgets/premium_ui.dart';
 import '../data/estimator_closing_repository.dart';
@@ -237,7 +238,7 @@ class _EstimatorClosingInboxScreenState extends State<EstimatorClosingInboxScree
               : 'Решение руководителя и передача заказчику.',
       onRefresh: refresh,
       headerTrailing: widget.profile.isAccountant
-          ? FilledButton.icon(onPressed: () => Navigator.push<void>(context, MaterialPageRoute(builder: (_) => const EstimatorPieceRatesScreen())), icon: const Icon(Icons.price_change_outlined), label: const Text('Расценки'))
+          ? FilledButton.icon(onPressed: () => Navigator.push<void>(context, AppPageRoute<void>(builder: (_) => const EstimatorPieceRatesScreen())), icon: const Icon(Icons.price_change_outlined), label: const Text('Расценки'))
           : null,
       child: FutureBuilder<List<EstimatorPeriodClosing>>(
         future: future,
