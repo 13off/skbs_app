@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../app/app_adaptive_palette.dart';
 import '../../../models/task_item_data.dart';
 import '../data/task_completion_report_repository.dart';
+import '../models/estimator_volume_summary.dart';
 import '../models/task_completion_report.dart';
 
 Future<bool> showTaskCompletionReportDialog({
@@ -37,10 +38,22 @@ class _TaskCompletionReportDialog extends StatefulWidget {
 
 class _TaskCompletionReportDialogState
     extends State<_TaskCompletionReportDialog> {
+  static const List<String> unitOptions = <String>[
+    'м³',
+    'м²',
+    'м.п.',
+    'т',
+    'кг',
+    'шт.',
+    'компл.',
+    'Другое',
+  ];
+
   late final TextEditingController quantityController;
-  late final TextEditingController unitController;
+  late final TextEditingController customUnitController;
   late final TextEditingController locationController;
   late final TextEditingController commentController;
+  String selectedUnit = '';
   bool saving = false;
   String? errorText;
 
@@ -53,7 +66,19 @@ class _TaskCompletionReportDialogState
           ? ''
           : TaskCompletionReport.formatQuantity(existing!.reportedQuantity!),
     );
-    unitController = TextEditingController(text: existing?.unit ?? '');
+
+    final existingUnit = existing?.unit.trim() ?? '';
+    final normalizedUnit = EstimatorVolumeSummary.normalizeUnit(existingUnit);
+    if (normalizedUnit.isNotEmpty && unitOptions.contains(normalizedUnit)) {
+      selectedUnit = normalizedUnit;
+      customUnitController = TextEditingController();
+    } else if (existingUnit.isNotEmpty) {
+      selectedUnit = 'Другое';
+      customUnitController = TextEditingController(text: existingUnit);
+    } else {
+      customUnitController = TextEditingController();
+    }
+
     locationController = TextEditingController(
       text: existing?.workLocation.trim().isNotEmpty == true
           ? existing!.workLocation
@@ -67,7 +92,7 @@ class _TaskCompletionReportDialogState
   @override
   void dispose() {
     quantityController.dispose();
-    unitController.dispose();
+    customUnitController.dispose();
     locationController.dispose();
     commentController.dispose();
     super.dispose();
@@ -79,11 +104,18 @@ class _TaskCompletionReportDialogState
     return double.tryParse(raw.replaceAll(',', '.'));
   }
 
+  String get effectiveUnit {
+    if (selectedUnit == 'Другое') {
+      return customUnitController.text.trim();
+    }
+    return selectedUnit.trim();
+  }
+
   Future<void> submit() async {
     if (saving) return;
     final quantityText = quantityController.text.trim();
     final quantity = parseQuantity();
-    final unit = unitController.text.trim();
+    final unit = effectiveUnit;
 
     if (quantityText.isNotEmpty && (quantity == null || quantity <= 0)) {
       setState(() => errorText = 'Укажите корректный фактический объём');
@@ -102,7 +134,7 @@ class _TaskCompletionReportDialogState
       await TaskCompletionReportRepository.submit(
         taskId: widget.task.id!,
         reportedQuantity: quantity,
-        unit: unit,
+        unit: EstimatorVolumeSummary.normalizeUnit(unit),
         workLocation: locationController.text,
         completionComment: commentController.text,
       );
@@ -111,7 +143,9 @@ class _TaskCompletionReportDialogState
     } catch (error) {
       if (!mounted) return;
       setState(
-        () => errorText = error.toString().replaceFirst('PostgrestException(message: ', ''),
+        () => errorText = error
+            .toString()
+            .replaceFirst('PostgrestException(message: ', ''),
       );
     } finally {
       if (mounted) setState(() => saving = false);
@@ -122,7 +156,9 @@ class _TaskCompletionReportDialogState
   Widget build(BuildContext context) {
     final returned = widget.existing?.isReturned == true;
     return AlertDialog(
-      title: Text(returned ? 'Исправить выполненную работу' : 'Результат выполнения'),
+      title: Text(
+        returned ? 'Исправить выполненную работу' : 'Результат выполнения',
+      ),
       content: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 620),
         child: SingleChildScrollView(
@@ -200,7 +236,9 @@ class _TaskCompletionReportDialogState
                     child: TextField(
                       controller: quantityController,
                       enabled: !saving,
-                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      keyboardType: const TextInputType.numberWithOptions(
+                        decimal: true,
+                      ),
                       decoration: const InputDecoration(
                         labelText: 'Фактический объём',
                         hintText: 'Можно оставить пустым',
@@ -210,17 +248,43 @@ class _TaskCompletionReportDialogState
                   ),
                   const SizedBox(width: 12),
                   Expanded(
-                    child: TextField(
-                      controller: unitController,
-                      enabled: !saving,
+                    child: DropdownButtonFormField<String>(
+                      key: ValueKey<String>('completion-unit:$selectedUnit'),
+                      initialValue: selectedUnit.isEmpty ? null : selectedUnit,
+                      isExpanded: true,
                       decoration: const InputDecoration(
                         labelText: 'Единица измерения',
-                        hintText: 'м³, м², т, м.п., шт.',
                       ),
+                      hint: const Text('Выберите'),
+                      items: unitOptions
+                          .map(
+                            (unit) => DropdownMenuItem<String>(
+                              value: unit,
+                              child: Text(unit),
+                            ),
+                          )
+                          .toList(growable: false),
+                      onChanged: saving
+                          ? null
+                          : (value) {
+                              setState(() => selectedUnit = value ?? '');
+                            },
                     ),
                   ),
                 ],
               ),
+              if (selectedUnit == 'Другое') ...[
+                const SizedBox(height: 12),
+                TextField(
+                  controller: customUnitController,
+                  enabled: !saving,
+                  decoration: const InputDecoration(
+                    labelText: 'Своя единица измерения',
+                    hintText: 'Например: рейс, секция, узел',
+                    prefixIcon: Icon(Icons.edit_outlined),
+                  ),
+                ),
+              ],
               const SizedBox(height: 12),
               TextField(
                 controller: locationController,

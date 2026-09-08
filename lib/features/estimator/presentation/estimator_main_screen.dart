@@ -8,6 +8,7 @@ import '../../../widgets/premium_ui.dart';
 import '../../shell/presentation/persistent_tab_shell.dart';
 import '../data/task_completion_report_repository.dart';
 import '../models/task_completion_report.dart';
+import 'estimator_volumes_screen.dart';
 
 class EstimatorMainScreen extends StatefulWidget {
   final AppUserProfile profile;
@@ -24,13 +25,22 @@ class _EstimatorMainScreenState extends State<EstimatorMainScreen> {
   @override
   void initState() {
     super.initState();
-    tabs = PersistentTabController(pageCount: 2);
+    tabs = PersistentTabController(pageCount: 3);
   }
 
   @override
   void dispose() {
     tabs.dispose();
     super.dispose();
+  }
+
+  Widget page(int index) {
+    return switch (index) {
+      0 => const _EstimatorWorkScreen(),
+      1 => const EstimatorVolumesScreen(),
+      2 => ProfileScreen(profile: widget.profile),
+      _ => const SizedBox.shrink(),
+    };
   }
 
   @override
@@ -46,14 +56,17 @@ class _EstimatorMainScreenState extends State<EstimatorMainScreen> {
           selectedIcon: Icons.fact_check_rounded,
         ),
         ProfessionalBottomNavigationItem(
+          label: 'Объёмы',
+          icon: Icons.stacked_bar_chart_outlined,
+          selectedIcon: Icons.stacked_bar_chart_rounded,
+        ),
+        ProfessionalBottomNavigationItem(
           label: 'Профиль',
           icon: Icons.person_outline_rounded,
           selectedIcon: Icons.person_rounded,
         ),
       ],
-      tabBuilder: (_, index) => index == 0
-          ? const _EstimatorWorkScreen()
-          : ProfileScreen(profile: widget.profile),
+      tabBuilder: (_, index) => page(index),
     );
   }
 }
