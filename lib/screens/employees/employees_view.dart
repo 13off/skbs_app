@@ -5,11 +5,12 @@ extension _EmployeesView on _EmployeesScreenState {
     final visible = visibleEmployees();
     final active = visible.where((employee) => employee.isActive).toList();
     final fired = visible.where((employee) => !employee.isActive).toList();
+    final compactAccountantLayout = widget.profile.isAccountant;
     final leading = <Widget>[
       header(),
-      const SizedBox(height: 14),
+      SizedBox(height: compactAccountantLayout ? 10 : 14),
       search(),
-      const SizedBox(height: 16),
+      SizedBox(height: compactAccountantLayout ? 12 : 16),
     ];
 
     Widget? state;
@@ -47,7 +48,12 @@ extension _EmployeesView on _EmployeesScreenState {
                   'employees-${widget.selectedObjectName ?? 'all'}',
                 ),
                 controller: scrollController,
-                padding: const EdgeInsets.fromLTRB(18, 18, 18, 120),
+                padding: EdgeInsets.fromLTRB(
+                  18,
+                  compactAccountantLayout ? 10 : 18,
+                  18,
+                  120,
+                ),
                 itemCount: leading.length + sectionCount,
                 itemBuilder: (context, index) {
                   if (index < leading.length) return leading[index];
