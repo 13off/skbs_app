@@ -4,6 +4,7 @@ import '../../../models/app_user_profile.dart';
 import '../../../screens/adaptive_employees_screen.dart';
 import '../../../screens/profile_screen.dart';
 import '../../../widgets/premium_ui.dart';
+import '../../estimator/presentation/estimator_closing_operations_index_screen.dart';
 import '../../estimator/presentation/estimator_closing_screens.dart';
 import '../../expenses/presentation/expenses_screen.dart';
 import '../../shell/presentation/persistent_tab_shell.dart';
@@ -21,7 +22,7 @@ class AccountingMainScreen extends StatefulWidget {
 }
 
 class _AccountingMainScreenState extends State<AccountingMainScreen> {
-  static const int pageCount = 7;
+  static const int pageCount = 8;
   late final PersistentTabController tabs;
 
   @override
@@ -55,7 +56,8 @@ class _AccountingMainScreenState extends State<AccountingMainScreen> {
       3 => const AccountingDocumentsScreen(),
       4 => const AccountingControlScreen(),
       5 => EstimatorClosingInboxScreen(profile: widget.profile),
-      6 => ProfileScreen(profile: widget.profile),
+      6 => EstimatorClosingOperationsIndexScreen(profile: widget.profile),
+      7 => ProfileScreen(profile: widget.profile),
       _ => const SizedBox.shrink(),
     };
   }
@@ -95,6 +97,11 @@ class _AccountingMainScreenState extends State<AccountingMainScreen> {
           label: 'Закрытия',
           icon: Icons.inventory_2_outlined,
           selectedIcon: Icons.inventory_2_rounded,
+        ),
+        ProfessionalBottomNavigationItem(
+          label: 'Выработка',
+          icon: Icons.payments_outlined,
+          selectedIcon: Icons.payments_rounded,
         ),
         ProfessionalBottomNavigationItem(
           label: 'Профиль',
