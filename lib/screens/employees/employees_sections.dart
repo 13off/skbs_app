@@ -46,8 +46,137 @@ extension _EmployeesSections on _EmployeesScreenState {
     );
   }
 
+  Widget compactAccountantAction({
+    required IconData icon,
+    required String label,
+    required VoidCallback onTap,
+    bool primary = false,
+  }) {
+    final foreground = primary ? AppAdaptivePalette.onAccent : _text;
+    final background = primary ? _accent : _soft;
+
+    return PremiumPressable(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(999),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 9),
+        decoration: BoxDecoration(
+          color: background,
+          borderRadius: BorderRadius.circular(999),
+          border: Border.all(color: primary ? _accent : _line),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 17, color: foreground),
+            const SizedBox(width: 6),
+            Text(
+              label,
+              style: TextStyle(
+                color: foreground,
+                fontSize: 13,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget accountantHeader(String scopeTitle) {
+    Widget action({
+      required IconData icon,
+      required String label,
+      required VoidCallback onTap,
+      bool primary = false,
+    }) {
+      return compactAccountantAction(
+        icon: icon,
+        label: label,
+        onTap: onTap,
+        primary: primary,
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                'Сотрудники',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                  color: _text,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ),
+            const SizedBox(width: 10),
+            Flexible(
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                decoration: BoxDecoration(
+                  color: _soft,
+                  borderRadius: BorderRadius.circular(999),
+                  border: Border.all(color: _line),
+                ),
+                child: Text(
+                  scopeTitle,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: AppAdaptivePalette.textMuted,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(
+            children: [
+              action(
+                icon: Icons.payments_outlined,
+                label: 'Выплаты',
+                onTap: openPayments,
+              ),
+              const SizedBox(width: 8),
+              action(
+                icon: Icons.gavel_outlined,
+                label: 'Штрафы',
+                onTap: openFines,
+              ),
+              const SizedBox(width: 8),
+              action(
+                icon: Icons.table_view_outlined,
+                label: 'Сводка',
+                onTap: downloadSummary,
+              ),
+              const SizedBox(width: 8),
+              action(
+                icon: Icons.person_add_alt_1,
+                label: 'Добавить',
+                onTap: addEmployee,
+                primary: true,
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget header() {
     final scopeTitle = objectName ?? 'Все объекты';
+    if (widget.profile.isAccountant) return accountantHeader(scopeTitle);
 
     Widget actionCell({
       required IconData icon,
