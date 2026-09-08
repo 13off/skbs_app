@@ -4,6 +4,7 @@ import '../../../models/app_user_profile.dart';
 import '../../../screens/profile_screen.dart';
 import '../../../widgets/premium_ui.dart';
 import '../../shell/presentation/persistent_tab_shell.dart';
+import 'estimator_closing_operations_index_screen.dart';
 import 'estimator_closing_screens.dart';
 import 'estimator_manual_volumes_screen.dart';
 import 'estimator_volumes_screen.dart';
@@ -24,7 +25,7 @@ class _EstimatorMainScreenState extends State<EstimatorMainScreen> {
   @override
   void initState() {
     super.initState();
-    tabs = PersistentTabController(pageCount: 5);
+    tabs = PersistentTabController(pageCount: 6);
   }
 
   @override
@@ -39,7 +40,8 @@ class _EstimatorMainScreenState extends State<EstimatorMainScreen> {
       1 => const EstimatorVolumesScreen(),
       2 => const EstimatorManualVolumesScreen(),
       3 => const EstimatorClosingsScreen(),
-      4 => ProfileScreen(profile: widget.profile),
+      4 => EstimatorClosingOperationsIndexScreen(profile: widget.profile),
+      5 => ProfileScreen(profile: widget.profile),
       _ => const SizedBox.shrink(),
     };
   }
@@ -70,6 +72,11 @@ class _EstimatorMainScreenState extends State<EstimatorMainScreen> {
           label: 'Закрытие',
           icon: Icons.inventory_2_outlined,
           selectedIcon: Icons.inventory_2_rounded,
+        ),
+        ProfessionalBottomNavigationItem(
+          label: 'Пакет',
+          icon: Icons.folder_copy_outlined,
+          selectedIcon: Icons.folder_copy_rounded,
         ),
         ProfessionalBottomNavigationItem(
           label: 'Профиль',
