@@ -57,12 +57,15 @@ void main() {
   test('широкий табель также сохраняет и требует причину невыхода', () {
     final desktop = source('lib/screens/desktop_timesheet_screen.dart');
 
-    expect(desktop, contains('OfflineAttendanceReasonRepository.fetchReasonsForDate'));
+    expect(
+      desktop,
+      contains('OfflineAttendanceReasonRepository.fetchReasonsForDate'),
+    );
     expect(desktop, contains('OfflineAttendanceReasonRepository.saveReasons'));
     expect(desktop, contains('missingAbsenceReasonEmployees'));
     expect(desktop, contains("'Укажите причину невыхода:"));
     expect(desktop, contains('TimesheetAbsenceReason.values'));
-    expect(desktop, contains("_HeaderText('Причина')"));
+    expect(desktop, contains("_HeaderText('Смена / причина')"));
   });
 
   test('причина едет через существующую offline attendance queue', () {
