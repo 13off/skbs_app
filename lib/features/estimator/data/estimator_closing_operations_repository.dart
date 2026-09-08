@@ -68,6 +68,7 @@ abstract final class EstimatorClosingOperationsRepository {
 
   static Future<List<EstimatorPaymentCandidate>> fetchCandidatePayments({
     required String employeeId,
+    required String objectId,
     required int periodYear,
     required int periodMonth,
   }) async {
@@ -75,6 +76,7 @@ abstract final class EstimatorClosingOperationsRepository {
         .from('payments')
         .select('id, payment_date, amount, payment_type, comment')
         .eq('employee_id', employeeId)
+        .eq('object_id', objectId)
         .eq('period_year', periodYear)
         .eq('period_month', periodMonth)
         .isFilter('deleted_at', null)
