@@ -50,6 +50,8 @@ class CompanyInvitation {
         return 'Юрист';
       case 'accountant':
         return 'Бухгалтер';
+      case 'estimator':
+        return 'Инженер-сметчик';
       case 'hr':
         return 'HR-менеджер';
       case 'procurement':
