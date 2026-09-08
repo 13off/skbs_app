@@ -898,7 +898,7 @@ class _DesktopCompanyData {
   final List<CompanyObject> objects;
   final List<CompanyInvitation> invitations;
 
-  const _DesktopCompanyData({
+  _DesktopCompanyData({
     required this.dashboard,
     required this.invitations,
   }) : objects = dashboard.objects;
