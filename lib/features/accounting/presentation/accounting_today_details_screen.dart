@@ -12,9 +12,7 @@ import '../data/accounting_repository.dart';
 import 'accounting_widgets.dart';
 
 /// Контекстные переходы с бухгалтерского экрана «Сегодня».
-///
-/// Это не отдельный раздел навигации: экран сохраняет смысл нажатия на
-/// конкретный показатель главной — остатки, выплаты или выплаты без чека.
+/// Это не отдельный раздел: каждый переход сохраняет смысл нажатия.
 enum AccountingTodayDetailsMode { balances, payments, missingReceipts }
 
 class AccountingTodayDetailsScreen extends StatefulWidget {
@@ -159,7 +157,7 @@ class _AccountingTodayDetailsScreenState
                   ],
                 ),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: 10),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
@@ -170,7 +168,6 @@ class _AccountingTodayDetailsScreenState
                       fontWeight: FontWeight.w900,
                     ),
                   ),
-                  const SizedBox(height: 3),
                   Text(
                     'остаток',
                     style: TextStyle(
@@ -181,7 +178,7 @@ class _AccountingTodayDetailsScreenState
                   ),
                 ],
               ),
-              const SizedBox(width: 5),
+              const SizedBox(width: 4),
               const Icon(Icons.chevron_right_rounded),
             ],
           ),
@@ -251,7 +248,7 @@ class _AccountingTodayDetailsScreenState
                   ],
                 ),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: 10),
               Text(
                 accountingMoney(row.amount),
                 style: const TextStyle(
@@ -259,7 +256,7 @@ class _AccountingTodayDetailsScreenState
                   fontWeight: FontWeight.w900,
                 ),
               ),
-              const SizedBox(width: 5),
+              const SizedBox(width: 4),
               const Icon(Icons.chevron_right_rounded),
             ],
           ),
@@ -320,7 +317,6 @@ class _AccountingTodayDetailsScreenState
             final empty = widget.mode == AccountingTodayDetailsMode.balances
                 ? data.balances.isEmpty
                 : data.payments.isEmpty;
-
             return RefreshIndicator(
               onRefresh: refresh,
               child: ListView(
@@ -406,37 +402,11 @@ class AccountingEmployeeSettlementScreen extends StatelessWidget {
     if (changed == true && context.mounted) Navigator.of(context).pop(true);
   }
 
-  Widget moneyLine(String title, double value, {bool prominent = false}) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      decoration: BoxDecoration(
-        color: prominent
-            ? AppAdaptivePalette.accentSoft
-            : AppAdaptivePalette.surfaceElevated,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: AppAdaptivePalette.border),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Text(
-              title,
-              style: TextStyle(
-                color: AppAdaptivePalette.textMuted,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ),
-          Text(
-            accountingMoney(value),
-            style: TextStyle(
-              fontSize: prominent ? 20 : 17,
-              fontWeight: FontWeight.w900,
-            ),
-          ),
-        ],
-      ),
+  Widget moneyLine(String title, num value, {bool prominent = false}) {
+    return _DetailLine(
+      title: title,
+      value: accountingMoney(value.toDouble()),
+      prominent: prominent,
     );
   }
 
@@ -490,37 +460,9 @@ class AccountingEmployeeSettlementScreen extends StatelessWidget {
                 children: [
                   moneyLine('Ставка', row.employee.monthlySalary),
                   const SizedBox(height: 10),
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 14,
-                    ),
-                    decoration: BoxDecoration(
-                      color: AppAdaptivePalette.surfaceElevated,
-                      borderRadius: BorderRadius.circular(18),
-                      border: Border.all(color: AppAdaptivePalette.border),
-                    ),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            'Учтено смен',
-                            style: TextStyle(
-                              color: AppAdaptivePalette.textMuted,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                        ),
-                        Text(
-                          row.totalShifts.toStringAsFixed(1),
-                          style: const TextStyle(
-                            fontSize: 17,
-                            fontWeight: FontWeight.w900,
-                          ),
-                        ),
-                      ],
-                    ),
+                  _DetailLine(
+                    title: 'Учтено смен',
+                    value: row.totalShifts.toStringAsFixed(1),
                   ),
                   const SizedBox(height: 10),
                   moneyLine('Начислено', row.accrued),
@@ -635,34 +577,6 @@ class _AccountingPaymentDetailScreenState
     _ => 'Другое',
   };
 
-  Widget line(String title, String value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 7),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(
-            child: Text(
-              title,
-              style: TextStyle(
-                color: AppAdaptivePalette.textMuted,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Flexible(
-            child: Text(
-              value,
-              textAlign: TextAlign.right,
-              style: const TextStyle(fontWeight: FontWeight.w900),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -711,17 +625,29 @@ class _AccountingPaymentDetailScreenState
                         ),
                       ),
                       const SizedBox(height: 18),
-                      line('Тип', paymentTypeLabel(payment.paymentType)),
-                      line('Сумма', accountingMoney(payment.amount)),
-                      line('Дата выплаты', accountingDate(payment.paymentDate)),
-                      line(
-                        'Расчётный период',
-                        accountingMonth(
+                      _PlainLine(
+                        title: 'Тип',
+                        value: paymentTypeLabel(payment.paymentType),
+                      ),
+                      _PlainLine(
+                        title: 'Сумма',
+                        value: accountingMoney(payment.amount),
+                      ),
+                      _PlainLine(
+                        title: 'Дата выплаты',
+                        value: accountingDate(payment.paymentDate),
+                      ),
+                      _PlainLine(
+                        title: 'Расчётный период',
+                        value: accountingMonth(
                           DateTime(payment.periodYear, payment.periodMonth, 1),
                         ),
                       ),
                       if (payment.comment.trim().isNotEmpty)
-                        line('Комментарий', payment.comment.trim()),
+                        _PlainLine(
+                          title: 'Комментарий',
+                          value: payment.comment.trim(),
+                        ),
                       const Divider(height: 28),
                       Row(
                         children: [
@@ -780,6 +706,90 @@ class _AccountingPaymentDetailScreenState
             );
           },
         ),
+      ),
+    );
+  }
+}
+
+class _DetailLine extends StatelessWidget {
+  final String title;
+  final String value;
+  final bool prominent;
+
+  const _DetailLine({
+    required this.title,
+    required this.value,
+    this.prominent = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      decoration: BoxDecoration(
+        color: prominent
+            ? AppAdaptivePalette.accentSoft
+            : AppAdaptivePalette.surfaceElevated,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: AppAdaptivePalette.border),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              title,
+              style: TextStyle(
+                color: AppAdaptivePalette.textMuted,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: prominent ? 20 : 17,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PlainLine extends StatelessWidget {
+  final String title;
+  final String value;
+
+  const _PlainLine({required this.title, required this.value});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 7),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: Text(
+              title,
+              style: TextStyle(
+                color: AppAdaptivePalette.textMuted,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Flexible(
+            child: Text(
+              value,
+              textAlign: TextAlign.right,
+              style: const TextStyle(fontWeight: FontWeight.w900),
+            ),
+          ),
+        ],
       ),
     );
   }
