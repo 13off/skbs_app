@@ -20,13 +20,14 @@ void main() {
     containsAll(
       'lib/features/accounting/presentation/accounting_main_screen.dart',
       const [
-        'pageCount = 7',
+        'pageCount = 8',
         "label: 'Сегодня'",
         "label: 'Люди'",
         "label: 'Расходы'",
         "label: 'Документы'",
         "label: 'Контроль'",
         "label: 'Закрытия'",
+        "label: 'Выработка'",
         "label: 'Профиль'",
         'AdaptiveAccountingDashboardScreen(',
         'AdaptiveEmployeesScreen(',
@@ -34,6 +35,7 @@ void main() {
         'AccountingDocumentsScreen()',
         'AccountingControlScreen()',
         'EstimatorClosingInboxScreen(profile: widget.profile)',
+        'EstimatorClosingOperationsIndexScreen(profile: widget.profile)',
         'onOpenPeople: () => select(1)',
         'onOpenExpenses: () => select(2)',
         'onOpenDocuments: () => select(3)',
