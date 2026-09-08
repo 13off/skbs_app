@@ -35,6 +35,8 @@ extension _TimesheetView on _TimesheetScreenState {
                       constraints: const BoxConstraints(maxWidth: 860),
                       child: Builder(
                         builder: (context) {
+                          final missingReasonCount =
+                              missingAbsenceReasonEmployees(allEmployees).length;
                           final leading = <Widget>[
                             buildPageHeader(),
                             const SizedBox(height: 18),
@@ -43,6 +45,10 @@ extension _TimesheetView on _TimesheetScreenState {
                             buildWorkedSummaryPanel(
                               visibleEmployees: visibleEmployees,
                             ),
+                            if (missingReasonCount > 0) ...[
+                              const SizedBox(height: 12),
+                              buildMissingReasonsWarning(allEmployees),
+                            ],
                             const SizedBox(height: 16),
                             buildSearch(),
                             const SizedBox(height: 12),
