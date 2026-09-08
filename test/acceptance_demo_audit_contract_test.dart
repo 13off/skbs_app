@@ -41,7 +41,7 @@ void main() {
         .map((item) => Map<String, dynamic>.from(item))
         .toList(growable: false);
 
-    expect(matrix['schema_version'], 4);
+    expect(matrix['schema_version'], 5);
     expect(principles['live_acceptance_requires_real_role_account'], isTrue);
     expect(principles['acceptance_is_read_only'], isTrue);
     for (final role in roles) {
@@ -54,6 +54,19 @@ void main() {
       expect(acceptance['required_permissions'], isA<List<dynamic>>());
       expect(acceptance['forbidden_permissions'], isA<List<dynamic>>());
     }
+
+    final estimator = roles.singleWhere((role) => role['role'] == 'estimator');
+    expect(estimator['platform'], 'EstimatorMainScreen');
+    final acceptance = Map<String, dynamic>.from(estimator['acceptance'] as Map);
+    expect(
+      acceptance['live_probe_tables'],
+      containsAll(<String>[
+        'task_completion_reports',
+        'estimator_manual_volumes',
+        'estimator_period_closings',
+        'estimator_period_closing_items',
+      ]),
+    );
   });
 
   test('бухгалтер получает прямой единый контроль без команды в чате', () {
@@ -67,13 +80,15 @@ void main() {
       'lib/features/ai/presentation/operational_audit_launcher_screen.dart',
     ).readAsStringSync();
 
-    expect(main, contains('pageCount = 7'));
+    expect(main, contains('pageCount = 8'));
     expect(main, contains("label: 'Люди'"));
     expect(main, contains("label: 'Расходы'"));
     expect(main, contains("label: 'Документы'"));
     expect(main, contains("label: 'Контроль'"));
     expect(main, contains("label: 'Закрытия'"));
+    expect(main, contains("label: 'Выработка'"));
     expect(main, contains('EstimatorClosingInboxScreen'));
+    expect(main, contains('EstimatorClosingOperationsIndexScreen'));
     expect(main, contains('onOpenPeople: () => select(1)'));
     expect(main, contains('onOpenExpenses: () => select(2)'));
     expect(main, contains('onOpenDocuments: () => select(3)'));
