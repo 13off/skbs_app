@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../features/foreman/presentation/foreman_desktop_tasks_screen.dart';
@@ -22,8 +21,7 @@ class AdaptiveTasksScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final useDesktopTasks =
-            kIsWeb && constraints.maxWidth >= desktopBreakpoint;
+        final useDesktopTasks = constraints.maxWidth >= desktopBreakpoint;
 
         if (!useDesktopTasks) {
           return mobile.TasksScreen(

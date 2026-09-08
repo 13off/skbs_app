@@ -23,6 +23,12 @@ Color get _text => AppAdaptivePalette.textPrimary;
 Color get _muted => AppAdaptivePalette.textMuted;
 Color get _soft => AppAdaptivePalette.surfaceSoft;
 
+bool get _usesImmediatePointerDrag =>
+    kIsWeb ||
+    defaultTargetPlatform == TargetPlatform.windows ||
+    defaultTargetPlatform == TargetPlatform.macOS ||
+    defaultTargetPlatform == TargetPlatform.linux;
+
 enum RecruitmentViewMode { board, list }
 
 enum RecruitmentSortMode { updatedDesc, updatedAsc, name, nextTask }
@@ -1661,7 +1667,7 @@ class _RecruitmentApplicationsScreenState
                 Icon(Icons.drag_indicator_rounded, size: 18, color: _muted),
                 const SizedBox(width: AppUi.gap4),
                 Text(
-                  kIsWeb ? 'Перетащи' : 'Удерживай',
+                  _usesImmediatePointerDrag ? 'Перетащи' : 'Удерживай',
                   style: TextStyle(
                     color: _muted,
                     fontSize: 10.5,
@@ -1689,27 +1695,29 @@ class _RecruitmentApplicationsScreenState
       borderRadius: BorderRadius.circular(AppUi.cardRadius),
       child: card,
     );
-    final feedbackCard = Material(
-      color: AppAdaptivePalette.surface,
-      elevation: 18,
-      shadowColor: Colors.black.withValues(alpha: 0.28),
-      borderRadius: BorderRadius.circular(AppUi.cardRadius),
-      clipBehavior: Clip.antiAlias,
-      child: SizedBox(
-        width: 292,
-        child: candidateCard(
-          application,
-          configuration,
-          indicator: indicator,
-          feedback: true,
+    final feedbackCard = RepaintBoundary(
+      child: Material(
+        color: AppAdaptivePalette.surface,
+        elevation: 10,
+        shadowColor: Colors.black.withValues(alpha: 0.18),
+        borderRadius: BorderRadius.circular(AppUi.cardRadius),
+        clipBehavior: Clip.antiAlias,
+        child: SizedBox(
+          width: 292,
+          child: candidateCard(
+            application,
+            configuration,
+            indicator: indicator,
+            feedback: true,
+          ),
         ),
       ),
     );
     final draggingPlaceholder = AnimatedOpacity(
-      opacity: 0.20,
-      duration: const Duration(milliseconds: 140),
+      opacity: 0.14,
+      duration: const Duration(milliseconds: 70),
       curve: Curves.easeOutCubic,
-      child: Transform.scale(scale: 0.985, child: card),
+      child: Transform.scale(scale: 0.99, child: card),
     );
 
     void handleDragStarted() {
@@ -1722,12 +1730,12 @@ class _RecruitmentApplicationsScreenState
       }
     }
 
-    if (kIsWeb) {
+    if (_usesImmediatePointerDrag) {
       return Draggable<RecruitmentApplication>(
         data: application,
         maxSimultaneousDrags: busy ? 0 : 1,
         rootOverlay: true,
-        feedback: Transform.scale(scale: 1.015, child: feedbackCard),
+        feedback: Transform.scale(scale: 1.008, child: feedbackCard),
         childWhenDragging: draggingPlaceholder,
         onDragStarted: handleDragStarted,
         onDragEnd: (_) => handleDragFinished(),
@@ -1739,7 +1747,8 @@ class _RecruitmentApplicationsScreenState
       data: application,
       maxSimultaneousDrags: busy ? 0 : 1,
       rootOverlay: true,
-      feedback: Transform.scale(scale: 1.015, child: feedbackCard),
+      delay: const Duration(milliseconds: 160),
+      feedback: Transform.scale(scale: 1.008, child: feedbackCard),
       childWhenDragging: draggingPlaceholder,
       onDragStarted: handleDragStarted,
       onDragEnd: (_) => handleDragFinished(),
@@ -1784,11 +1793,11 @@ class _RecruitmentApplicationsScreenState
               builder: (context, candidates, rejected) {
                 final highlighted = candidates.isNotEmpty;
                 return AnimatedScale(
-                  scale: highlighted ? 1.012 : 1,
-                  duration: const Duration(milliseconds: 220),
+                  scale: highlighted ? 1.006 : 1,
+                  duration: const Duration(milliseconds: 90),
                   curve: Curves.easeOutCubic,
                   child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 220),
+                    duration: const Duration(milliseconds: 90),
                     curve: Curves.easeOutCubic,
                     width: 310,
                     padding: const EdgeInsets.all(12),
@@ -1809,8 +1818,8 @@ class _RecruitmentApplicationsScreenState
                           ? <BoxShadow>[
                               BoxShadow(
                                 color: color.withValues(alpha: 0.16),
-                                blurRadius: 22,
-                                spreadRadius: 1,
+                                blurRadius: 14,
+                                spreadRadius: 0,
                               ),
                             ]
                           : const <BoxShadow>[],

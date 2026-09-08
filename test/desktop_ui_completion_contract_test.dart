@@ -43,7 +43,7 @@ void main() {
       expect(tokens, contains('static const double pageContentWidth = 1220;'));
       expect(
         tokens,
-        contains('static const double pageDesktopHorizontalPadding = 144;'),
+        contains('static const double pageDesktopHorizontalPadding = 48;'),
       );
       expect(source, contains('Navigator.maybeOf(context)'));
       expect(source, contains('navigator?.canPop() ?? false'));

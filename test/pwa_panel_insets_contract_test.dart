@@ -14,7 +14,7 @@ void main() {
     expect(main, isNot(contains('PwaDesktopPageFrame(')));
     expect(page, isNot(contains('PwaDesktopPageFrame.isApplied')));
     expect(page, contains('? AppUi.pageDesktopHorizontalPadding'));
-    expect(tokens, contains('pageDesktopHorizontalPadding = 144'));
+    expect(tokens, contains('pageDesktopHorizontalPadding = 48'));
     expect(tokens, contains('desktopNavigationMaxWidth = 945'));
   });
 

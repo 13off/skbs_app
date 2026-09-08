@@ -161,7 +161,11 @@ void main() {
     expect(detailRepository, contains('updateCalendarTask('));
 
     expect(people, contains('desktopBreakpoint = 1050'));
-    expect(people, contains('kIsWeb && constraints.maxWidth >= desktopBreakpoint'));
+    expect(people, contains('constraints.maxWidth >= desktopBreakpoint'));
+    expect(
+      people,
+      isNot(contains('kIsWeb && constraints.maxWidth >= desktopBreakpoint')),
+    );
     expect(people, contains('DesktopEmployeesView('));
     expect(people, contains('PaymentsScreen('));
 
