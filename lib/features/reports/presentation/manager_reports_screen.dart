@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../models/app_user_profile.dart';
 import '../../../models/employee.dart';
+import '../../../navigation/app_page_route.dart';
 import '../../../widgets/app_page.dart';
 import '../../../widgets/notification_bell.dart';
 import '../../../widgets/premium_ui.dart';
@@ -10,11 +11,11 @@ import '../data/manager_reports_repository.dart';
 import '../data/manager_weekly_contribution_repository.dart';
 import 'employee_routes_report_screen.dart';
 import 'manager_daily_ai_review.dart';
+import 'manager_estimator_closing_section.dart';
 import 'manager_report_header_widgets.dart';
 import 'manager_report_sections.dart';
 import 'manager_report_tile.dart';
 import 'manager_weekly_contribution_section.dart';
-import '../../../navigation/app_page_route.dart';
 
 class ManagerReportsScreen extends StatefulWidget {
   final AppUserProfile profile;
@@ -137,15 +138,11 @@ class _ManagerReportsScreenState extends State<ManagerReportsScreen> {
   }
 
   void openScreen(Widget screen) {
-    Navigator.of(
-      context,
-    ).push<void>(AppPageRoute<void>(builder: (_) => screen));
+    Navigator.of(context).push<void>(AppPageRoute<void>(builder: (_) => screen));
   }
 
   void openRoutes() {
-    openScreen(
-      EmployeeRoutesReportScreen(selectedObjectName: widget.selectedObjectName),
-    );
+    openScreen(EmployeeRoutesReportScreen(selectedObjectName: widget.selectedObjectName));
   }
 
   void openDailyReview(ManagerReportsCenter center) {
@@ -178,9 +175,7 @@ class _ManagerReportsScreenState extends State<ManagerReportsScreen> {
       padding: const EdgeInsets.only(bottom: 10),
       child: Text(
         title,
-        style: Theme.of(
-          context,
-        ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w900),
+        style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w900),
       ),
     );
   }
@@ -199,17 +194,19 @@ class _ManagerReportsScreenState extends State<ManagerReportsScreen> {
         ManagerReportTile(
           icon: Icons.auto_awesome_outlined,
           title: 'ИИ-разбор рабочего дня',
-          meta: center.criticalCount > 0
-              ? 'Требует внимания: ${center.criticalCount}'
-              : 'Критичных отклонений нет',
-          trailingLabel: center.criticalCount > 0
-              ? '${center.criticalCount}'
-              : null,
+          meta: center.criticalCount > 0 ? 'Требует внимания: ${center.criticalCount}' : 'Критичных отклонений нет',
+          trailingLabel: center.criticalCount > 0 ? '${center.criticalCount}' : null,
           onTap: () => openDailyReview(center),
         ),
         ManagerWeeklyContributionSection(
           future: weeklyContributionFuture,
           onOpenEmployee: openContribution,
+        ),
+        const SizedBox(height: 10),
+        ManagerEstimatorClosingSection(
+          year: reportDate.year,
+          month: reportDate.month,
+          objectId: selectedObjectId,
         ),
       ],
     );
@@ -228,9 +225,7 @@ class _ManagerReportsScreenState extends State<ManagerReportsScreen> {
           onPreviousDay: () => changeDate(-1),
           onNextDay: () => changeDate(1),
           onChooseDate: chooseDate,
-          onOnlyProblemsChanged: (value) {
-            setState(() => onlyProblems = value);
-          },
+          onOnlyProblemsChanged: (value) => setState(() => onlyProblems = value),
         ),
         const SizedBox(height: 12),
         ManagerReportOverview(center: center),
@@ -264,10 +259,7 @@ class _ManagerReportsScreenState extends State<ManagerReportsScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Не удалось загрузить отчёты',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
-          ),
+          const Text('Не удалось загрузить отчёты', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900)),
           const SizedBox(height: 12),
           FilledButton.icon(
             onPressed: reload,
@@ -298,9 +290,7 @@ class _ManagerReportsScreenState extends State<ManagerReportsScreen> {
       child: FutureBuilder<ManagerReportsCenter>(
         future: future,
         builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return loading();
-          }
+          if (snapshot.connectionState == ConnectionState.waiting) return loading();
           if (snapshot.hasError) return loadError(snapshot.error);
           return reportContent(snapshot.data!);
         },
