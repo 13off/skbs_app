@@ -322,75 +322,78 @@ class _EstimatorWorkScreenState extends State<_EstimatorWorkScreen> {
     return AppPage(
       title: 'Инженер-сметчик',
       subtitle: 'Фактически выполненные работы от мастеров',
+      onRefresh: refresh,
       child: FutureBuilder<List<TaskCompletionReport>>(
         future: future,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting &&
               !snapshot.hasData) {
-            return const Center(child: CircularProgressIndicator());
+            return const SizedBox(
+              height: 180,
+              child: Center(child: CircularProgressIndicator()),
+            );
           }
           if (snapshot.hasError) {
-            return Center(
-              child: OutlinedButton.icon(
-                onPressed: refresh,
-                icon: const Icon(Icons.refresh_rounded),
-                label: const Text('Не удалось загрузить · Повторить'),
+            return SizedBox(
+              height: 180,
+              child: Center(
+                child: OutlinedButton.icon(
+                  onPressed: refresh,
+                  icon: const Icon(Icons.refresh_rounded),
+                  label: const Text('Не удалось загрузить · Повторить'),
+                ),
               ),
             );
           }
 
           final all = snapshot.data ?? const <TaskCompletionReport>[];
           final items = filtered(all);
-          return RefreshIndicator(
-            onRefresh: refresh,
-            child: ListView(
-              physics: const AlwaysScrollableScrollPhysics(),
-              padding: const EdgeInsets.only(bottom: 24),
-              children: [
-                Wrap(
-                  spacing: 12,
-                  runSpacing: 12,
-                  children: [
-                    metric(
-                      'На проверке',
-                      count(all, 'pending'),
-                      Icons.pending_actions_rounded,
-                    ),
-                    metric(
-                      'Подтверждено',
-                      count(all, 'approved'),
-                      Icons.verified_outlined,
-                    ),
-                    metric(
-                      'Возвращено',
-                      count(all, 'returned'),
-                      Icons.reply_all_rounded,
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 20),
-                filterBar(),
-                const SizedBox(height: 14),
-                if (items.isEmpty)
-                  PremiumWorkCard(
-                    radius: 22,
-                    padding: const EdgeInsets.all(24),
-                    child: Center(
-                      child: Text(
-                        filter == 'pending'
-                            ? 'Сейчас ничего не ждёт проверки'
-                            : 'В этом разделе пока пусто',
-                        style: TextStyle(
-                          color: AppAdaptivePalette.textPrimary,
-                          fontWeight: FontWeight.w900,
-                        ),
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Wrap(
+                spacing: 12,
+                runSpacing: 12,
+                children: [
+                  metric(
+                    'На проверке',
+                    count(all, 'pending'),
+                    Icons.pending_actions_rounded,
+                  ),
+                  metric(
+                    'Подтверждено',
+                    count(all, 'approved'),
+                    Icons.verified_outlined,
+                  ),
+                  metric(
+                    'Возвращено',
+                    count(all, 'returned'),
+                    Icons.reply_all_rounded,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
+              filterBar(),
+              const SizedBox(height: 14),
+              if (items.isEmpty)
+                PremiumWorkCard(
+                  radius: 22,
+                  padding: const EdgeInsets.all(24),
+                  child: Center(
+                    child: Text(
+                      filter == 'pending'
+                          ? 'Сейчас ничего не ждёт проверки'
+                          : 'В этом разделе пока пусто',
+                      style: TextStyle(
+                        color: AppAdaptivePalette.textPrimary,
+                        fontWeight: FontWeight.w900,
                       ),
                     ),
-                  )
-                else
-                  ...items.map(reportCard),
-              ],
-            ),
+                  ),
+                )
+              else
+                ...items.map(reportCard),
+            ],
           );
         },
       ),
