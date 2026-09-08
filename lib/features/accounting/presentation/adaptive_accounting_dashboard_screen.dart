@@ -5,11 +5,16 @@ import 'package:flutter/material.dart';
 
 import '../../../data/app_data_sync.dart';
 import '../../../models/app_user_profile.dart';
+import '../../../navigation/app_page_route.dart';
 import '../../shared/presentation/specialist_desktop_table.dart';
 import '../../shared/presentation/specialist_desktop_ui.dart';
 import '../data/accounting_repository.dart';
 import '../data/accounting_workbench_repository.dart';
+import 'accounting_bank_details_screen.dart';
 import 'accounting_dashboard_screen.dart';
+import 'accounting_document_detail_screen.dart';
+import 'accounting_task_detail_screen.dart';
+import 'accounting_today_details_screen.dart';
 import 'accounting_widgets.dart';
 import 'accounting_workspace_widgets.dart';
 
@@ -42,29 +47,14 @@ class AdaptiveAccountingDashboardScreen extends StatelessWidget {
             onOpenControl: onOpenControl,
           );
         }
-        return _DesktopAccountingDashboardScreen(
-          onOpenPeople: onOpenPeople,
-          onOpenExpenses: onOpenExpenses,
-          onOpenDocuments: onOpenDocuments,
-          onOpenControl: onOpenControl,
-        );
+        return const _DesktopAccountingDashboardScreen();
       },
     );
   }
 }
 
 class _DesktopAccountingDashboardScreen extends StatefulWidget {
-  final VoidCallback onOpenPeople;
-  final VoidCallback onOpenExpenses;
-  final VoidCallback onOpenDocuments;
-  final VoidCallback onOpenControl;
-
-  const _DesktopAccountingDashboardScreen({
-    required this.onOpenPeople,
-    required this.onOpenExpenses,
-    required this.onOpenDocuments,
-    required this.onOpenControl,
-  });
+  const _DesktopAccountingDashboardScreen();
 
   @override
   State<_DesktopAccountingDashboardScreen> createState() =>
@@ -95,10 +85,8 @@ class _DesktopAccountingDashboardScreenState
     super.dispose();
   }
 
-  DateTime get firstDay =>
-      DateTime(selectedMonth.year, selectedMonth.month, 1);
-  DateTime get lastDay =>
-      DateTime(selectedMonth.year, selectedMonth.month + 1, 0);
+  DateTime get firstDay => DateTime(selectedMonth.year, selectedMonth.month, 1);
+  DateTime get lastDay => DateTime(selectedMonth.year, selectedMonth.month + 1, 0);
 
   Future<_TodayBundle> load({bool forceRefresh = false}) async {
     final result = await Future.wait<dynamic>([
@@ -135,6 +123,50 @@ class _DesktopAccountingDashboardScreenState
       );
       future = load(forceRefresh: true);
     });
+  }
+
+  Future<void> openTodayDetails(AccountingTodayDetailsMode mode) async {
+    await Navigator.of(context).push<void>(
+      AppPageRoute<void>(
+        builder: (_) => AccountingTodayDetailsScreen(
+          month: selectedMonth,
+          mode: mode,
+        ),
+      ),
+    );
+    if (mounted) await refresh();
+  }
+
+  Future<void> openBankDetails(AccountingBankDetailsMode mode) async {
+    await Navigator.of(context).push<void>(
+      AppPageRoute<void>(
+        builder: (_) => AccountingBankDetailsScreen(
+          month: selectedMonth,
+          mode: mode,
+        ),
+      ),
+    );
+    if (mounted) await refresh();
+  }
+
+  Future<void> openTask(AccountingCalendarTask task) async {
+    await Navigator.of(context).push<void>(
+      AppPageRoute<void>(
+        builder: (_) => AccountingTaskDetailScreen(taskId: task.id),
+      ),
+    );
+    if (mounted) await refresh();
+  }
+
+  Future<void> openDocument(AccountingPrimaryDocument document) async {
+    await Navigator.of(context).push<void>(
+      AppPageRoute<void>(
+        builder: (_) => AccountingDocumentDetailScreen(
+          documentId: document.id,
+        ),
+      ),
+    );
+    if (mounted) await refresh();
   }
 
   Widget actions() {
@@ -196,7 +228,7 @@ class _DesktopAccountingDashboardScreenState
               rows: tasks
                   .map(
                     (task) => SpecialistTableRowData(
-                      onTap: widget.onOpenControl,
+                      onTap: () => openTask(task),
                       cells: [
                         specialistCellText(accountingDate(task.dueDate)),
                         specialistCellText(
@@ -237,7 +269,7 @@ class _DesktopAccountingDashboardScreenState
               rows: rows
                   .map(
                     (row) => SpecialistTableRowData(
-                      onTap: widget.onOpenDocuments,
+                      onTap: () => openDocument(row),
                       cells: [
                         specialistCellText(accountingDate(row.date)),
                         specialistCellText(
@@ -303,7 +335,9 @@ class _DesktopAccountingDashboardScreenState
                     icon: Icons.account_balance_outlined,
                     label: 'На счетах сейчас',
                     value: accountingMoney(currentBalance),
-                    onTap: widget.onOpenExpenses,
+                    onTap: () => openBankDetails(
+                      AccountingBankDetailsMode.accounts,
+                    ),
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -313,7 +347,9 @@ class _DesktopAccountingDashboardScreenState
                     label: 'Поступления по банку',
                     value: accountingMoney(incoming),
                     accent: specialistSuccess,
-                    onTap: widget.onOpenExpenses,
+                    onTap: () => openBankDetails(
+                      AccountingBankDetailsMode.incoming,
+                    ),
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -323,7 +359,9 @@ class _DesktopAccountingDashboardScreenState
                     label: 'Списания по банку',
                     value: accountingMoney(outgoing),
                     accent: specialistDanger,
-                    onTap: widget.onOpenExpenses,
+                    onTap: () => openBankDetails(
+                      AccountingBankDetailsMode.outgoing,
+                    ),
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -333,7 +371,9 @@ class _DesktopAccountingDashboardScreenState
                     label: 'К выплате сотрудникам',
                     value: accountingMoney(data.finance.totalBalance.abs()),
                     accent: specialistWarning,
-                    onTap: widget.onOpenPeople,
+                    onTap: () => openTodayDetails(
+                      AccountingTodayDetailsMode.balances,
+                    ),
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -345,7 +385,9 @@ class _DesktopAccountingDashboardScreenState
                     accent: data.finance.missingReceiptCount > 0
                         ? specialistDanger
                         : specialistSuccess,
-                    onTap: widget.onOpenExpenses,
+                    onTap: () => openTodayDetails(
+                      AccountingTodayDetailsMode.missingReceipts,
+                    ),
                   ),
                 ),
               ],
