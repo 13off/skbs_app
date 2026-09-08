@@ -64,9 +64,7 @@ void main() {
 
     containsAll(
       'lib/features/expenses/presentation/expenses_screen.dart',
-      const [
-        'ExpenseRepository',
-      ],
+      const ['ExpenseRepository'],
     );
 
     containsAll(
@@ -79,6 +77,8 @@ void main() {
         'createDocument(',
         'createCounterparty(',
         'createMaterialWriteOff(',
+        'AccountingDocumentDetailScreen(',
+        'onTap: () => openDocument(row)',
       ],
     );
 
@@ -92,6 +92,9 @@ void main() {
         "title: 'Просрочено · ",
         "title: 'Ближайшие · ",
         "title: 'Выполнено · ",
+        'AccountingTaskDetailScreen(',
+        'AccountingDocumentDetailScreen(',
+        'AccountingPaymentDetailScreen(row: match!)',
         'get_accounting_trial_balance',
         'accounting_journal_entries',
         'accounting_journal_lines',
@@ -99,7 +102,54 @@ void main() {
     );
   });
 
-  test('новые бухгалтерские данные имеют отдельный репозиторий', () {
+  test('бухгалтерские детали поддерживают редактирование и deep-link', () {
+    containsAll(
+      'lib/features/accounting/presentation/adaptive_accounting_dashboard_screen.dart',
+      const [
+        'AccountingBankDetailsMode.accounts',
+        'AccountingBankDetailsMode.incoming',
+        'AccountingBankDetailsMode.outgoing',
+        'AccountingTodayDetailsMode.balances',
+        'AccountingTodayDetailsMode.missingReceipts',
+        'AccountingTaskDetailScreen(',
+        'AccountingDocumentDetailScreen(',
+      ],
+    );
+
+    containsAll(
+      'lib/features/accounting/presentation/accounting_bank_details_screen.dart',
+      const [
+        'AccountingBankTransactionDetailScreen',
+        'AccountingBankAccountDetailScreen',
+        'fetchBankTransactions',
+        'fetchBankAccounts',
+      ],
+    );
+
+    containsAll(
+      'lib/features/accounting/presentation/accounting_document_detail_screen.dart',
+      const [
+        'Редактировать документ',
+        'Добавить файл',
+        'Заменить',
+        'Удалить',
+        'updateDocument(',
+        'replaceDocumentFile(',
+      ],
+    );
+
+    containsAll(
+      'lib/features/accounting/presentation/accounting_task_detail_screen.dart',
+      const [
+        'Редактировать задачу',
+        'Отметить выполненной',
+        'Вернуть в работу',
+        'updateCalendarTask(',
+      ],
+    );
+  });
+
+  test('новые бухгалтерские данные имеют отдельные репозитории', () {
     containsAll(
       'lib/features/accounting/data/accounting_workbench_repository.dart',
       const [
@@ -113,6 +163,19 @@ void main() {
         'createCounterparty(',
         'createMaterialWriteOff(',
         'createCalendarTask(',
+      ],
+    );
+
+    containsAll(
+      'lib/features/accounting/data/accounting_detail_repository.dart',
+      const [
+        'fetchDocument(',
+        'updateDocument(',
+        'addDocumentFile(',
+        'deleteDocumentFile(',
+        'replaceDocumentFile(',
+        'fetchCalendarTask(',
+        'updateCalendarTask(',
       ],
     );
   });
