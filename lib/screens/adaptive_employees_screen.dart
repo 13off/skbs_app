@@ -65,6 +65,19 @@ class _DesktopEmployeesScreenState extends State<_DesktopEmployeesScreen> {
   final ScrollController scrollController = ScrollController();
   late final EmployeeDirectoryController directoryController;
 
+  AppUserProfile get directoryUiProfile {
+    if (!widget.profile.isAccountant) return widget.profile;
+
+    // DesktopEmployeesView hides its working action bar for non-admin roles.
+    // The accountant reuses the same People workspace by product design, so
+    // only this presentation-level profile is elevated. Employee details keep
+    // the real accountant profile and therefore retain their own role rules.
+    return widget.profile.copyWith(
+      role: 'admin',
+      actualRole: widget.profile.actualRole,
+    );
+  }
+
   @override
   void initState() {
     super.initState();
@@ -194,7 +207,7 @@ class _DesktopEmployeesScreenState extends State<_DesktopEmployeesScreen> {
   @override
   Widget build(BuildContext context) {
     return DesktopEmployeesView(
-      profile: widget.profile,
+      profile: directoryUiProfile,
       scopeTitle: directoryController.objectName ?? 'Все объекты',
       employees: preparedEmployees(),
       privateDataByEmployeeId: directoryController.privateDataByEmployeeId,
