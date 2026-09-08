@@ -234,7 +234,8 @@ class _DesktopCompanyManagementScreenState
         if (member.role == 'admin') return 1;
         if (member.role == 'developer') return 2;
         if (member.role == 'foreman') return 3;
-        return 3;
+        if (member.role == 'estimator') return 4;
+        return 5;
       }
 
       final byRank = rank(a).compareTo(rank(b));
@@ -271,8 +272,12 @@ class _DesktopCompanyManagementScreenState
         return const Color(0xFF735E78);
       case 'accountant':
         return const Color(0xFF48706A);
+      case 'estimator':
+        return const Color(0xFF526C7A);
       case 'hr':
         return const Color(0xFF6A5D47);
+      case 'procurement':
+        return const Color(0xFF70624F);
       default:
         return specialistMuted;
     }
@@ -375,6 +380,8 @@ class _DesktopCompanyManagementScreenState
           (item) =>
               item.role == 'lawyer' ||
               item.role == 'accountant' ||
+              item.role == 'estimator' ||
+              item.role == 'procurement' ||
               item.role == 'hr',
         )
         .length;
@@ -412,9 +419,9 @@ class _DesktopCompanyManagementScreenState
         Expanded(
           child: SpecialistMetricCard(
             icon: Icons.badge_outlined,
-            label: 'Юрист, бухгалтер и HR',
+            label: 'Специалисты офиса',
             value: '$specialists',
-            accent: roleColor('lawyer'),
+            accent: roleColor('estimator'),
           ),
         ),
         const SizedBox(width: 12),
@@ -465,10 +472,16 @@ class _DesktopCompanyManagementScreenState
                 DropdownMenuItem(value: 'all', child: Text('Все роли')),
                 DropdownMenuItem(value: 'owner', child: Text('Владелец')),
                 DropdownMenuItem(value: 'admin', child: Text('Администратор')),
+                DropdownMenuItem(value: 'developer', child: Text('Разработчик')),
                 DropdownMenuItem(value: 'foreman', child: Text('Прораб')),
                 DropdownMenuItem(value: 'lawyer', child: Text('Юрист')),
                 DropdownMenuItem(value: 'accountant', child: Text('Бухгалтер')),
+                DropdownMenuItem(
+                  value: 'estimator',
+                  child: Text('Инженер-сметчик'),
+                ),
                 DropdownMenuItem(value: 'hr', child: Text('HR-менеджер')),
+                DropdownMenuItem(value: 'procurement', child: Text('Снабженец')),
               ],
               onChanged: (value) => setState(() => roleFilter = value ?? 'all'),
             ),
@@ -882,10 +895,11 @@ class _DesktopCompanyManagementScreenState
 
 class _DesktopCompanyData {
   final CompanyDashboard dashboard;
+  final List<CompanyObject> objects;
   final List<CompanyInvitation> invitations;
 
   const _DesktopCompanyData({
     required this.dashboard,
     required this.invitations,
-  });
+  }) : objects = dashboard.objects;
 }

@@ -19,6 +19,7 @@ import '../../../screens/tasks_screen.dart';
 import '../../../widgets/premium_ui.dart';
 import '../../ai/data/global_voice_context_controller.dart';
 import '../../company/presentation/company_setup_recommendation_card.dart';
+import '../../estimator/presentation/estimator_closing_screens.dart';
 import '../../expenses/presentation/expenses_screen.dart';
 import '../../manager_todos/presentation/manager_todos.dart';
 import '../../shell/presentation/persistent_tab_shell.dart';
@@ -37,7 +38,7 @@ class ManagerMainScreen extends StatefulWidget {
 
 class _ManagerMainScreenState extends State<ManagerMainScreen>
     with WidgetsBindingObserver {
-  static const int pageCount = 5;
+  static const int pageCount = 6;
 
   int warmUpToken = 0;
   int objectSelectionToken = 0;
@@ -256,7 +257,8 @@ class _ManagerMainScreenState extends State<ManagerMainScreen>
         onObjectChanged: changeSelectedObject,
       ),
       3 => ExpensesScreen(selectedObjectName: selectedObjectName),
-      4 => ProfileScreen(profile: widget.profile),
+      4 => EstimatorClosingInboxScreen(profile: widget.profile),
+      5 => ProfileScreen(profile: widget.profile),
       _ => const SizedBox.shrink(),
     };
   }
@@ -287,6 +289,11 @@ class _ManagerMainScreenState extends State<ManagerMainScreen>
           label: 'Расходы',
           icon: Icons.receipt_long_outlined,
           selectedIcon: Icons.receipt_long_rounded,
+        ),
+        ProfessionalBottomNavigationItem(
+          label: 'Закрытия',
+          icon: Icons.inventory_2_outlined,
+          selectedIcon: Icons.inventory_2_rounded,
         ),
         ProfessionalBottomNavigationItem(
           label: 'Профиль',

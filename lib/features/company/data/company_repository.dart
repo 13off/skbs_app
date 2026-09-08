@@ -39,6 +39,8 @@ class CompanySummary {
         return 'Юрист';
       case 'accountant':
         return 'Бухгалтер';
+      case 'estimator':
+        return 'Инженер-сметчик';
       case 'hr':
         return 'HR-менеджер';
       case 'procurement':
@@ -93,6 +95,8 @@ class CompanyMember {
         return 'Юрист';
       case 'accountant':
         return 'Бухгалтер';
+      case 'estimator':
+        return 'Инженер-сметчик';
       case 'hr':
         return 'HR-менеджер';
       case 'procurement':
