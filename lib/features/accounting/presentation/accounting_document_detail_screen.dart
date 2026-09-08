@@ -180,7 +180,7 @@ class _AccountingDocumentDetailScreenState
     }
   }
 
-  Future<void> openFile(AccountingDocumentFile file) async {
+  Future<void> openDocumentFile(AccountingDocumentFile file) async {
     try {
       final url = await repository.createDocumentFileSignedUrl(file);
       await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
@@ -254,7 +254,7 @@ class _AccountingDocumentDetailScreenState
           ),
           IconButton(
             tooltip: 'Открыть',
-            onPressed: busy ? null : () => openFile(file),
+            onPressed: busy ? null : () => openDocumentFile(file),
             icon: const Icon(Icons.open_in_new_rounded),
           ),
           IconButton(
