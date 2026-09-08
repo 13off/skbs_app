@@ -80,9 +80,7 @@ class _TimesheetScreenState extends State<TimesheetScreen> {
 
   bool get hasUnsavedChanges => timesheetDraft.hasChanges;
 
-  bool get canManageTimesheetGroups =>
-      widget.profile.actualRole == 'admin' ||
-      widget.profile.actualRole == 'developer';
+  bool get canManageTimesheetGroups => widget.profile.actualRole == 'admin' || widget.profile.actualRole == 'developer';
 
   List<double> get allShiftOptions {
     return List<double>.generate(31, (index) => index / 10);
