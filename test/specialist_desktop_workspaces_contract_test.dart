@@ -45,44 +45,42 @@ void main() {
     expect(matters, contains("('claim', 'Претензии')"));
   });
 
-  test('accountant platform uses current operations desktop workspace', () {
+  test('accountant platform uses shared people and expenses desktop workspaces', () {
     final main = source(
       'lib/features/accounting/presentation/accounting_main_screen.dart',
     );
     final dashboard = source(
       'lib/features/accounting/presentation/adaptive_accounting_dashboard_screen.dart',
     );
-    final operations = source(
-      'lib/features/accounting/presentation/adaptive_accounting_operations_screen.dart',
-    );
-    final payments = source(
-      'lib/features/accounting/presentation/adaptive_accounting_payments_screen.dart',
+    final people = source('lib/screens/adaptive_employees_screen.dart');
+    final expenses = source(
+      'lib/features/expenses/presentation/expenses_screen.dart',
     );
     final repository = source(
       'lib/features/accounting/data/accounting_repository.dart',
     );
 
     expect(main, contains('AdaptiveAccountingDashboardScreen'));
-    expect(main, contains('AdaptiveAccountingOperationsScreen'));
+    expect(main, contains('AdaptiveEmployeesScreen'));
+    expect(main, contains('ExpensesScreen'));
     expect(main, contains('AccountingDocumentsScreen'));
     expect(main, contains('AccountingControlScreen'));
     expect(main, contains('PersistentTabShell'));
-    expect(main, contains('onOpenReports: () => select(3)'));
+    expect(main, contains('onOpenReports: () => select(4)'));
+    expect(main, isNot(contains('AdaptiveAccountingOperationsScreen')));
 
     expect(dashboard, contains('AccountingDashboardScreen('));
     expect(dashboard, contains('specialistDesktopBreakpoint'));
     expect(dashboard, contains("title: 'Сегодня'"));
-    expect(operations, contains("view == 'payments'"));
-    expect(operations, contains('AdaptiveAccountingPaymentsScreen'));
-    expect(operations, contains("('bank', 'Банк'"));
-    expect(operations, contains("('expenses', 'Расходы'"));
-    expect(operations, contains("('payments', 'Выплаты'"));
-    expect(payments, contains('return const PaymentsScreen();'));
-    expect(payments, contains('SpecialistDesktopTable'));
-    expect(payments, contains("title: 'Выплаты и расчёты'"));
-    expect(payments, contains('PaymentReportExporter.download('));
-    expect(payments, contains("label: const Text('Скачать XLSX')"));
-    expect(payments, contains('PeriodTimesheetScreen('));
+
+    expect(people, contains('desktopBreakpoint = 1050'));
+    expect(people, contains('kIsWeb && constraints.maxWidth >= desktopBreakpoint'));
+    expect(people, contains('DesktopEmployeesView('));
+    expect(people, contains('PaymentsScreen('));
+
+    expect(expenses, contains('_desktopListWidth = 1120'));
+    expect(expenses, contains('Widget expenseListHeader()'));
+    expect(expenses, contains('Widget desktopExpenseCard('));
     expect(repository, contains('fetchBalanceRows'));
   });
 
