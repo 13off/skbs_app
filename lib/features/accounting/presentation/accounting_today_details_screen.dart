@@ -13,9 +13,8 @@ import 'accounting_widgets.dart';
 
 /// Контекстные переходы с бухгалтерского экрана «Сегодня».
 ///
-/// Важно: этот экран не является ещё одним разделом навигации. Он сохраняет
-/// смысл нажатия на конкретный показатель главной: остатки, выплаты или
-/// выплаты без чека.
+/// Это не отдельный раздел навигации: экран сохраняет смысл нажатия на
+/// конкретный показатель главной — остатки, выплаты или выплаты без чека.
 enum AccountingTodayDetailsMode { balances, payments, missingReceipts }
 
 class AccountingTodayDetailsScreen extends StatefulWidget {
@@ -87,7 +86,7 @@ class _AccountingTodayDetailsScreenState
   };
 
   Future<void> openSettlement(MonthlyTimesheetRow row) async {
-    final changed = await Navigator.of(context).push<bool>(
+    await Navigator.of(context).push<bool>(
       AppPageRoute<bool>(
         builder: (_) => AccountingEmployeeSettlementScreen(
           month: widget.month,
@@ -95,162 +94,176 @@ class _AccountingTodayDetailsScreenState
         ),
       ),
     );
-    if (changed == true && mounted) await refresh();
+    if (mounted) await refresh();
   }
 
   Future<void> openPayment(AccountingPaymentRegisterRow row) async {
-    final employee = row.employee;
-    if (employee == null || row.employeeId.trim().isEmpty) {
+    if (row.employee == null || row.employeeId.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Не удалось определить сотрудника выплаты')),
       );
       return;
     }
-    final changed = await Navigator.of(context).push<bool>(
-      AppPageRoute<bool>(
+    await Navigator.of(context).push<void>(
+      AppPageRoute<void>(
         builder: (_) => AccountingPaymentDetailScreen(row: row),
       ),
     );
-    if (changed == true && mounted) await refresh();
+    if (mounted) await refresh();
   }
 
   Widget balanceCard(MonthlyTimesheetRow row) {
-    return PremiumWorkCard(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
-      radius: 23,
-      onTap: () => openSettlement(row),
-      child: Row(
-        children: [
-          CircleAvatar(
-            backgroundColor: AppAdaptivePalette.accentSoft,
-            child: const Icon(Icons.person_outline),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  row.employee.name,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  '${row.employee.position} • ${row.employee.objectName}',
-                  style: TextStyle(
-                    color: AppAdaptivePalette.textMuted,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const SizedBox(height: 7),
-                Text(
-                  'Начислено ${accountingMoney(row.accrued)} · выплачено ${accountingMoney(row.paid)}',
-                  style: TextStyle(
-                    color: AppAdaptivePalette.textMuted,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 12),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(23),
+        onTap: () => openSettlement(row),
+        child: PremiumWorkCard(
+          padding: const EdgeInsets.all(16),
+          radius: 23,
+          child: Row(
             children: [
-              Text(
-                accountingMoney(row.balance),
-                style: const TextStyle(
-                  fontSize: 17,
-                  fontWeight: FontWeight.w900,
+              CircleAvatar(
+                backgroundColor: AppAdaptivePalette.accentSoft,
+                child: const Icon(Icons.person_outline),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      row.employee.name,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      '${row.employee.position} • ${row.employee.objectName}',
+                      style: TextStyle(
+                        color: AppAdaptivePalette.textMuted,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 7),
+                    Text(
+                      'Начислено ${accountingMoney(row.accrued)} · выплачено ${accountingMoney(row.paid)}',
+                      style: TextStyle(
+                        color: AppAdaptivePalette.textMuted,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              const SizedBox(height: 3),
-              Text(
-                'остаток',
-                style: TextStyle(
-                  color: AppAdaptivePalette.textMuted,
-                  fontSize: 11,
-                  fontWeight: FontWeight.w700,
-                ),
+              const SizedBox(width: 12),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    accountingMoney(row.balance),
+                    style: const TextStyle(
+                      fontSize: 17,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    'остаток',
+                    style: TextStyle(
+                      color: AppAdaptivePalette.textMuted,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
               ),
+              const SizedBox(width: 5),
+              const Icon(Icons.chevron_right_rounded),
             ],
           ),
-          const SizedBox(width: 5),
-          const Icon(Icons.chevron_right_rounded),
-        ],
+        ),
       ),
     );
   }
 
   Widget paymentCard(AccountingPaymentRegisterRow row) {
     final missingReceipt = row.receiptCount == 0;
-    return PremiumWorkCard(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
-      radius: 23,
-      onTap: () => openPayment(row),
-      child: Row(
-        children: [
-          CircleAvatar(
-            backgroundColor: missingReceipt
-                ? AppAdaptivePalette.danger.withValues(alpha: 0.12)
-                : AppAdaptivePalette.accentSoft,
-            child: Icon(
-              missingReceipt ? Icons.receipt_long_outlined : Icons.payments_outlined,
-              color: missingReceipt
-                  ? AppAdaptivePalette.danger
-                  : AppAdaptivePalette.textPrimary,
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  row.employeeName,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  '${accountingDate(row.paymentDate)} • ${row.objectName.isEmpty ? 'Без объекта' : row.objectName}',
-                  style: TextStyle(
-                    color: AppAdaptivePalette.textMuted,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const SizedBox(height: 6),
-                Text(
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(23),
+        onTap: () => openPayment(row),
+        child: PremiumWorkCard(
+          padding: const EdgeInsets.all(16),
+          radius: 23,
+          child: Row(
+            children: [
+              CircleAvatar(
+                backgroundColor: missingReceipt
+                    ? AppAdaptivePalette.danger.withValues(alpha: 0.12)
+                    : AppAdaptivePalette.accentSoft,
+                child: Icon(
                   missingReceipt
-                      ? 'Нет подтверждающего чека'
-                      : 'Чеков: ${row.receiptCount}',
-                  style: TextStyle(
-                    color: missingReceipt
-                        ? AppAdaptivePalette.danger
-                        : AppAdaptivePalette.textMuted,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w800,
-                  ),
+                      ? Icons.receipt_long_outlined
+                      : Icons.payments_outlined,
+                  color: missingReceipt
+                      ? AppAdaptivePalette.danger
+                      : AppAdaptivePalette.textPrimary,
                 ),
-              ],
-            ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      row.employeeName,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      '${accountingDate(row.paymentDate)} • ${row.objectName.isEmpty ? 'Без объекта' : row.objectName}',
+                      style: TextStyle(
+                        color: AppAdaptivePalette.textMuted,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      missingReceipt
+                          ? 'Нет подтверждающего чека'
+                          : 'Чеков: ${row.receiptCount}',
+                      style: TextStyle(
+                        color: missingReceipt
+                            ? AppAdaptivePalette.danger
+                            : AppAdaptivePalette.textMuted,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 12),
+              Text(
+                accountingMoney(row.amount),
+                style: const TextStyle(
+                  fontSize: 17,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              const SizedBox(width: 5),
+              const Icon(Icons.chevron_right_rounded),
+            ],
           ),
-          const SizedBox(width: 12),
-          Text(
-            accountingMoney(row.amount),
-            style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w900),
-          ),
-          const SizedBox(width: 5),
-          const Icon(Icons.chevron_right_rounded),
-        ],
+        ),
       ),
     );
   }
@@ -551,7 +564,6 @@ class _AccountingPaymentDetailScreenState
     extends State<AccountingPaymentDetailScreen> {
   late Future<PaymentRecord?> future;
   bool addingReceipt = false;
-  bool changed = false;
 
   @override
   void initState() {
@@ -587,7 +599,6 @@ class _AccountingPaymentDetailScreenState
         employeeId: payment.employeeId,
         receiptFiles: files,
       );
-      changed = true;
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Чеки добавлены: ${files.length}')),
@@ -654,124 +665,120 @@ class _AccountingPaymentDetailScreenState
 
   @override
   Widget build(BuildContext context) {
-    return PopScope(
-      canPop: true,
-      onPopInvokedWithResult: (didPop, result) {},
-      child: Scaffold(
-        backgroundColor: Colors.transparent,
-        appBar: AppBar(
-          leading: BackButton(onPressed: () => Navigator.of(context).pop(changed)),
-          title: const Text('Конкретная выплата'),
-        ),
-        body: PremiumWorkBackdrop(
-          child: FutureBuilder<PaymentRecord?>(
-            future: future,
-            builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting &&
-                  !snapshot.hasData) {
-                return const Center(child: CircularProgressIndicator());
-              }
-              if (snapshot.hasError) {
-                return Center(child: Text('Ошибка: ${snapshot.error}'));
-              }
-              final payment = snapshot.data;
-              if (payment == null) {
-                return const Center(child: Text('Выплата не найдена'));
-              }
-              final hasReceipts = payment.receipts.isNotEmpty;
-              return ListView(
-                padding: const EdgeInsets.fromLTRB(18, 18, 18, 120),
-                children: [
-                  PremiumWorkCard(
-                    padding: const EdgeInsets.all(18),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          widget.row.employeeName,
-                          style: const TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.w900,
-                          ),
+    return Scaffold(
+      backgroundColor: Colors.transparent,
+      appBar: AppBar(
+        leading: const BackButton(),
+        title: const Text('Конкретная выплата'),
+      ),
+      body: PremiumWorkBackdrop(
+        child: FutureBuilder<PaymentRecord?>(
+          future: future,
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting &&
+                !snapshot.hasData) {
+              return const Center(child: CircularProgressIndicator());
+            }
+            if (snapshot.hasError) {
+              return Center(child: Text('Ошибка: ${snapshot.error}'));
+            }
+            final payment = snapshot.data;
+            if (payment == null) {
+              return const Center(child: Text('Выплата не найдена'));
+            }
+            final hasReceipts = payment.receipts.isNotEmpty;
+            return ListView(
+              padding: const EdgeInsets.fromLTRB(18, 18, 18, 120),
+              children: [
+                PremiumWorkCard(
+                  padding: const EdgeInsets.all(18),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        widget.row.employeeName,
+                        style: const TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w900,
                         ),
-                        const SizedBox(height: 4),
-                        Text(
-                          widget.row.objectName,
-                          style: TextStyle(
-                            color: AppAdaptivePalette.textMuted,
-                            fontWeight: FontWeight.w700,
-                          ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        widget.row.objectName,
+                        style: TextStyle(
+                          color: AppAdaptivePalette.textMuted,
+                          fontWeight: FontWeight.w700,
                         ),
-                        const SizedBox(height: 18),
-                        line('Тип', paymentTypeLabel(payment.paymentType)),
-                        line('Сумма', accountingMoney(payment.amount)),
-                        line('Дата выплаты', accountingDate(payment.paymentDate)),
-                        line(
-                          'Расчётный период',
-                          accountingMonth(
-                            DateTime(payment.periodYear, payment.periodMonth, 1),
-                          ),
+                      ),
+                      const SizedBox(height: 18),
+                      line('Тип', paymentTypeLabel(payment.paymentType)),
+                      line('Сумма', accountingMoney(payment.amount)),
+                      line('Дата выплаты', accountingDate(payment.paymentDate)),
+                      line(
+                        'Расчётный период',
+                        accountingMonth(
+                          DateTime(payment.periodYear, payment.periodMonth, 1),
                         ),
-                        if (payment.comment.trim().isNotEmpty)
-                          line('Комментарий', payment.comment.trim()),
-                        const Divider(height: 28),
-                        Row(
-                          children: [
-                            Icon(
+                      ),
+                      if (payment.comment.trim().isNotEmpty)
+                        line('Комментарий', payment.comment.trim()),
+                      const Divider(height: 28),
+                      Row(
+                        children: [
+                          Icon(
+                            hasReceipts
+                                ? Icons.verified_rounded
+                                : Icons.warning_amber_rounded,
+                            color: hasReceipts
+                                ? AppAdaptivePalette.success
+                                : AppAdaptivePalette.danger,
+                          ),
+                          const SizedBox(width: 9),
+                          Expanded(
+                            child: Text(
                               hasReceipts
-                                  ? Icons.verified_rounded
-                                  : Icons.warning_amber_rounded,
-                              color: hasReceipts
-                                  ? AppAdaptivePalette.success
-                                  : AppAdaptivePalette.danger,
-                            ),
-                            const SizedBox(width: 9),
-                            Expanded(
-                              child: Text(
-                                hasReceipts
-                                    ? 'Подтверждающих чеков: ${payment.receipts.length}'
-                                    : 'Подтверждающий чек не приложен',
-                                style: TextStyle(
-                                  color: hasReceipts
-                                      ? AppAdaptivePalette.success
-                                      : AppAdaptivePalette.danger,
-                                  fontWeight: FontWeight.w900,
-                                ),
+                                  ? 'Подтверждающих чеков: ${payment.receipts.length}'
+                                  : 'Подтверждающий чек не приложен',
+                              style: TextStyle(
+                                color: hasReceipts
+                                    ? AppAdaptivePalette.success
+                                    : AppAdaptivePalette.danger,
+                                fontWeight: FontWeight.w900,
                               ),
                             ),
-                          ],
-                        ),
-                      ],
-                    ),
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 14),
-                  FilledButton.icon(
-                    onPressed: addingReceipt ? null : () => addReceipt(payment),
-                    icon: addingReceipt
-                        ? const SizedBox(
-                            width: 18,
-                            height: 18,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : const Icon(Icons.attach_file_rounded),
-                    label: Text(
-                      addingReceipt
-                          ? 'Загрузка...'
-                          : hasReceipts
-                          ? 'Добавить ещё чек'
-                          : 'Приложить чек к этой выплате',
-                    ),
+                ),
+                const SizedBox(height: 14),
+                FilledButton.icon(
+                  onPressed: addingReceipt ? null : () => addReceipt(payment),
+                  icon: addingReceipt
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.attach_file_rounded),
+                  label: Text(
+                    addingReceipt
+                        ? 'Загрузка...'
+                        : hasReceipts
+                        ? 'Добавить ещё чек'
+                        : 'Приложить чек к этой выплате',
                   ),
-                  const SizedBox(height: 10),
-                  OutlinedButton.icon(
-                    onPressed: openHistory,
-                    icon: const Icon(Icons.history_rounded),
-                    label: const Text('Вся история выплат сотрудника'),
-                  ),
-                ],
-              );
-            },
-          ),
+                ),
+                const SizedBox(height: 10),
+                OutlinedButton.icon(
+                  onPressed: openHistory,
+                  icon: const Icon(Icons.history_rounded),
+                  label: const Text('Вся история выплат сотрудника'),
+                ),
+              ],
+            );
+          },
         ),
       ),
     );
