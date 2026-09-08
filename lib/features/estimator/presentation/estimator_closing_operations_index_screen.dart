@@ -74,26 +74,29 @@ class _EstimatorClosingOperationsIndexScreenState extends State<EstimatorClosing
           return Column(
             children: closings.map((closing) => Padding(
               padding: const EdgeInsets.only(bottom: 10),
-              child: PremiumWorkCard(
-                radius: 20,
-                padding: const EdgeInsets.all(16),
+              child: InkWell(
+                borderRadius: BorderRadius.circular(20),
                 onTap: () => open(closing),
-                child: Row(
-                  children: [
-                    const Icon(Icons.folder_copy_outlined),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('${closing.objectName} · ${closing.periodTitle}', style: const TextStyle(fontWeight: FontWeight.w900)),
-                          const SizedBox(height: 4),
-                          Text('${closing.statusTitle} · ${closing.itemCount} позиций · вопросов расчёта ${closing.earningsIssueCount}'),
-                        ],
+                child: PremiumWorkCard(
+                  radius: 20,
+                  padding: const EdgeInsets.all(16),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.folder_copy_outlined),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('${closing.objectName} · ${closing.periodTitle}', style: const TextStyle(fontWeight: FontWeight.w900)),
+                            const SizedBox(height: 4),
+                            Text('${closing.statusTitle} · ${closing.itemCount} позиций · вопросов расчёта ${closing.earningsIssueCount}'),
+                          ],
+                        ),
                       ),
-                    ),
-                    const Icon(Icons.chevron_right_rounded),
-                  ],
+                      const Icon(Icons.chevron_right_rounded),
+                    ],
+                  ),
                 ),
               ),
             )).toList(growable: false),
