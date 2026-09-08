@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../models/app_user_profile.dart';
 import '../../../screens/profile_screen.dart';
 import '../../../widgets/premium_ui.dart';
+import '../../estimator/presentation/estimator_closing_operations_index_screen.dart';
 import '../../estimator/presentation/estimator_closing_screens.dart';
 import '../../shell/presentation/persistent_tab_shell.dart';
 import 'legal_base_complete_screen.dart';
@@ -10,7 +11,7 @@ import 'legal_documents_complete_screen.dart';
 import 'legal_matters_complete_screen.dart';
 import 'legal_today_complete_screen.dart';
 
-// Рабочая оболочка юриста: очередь → база → документы → дела → закрытия → профиль.
+// Рабочая оболочка юриста: очередь → база → документы → дела → закрытия → пакеты → профиль.
 class LegalMainScreen extends StatefulWidget {
   final AppUserProfile profile;
 
@@ -21,7 +22,7 @@ class LegalMainScreen extends StatefulWidget {
 }
 
 class _LegalMainScreenState extends State<LegalMainScreen> {
-  static const int pageCount = 6;
+  static const int pageCount = 7;
   late final PersistentTabController tabs;
 
   @override
@@ -43,7 +44,8 @@ class _LegalMainScreenState extends State<LegalMainScreen> {
       2 => const LegalDocumentsCompleteScreen(),
       3 => LegalMattersCompleteScreen(profile: widget.profile),
       4 => EstimatorClosingInboxScreen(profile: widget.profile),
-      5 => ProfileScreen(profile: widget.profile),
+      5 => EstimatorClosingOperationsIndexScreen(profile: widget.profile),
+      6 => ProfileScreen(profile: widget.profile),
       _ => const SizedBox.shrink(),
     };
   }
@@ -78,6 +80,11 @@ class _LegalMainScreenState extends State<LegalMainScreen> {
           label: 'Закрытия',
           icon: Icons.inventory_2_outlined,
           selectedIcon: Icons.inventory_2_rounded,
+        ),
+        ProfessionalBottomNavigationItem(
+          label: 'Пакеты',
+          icon: Icons.folder_copy_outlined,
+          selectedIcon: Icons.folder_copy_rounded,
         ),
         ProfessionalBottomNavigationItem(
           label: 'Профиль',
