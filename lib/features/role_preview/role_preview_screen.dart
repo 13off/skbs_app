@@ -44,6 +44,31 @@ class _RolePreviewScreenState extends State<RolePreviewScreen> {
 
   void selectEstimator() => RolePreviewController.showEstimator();
 
+  void showDirectoryLoadError(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  Future<void> selectForemanWhenReady() async {
+    try {
+      final objectNames = await objectNamesFuture;
+      if (!mounted) return;
+      await selectForeman(objectNames);
+    } catch (error) {
+      showDirectoryLoadError('Не удалось загрузить объекты: $error');
+    }
+  }
+
+  Future<void> selectEmployeeWhenReady() async {
+    try {
+      final employees = await employeesFuture;
+      if (!mounted) return;
+      await selectEmployee(employees);
+    } catch (error) {
+      showDirectoryLoadError('Не удалось загрузить сотрудников: $error');
+    }
+  }
+
   Future<void> selectEmployee(List<Employee> employees) async {
     final available = employees
         .where((employee) => employee.id?.trim().isNotEmpty == true)
@@ -390,118 +415,96 @@ class _RolePreviewScreenState extends State<RolePreviewScreen> {
           showBackButton: true,
           subtitle:
               'Реальная роль администратора не меняется. Меняется только интерфейс, который вы видите.',
-          child: FutureBuilder<List<String>>(
-            future: objectNamesFuture,
-            builder: (context, objectSnapshot) {
-              final objectNames = objectSnapshot.data ?? const <String>[];
-              return FutureBuilder<List<Employee>>(
-                future: employeesFuture,
-                builder: (context, employeeSnapshot) {
-                  final employees = employeeSnapshot.data ?? const <Employee>[];
-                  return Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      roleCard(
-                        icon: Icons.admin_panel_settings_rounded,
-                        title: 'Руководитель',
-                        selected: preview.isAdminMode,
-                        onTap: selectAdmin,
-                      ),
-                      roleCard(
-                        icon: Icons.developer_mode_rounded,
-                        title: 'Разработчик',
-                        selected: preview.isDeveloperMode,
-                        onTap: selectDeveloper,
-                        badge: 'СИСТЕМА',
-                      ),
-                      roleCard(
-                        icon: Icons.engineering_rounded,
-                        title: 'Прораб',
-                        selected: preview.isForemanMode,
-                        onTap:
-                            objectSnapshot.connectionState ==
-                                ConnectionState.waiting
-                            ? null
-                            : () => selectForeman(objectNames),
-                        badge:
-                            preview.isForemanMode &&
-                                preview.objectName.isNotEmpty
-                            ? preview.objectName
-                            : null,
-                      ),
-                      roleCard(
-                        icon: Icons.construction_rounded,
-                        title: 'Сотрудник',
-                        selected: preview.isEmployeeMode,
-                        onTap:
-                            employeeSnapshot.connectionState ==
-                                ConnectionState.waiting
-                            ? null
-                            : () => selectEmployee(employees),
-                        badge:
-                            preview.isEmployeeMode &&
-                                preview.employeeName.isNotEmpty
-                            ? preview.employeeName
-                            : null,
-                      ),
-                      roleCard(
-                        icon: Icons.gavel_rounded,
-                        title: 'Юрист',
-                        selected: preview.isLawyerMode,
-                        onTap: selectLawyer,
-                      ),
-                      roleCard(
-                        icon: Icons.account_balance_wallet_rounded,
-                        title: 'Бухгалтер',
-                        selected: preview.isAccountantMode,
-                        onTap: selectAccountant,
-                      ),
-                      roleCard(
-                        icon: Icons.inventory_2_rounded,
-                        title: 'Снабженец',
-                        selected: preview.isProcurementMode,
-                        onTap: selectProcurement,
-                      ),
-                      roleCard(
-                        icon: Icons.calculate_outlined,
-                        title: 'Инженер-сметчик',
-                        selected: preview.isEstimatorMode,
-                        onTap: selectEstimator,
-                        badge: 'ВЫПОЛНЕННЫЕ РАБОТЫ',
-                      ),
-                      roleCard(
-                        icon: Icons.person_search_rounded,
-                        title: 'HR-менеджер',
-                        selected: preview.isHrMode,
-                        onTap: selectHr,
-                      ),
-                      const SizedBox(height: 8),
-                      PremiumWorkCard(
-                        radius: 22,
-                        padding: const EdgeInsets.all(16),
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Icon(Icons.info_outline_rounded, color: _roleMuted),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Text(
-                                'Все действия выполняются от имени вашего администратора. Роль в компании, приглашения и права доступа в базе не изменяются.',
-                                style: TextStyle(
-                                  color: _roleMuted,
-                                  height: 1.4,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ),
-                          ],
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              roleCard(
+                icon: Icons.admin_panel_settings_rounded,
+                title: 'Руководитель',
+                selected: preview.isAdminMode,
+                onTap: selectAdmin,
+              ),
+              roleCard(
+                icon: Icons.developer_mode_rounded,
+                title: 'Разработчик',
+                selected: preview.isDeveloperMode,
+                onTap: selectDeveloper,
+                badge: 'СИСТЕМА',
+              ),
+              roleCard(
+                icon: Icons.engineering_rounded,
+                title: 'Прораб',
+                selected: preview.isForemanMode,
+                onTap: selectForemanWhenReady,
+                badge:
+                    preview.isForemanMode && preview.objectName.isNotEmpty
+                    ? preview.objectName
+                    : null,
+              ),
+              roleCard(
+                icon: Icons.construction_rounded,
+                title: 'Сотрудник',
+                selected: preview.isEmployeeMode,
+                onTap: selectEmployeeWhenReady,
+                badge:
+                    preview.isEmployeeMode && preview.employeeName.isNotEmpty
+                    ? preview.employeeName
+                    : null,
+              ),
+              roleCard(
+                icon: Icons.gavel_rounded,
+                title: 'Юрист',
+                selected: preview.isLawyerMode,
+                onTap: selectLawyer,
+              ),
+              roleCard(
+                icon: Icons.account_balance_wallet_rounded,
+                title: 'Бухгалтер',
+                selected: preview.isAccountantMode,
+                onTap: selectAccountant,
+              ),
+              roleCard(
+                icon: Icons.inventory_2_rounded,
+                title: 'Снабженец',
+                selected: preview.isProcurementMode,
+                onTap: selectProcurement,
+              ),
+              roleCard(
+                icon: Icons.calculate_outlined,
+                title: 'Инженер-сметчик',
+                selected: preview.isEstimatorMode,
+                onTap: selectEstimator,
+                badge: 'ВЫПОЛНЕННЫЕ РАБОТЫ',
+              ),
+              roleCard(
+                icon: Icons.person_search_rounded,
+                title: 'HR-менеджер',
+                selected: preview.isHrMode,
+                onTap: selectHr,
+              ),
+              const SizedBox(height: 8),
+              PremiumWorkCard(
+                radius: 22,
+                padding: const EdgeInsets.all(16),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(Icons.info_outline_rounded, color: _roleMuted),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        'Все действия выполняются от имени вашего администратора. Роль в компании, приглашения и права доступа в базе не изменяются.',
+                        style: TextStyle(
+                          color: _roleMuted,
+                          height: 1.4,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
-                    ],
-                  );
-                },
-              );
-            },
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
         );
       },
