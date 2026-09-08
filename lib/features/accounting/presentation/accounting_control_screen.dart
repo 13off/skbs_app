@@ -426,7 +426,7 @@ class _AccountingControlScreenState extends State<AccountingControlScreen> {
                         ),
                         specialistCellText(row.objectName),
                         specialistCellText(accountingMoney(row.amount)),
-                        const AccountingStatusBadge(
+                        AccountingStatusBadge(
                           label: 'Нет чека',
                           color: specialistDanger,
                         ),
