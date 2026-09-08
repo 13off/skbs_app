@@ -173,6 +173,51 @@ extension _TimesheetSections on _TimesheetScreenState {
     );
   }
 
+  Widget buildMissingReasonsWarning(List<Employee> allEmployees) {
+    final missing = missingAbsenceReasonEmployees(allEmployees);
+    if (missing.isEmpty) return const SizedBox.shrink();
+    return PremiumPressable(
+      onTap: isAttendanceLoading || isSaving
+          ? null
+          : () => showMissingAbsenceReasons(allEmployees),
+      borderRadius: BorderRadius.circular(20),
+      child: PremiumWorkCard(
+        radius: 20,
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        child: Row(
+          children: [
+            Icon(
+              Icons.warning_amber_rounded,
+              color: AppAdaptivePalette.textPrimary,
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                'Причины не указаны: ${missing.length}',
+                style: TextStyle(
+                  color: AppAdaptivePalette.textPrimary,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ),
+            Text(
+              'Заполнить',
+              style: TextStyle(
+                color: AppAdaptivePalette.accent,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+            const SizedBox(width: 4),
+            Icon(
+              Icons.chevron_right_rounded,
+              color: AppAdaptivePalette.textMuted,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget buildSearch() {
     return TextField(
       controller: searchController,
@@ -366,6 +411,7 @@ extension _TimesheetSections on _TimesheetScreenState {
   Widget buildEmployeeRow(Employee employee) {
     final shifts = shiftValueFor(employee);
     final hasWorked = shifts > 0;
+    final reason = absenceReasonFor(employee);
     return PremiumWorkCard(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(15),
@@ -457,6 +503,19 @@ extension _TimesheetSections on _TimesheetScreenState {
                     ? null
                     : () => showShiftPicker(employee),
               ),
+              if (shifts == 0)
+                ActionChip(
+                  avatar: Icon(
+                    reason == null
+                        ? Icons.warning_amber_rounded
+                        : Icons.event_note_outlined,
+                    size: 18,
+                  ),
+                  label: Text(TimesheetAbsenceReason.labelFor(reason)),
+                  onPressed: isAttendanceLoading || isSaving
+                      ? null
+                      : () => showAbsenceReasonPicker(employee),
+                ),
             ],
           ),
         ],

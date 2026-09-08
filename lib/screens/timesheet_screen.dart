@@ -10,8 +10,10 @@ import '../app/app_ui_tokens.dart';
 import '../data/app_data_sync.dart';
 import '../data/app_state.dart';
 import '../data/attendance_repository.dart';
+import '../data/offline_attendance_reason_repository.dart';
 import '../data/offline_master_repository.dart';
 import '../features/timesheet/data/timesheet_group_repository.dart';
+import '../features/timesheet/models/timesheet_absence_reason.dart';
 import '../features/timesheet/models/timesheet_draft.dart';
 import '../features/timesheet/models/timesheet_group.dart';
 import '../models/app_user_profile.dart';
@@ -78,9 +80,7 @@ class _TimesheetScreenState extends State<TimesheetScreen> {
 
   bool get hasUnsavedChanges => timesheetDraft.hasChanges;
 
-  bool get canManageTimesheetGroups =>
-      widget.profile.actualRole == 'admin' ||
-      widget.profile.actualRole == 'developer';
+  bool get canManageTimesheetGroups => widget.profile.actualRole == 'admin' || widget.profile.actualRole == 'developer';
 
   List<double> get allShiftOptions {
     return List<double>.generate(31, (index) => index / 10);

@@ -67,6 +67,10 @@ extension _TimesheetLoading on _TimesheetScreenState {
           objectName: requestedObject,
           forceRefresh: forceRefresh,
         ),
+        OfflineAttendanceReasonRepository.fetchReasonsForDate(
+          requestedDate,
+          objectName: requestedObject,
+        ),
         OfflineAttendanceRepository.fetchResponsibilityForDate(
           requestedDate,
           objectName: requestedObject,
@@ -74,11 +78,15 @@ extension _TimesheetLoading on _TimesheetScreenState {
         ),
       ]);
       final values = results[0] as Map<String, double>;
-      final responsibility = results[1] as Map<String, ResponsibilityActor>;
+      final absenceReasons = results[1] as Map<String, String>;
+      final responsibility = results[2] as Map<String, ResponsibilityActor>;
 
       if (!mounted || generation != attendanceLoadGeneration) return;
       setState(() {
-        timesheetDraft = TimesheetDraft.fromValues(values);
+        timesheetDraft = TimesheetDraft.fromValues(
+          values,
+          absenceReasons: absenceReasons,
+        );
         attendanceResponsibility = responsibility;
       });
     } catch (error) {
