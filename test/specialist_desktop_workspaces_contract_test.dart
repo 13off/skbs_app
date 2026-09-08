@@ -55,6 +55,9 @@ void main() {
     final mobileDashboard = source(
       'lib/features/accounting/presentation/accounting_dashboard_screen.dart',
     );
+    final todayDetails = source(
+      'lib/features/accounting/presentation/accounting_today_details_screen.dart',
+    );
     final people = source('lib/screens/adaptive_employees_screen.dart');
     final expenses = source(
       'lib/features/expenses/presentation/expenses_screen.dart',
@@ -90,8 +93,16 @@ void main() {
     expect(dashboard, isNot(contains("label: const Text('Контроль')")));
     expect(dashboard, isNot(contains("label: const Text('Документы')")));
 
-    expect(mobileDashboard, contains('widget.onOpenPeople'));
-    expect(mobileDashboard, contains('widget.onOpenExpenses'));
+    expect(mobileDashboard, contains('AccountingTodayDetailsMode.balances'));
+    expect(mobileDashboard, contains('AccountingTodayDetailsMode.payments'));
+    expect(
+      mobileDashboard,
+      contains('AccountingTodayDetailsMode.missingReceipts'),
+    );
+    expect(mobileDashboard, contains('AccountingPaymentDetailScreen'));
+    expect(mobileDashboard, contains('fetchSettlementPaymentRegister'));
+    expect(mobileDashboard, isNot(contains('widget.onOpenPeople')));
+    expect(mobileDashboard, isNot(contains('widget.onOpenExpenses')));
     expect(mobileDashboard, isNot(contains('Widget workspaceActions()')));
     expect(mobileDashboard, isNot(contains("label: const Text('Люди')")));
     expect(mobileDashboard, isNot(contains("label: const Text('Расходы')")));
@@ -100,6 +111,15 @@ void main() {
     expect(mobileDashboard, isNot(contains("'Крупные остатки'")));
     expect(mobileDashboard, isNot(contains('AddPaymentScreen')));
     expect(mobileDashboard, isNot(contains('Добавить выплату')));
+
+    expect(todayDetails, contains('AccountingEmployeeSettlementScreen'));
+    expect(todayDetails, contains('AccountingPaymentDetailScreen'));
+    expect(todayDetails, contains('AddPaymentScreen('));
+    expect(todayDetails, contains('PaymentHistoryScreen('));
+    expect(todayDetails, contains('PaymentReceiptRepository.pickReceiptFiles'));
+    expect(todayDetails, contains('PaymentRepository.addReceiptsToPayment'));
+    expect(todayDetails, contains('Осталось выплатить'));
+    expect(todayDetails, contains('Приложить чек к этой выплате'));
 
     expect(people, contains('desktopBreakpoint = 1050'));
     expect(people, contains('kIsWeb && constraints.maxWidth >= desktopBreakpoint'));
@@ -110,6 +130,8 @@ void main() {
     expect(expenses, contains('Widget expenseListHeader()'));
     expect(expenses, contains('Widget desktopExpenseCard('));
     expect(repository, contains('fetchBalanceRows'));
+    expect(repository, contains('fetchSettlementPaymentRegister'));
+    expect(repository, contains('employee: employee'));
   });
 
   test(
