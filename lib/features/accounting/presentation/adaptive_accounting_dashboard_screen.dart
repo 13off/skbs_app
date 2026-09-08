@@ -172,11 +172,6 @@ class _DesktopAccountingDashboardScreenState
           onPressed: () => changeMonth(1),
           icon: const Icon(Icons.chevron_right_rounded),
         ),
-        FilledButton.icon(
-          onPressed: widget.onOpenExpenses,
-          icon: const Icon(Icons.receipt_long_outlined),
-          label: const Text('Открыть расходы'),
-        ),
       ],
     );
   }
@@ -185,11 +180,6 @@ class _DesktopAccountingDashboardScreenState
     return SpecialistDesktopSection(
       title: 'Ближайшие задачи',
       subtitle: 'Зарплата, налоги, отчётность и обязательные платежи',
-      trailing: TextButton.icon(
-        onPressed: widget.onOpenControl,
-        icon: const Icon(Icons.arrow_forward_rounded),
-        label: const Text('Контроль'),
-      ),
       child: tasks.isEmpty
           ? const AccountingEmptyState(
               icon: Icons.event_available_outlined,
@@ -222,52 +212,6 @@ class _DesktopAccountingDashboardScreenState
     );
   }
 
-  Widget balancesCard(AccountingDashboardData data) {
-    return SpecialistDesktopSection(
-      title: 'Крупные остатки сотрудникам',
-      subtitle: 'Кому нужно выплатить в первую очередь',
-      trailing: TextButton.icon(
-        onPressed: widget.onOpenPeople,
-        icon: const Icon(Icons.arrow_forward_rounded),
-        label: const Text('Открыть людей'),
-      ),
-      child: data.largestBalances.isEmpty
-          ? const AccountingEmptyState(
-              icon: Icons.verified_outlined,
-              title: 'Остатков к выплате нет',
-              description: 'По текущему месяцу сотрудники рассчитаны.',
-            )
-          : SpecialistDesktopTable(
-              minWidth: 760,
-              columns: const [
-                SpecialistTableColumn('Сотрудник', flex: 5),
-                SpecialistTableColumn('Объект', flex: 3),
-                SpecialistTableColumn('Смены', flex: 2),
-                SpecialistTableColumn('Остаток', flex: 2),
-              ],
-              rows: data.largestBalances
-                  .map(
-                    (row) => SpecialistTableRowData(
-                      onTap: widget.onOpenPeople,
-                      cells: [
-                        specialistCellText(
-                          row.employee.name,
-                          weight: FontWeight.w900,
-                        ),
-                        specialistCellText(row.employee.objectName),
-                        specialistCellText(row.totalShifts.toStringAsFixed(1)),
-                        AccountingStatusBadge(
-                          label: accountingMoney(row.balance),
-                          color: specialistWarning,
-                        ),
-                      ],
-                    ),
-                  )
-                  .toList(),
-            ),
-    );
-  }
-
   Widget documentAttentionCard(List<AccountingPrimaryDocument> documents) {
     final rows = documents
         .where((e) => e.status == 'draft' || e.status == 'attention')
@@ -276,11 +220,6 @@ class _DesktopAccountingDashboardScreenState
     return SpecialistDesktopSection(
       title: 'Документы к обработке',
       subtitle: 'Черновики и первичка, требующая внимания',
-      trailing: TextButton.icon(
-        onPressed: widget.onOpenDocuments,
-        icon: const Icon(Icons.arrow_forward_rounded),
-        label: const Text('Документы'),
-      ),
       child: rows.isEmpty
           ? const AccountingEmptyState(
               icon: Icons.description_outlined,
@@ -415,16 +354,7 @@ class _DesktopAccountingDashboardScreenState
           children.add(const SizedBox(height: 20));
           children.add(taskCard(data.tasks));
           children.add(const SizedBox(height: 20));
-          children.add(
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(child: balancesCard(data.finance)),
-                const SizedBox(width: 20),
-                Expanded(child: documentAttentionCard(data.documents)),
-              ],
-            ),
-          );
+          children.add(documentAttentionCard(data.documents));
         }
 
         return SpecialistDesktopPage(
