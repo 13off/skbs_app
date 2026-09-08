@@ -8,8 +8,13 @@ import '../data/expense_repository.dart';
 
 class ExpensesScreen extends StatefulWidget {
   final String? selectedObjectName;
+  final bool compactMobileHeader;
 
-  const ExpensesScreen({super.key, this.selectedObjectName});
+  const ExpensesScreen({
+    super.key,
+    this.selectedObjectName,
+    this.compactMobileHeader = false,
+  });
 
   @override
   State<ExpensesScreen> createState() => _ExpensesScreenState();
@@ -1163,171 +1168,350 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
   }
 
   Widget filterPanel() {
-    final rows = filteredRows;
-    final total = rows.fold<double>(0, (sum, item) => sum + item.amount);
-    final payments = rows
-        .where((item) => item.isPayment)
-        .fold<double>(0, (sum, item) => sum + item.amount);
-    final manual = total - payments;
-    final withoutReceipt = rows.where((item) => item.attachments.isEmpty).length;
+  final rows = filteredRows;
+  final total = rows.fold<double>(0, (sum, item) => sum + item.amount);
+  final payments = rows
+      .where((item) => item.isPayment)
+      .fold<double>(0, (sum, item) => sum + item.amount);
+  final manual = total - payments;
+  final withoutReceipt = rows.where((item) => item.attachments.isEmpty).length;
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        PremiumWorkCard(
-          radius: 24,
-          padding: const EdgeInsets.all(18),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                formatMoney(total),
-                style: const TextStyle(
-                  fontSize: 30,
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                'Всего за ${formatDate(from)} — ${formatDate(to)}',
-                style: TextStyle(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                ),
-              ),
-              const SizedBox(height: 12),
-              Wrap(
-                spacing: 18,
-                runSpacing: 8,
-                children: [
-                  Text('Выплаты: ${formatMoney(payments)}'),
-                  Text('Другие расходы: ${formatMoney(manual)}'),
-                  Text('Операций: ${rows.length}'),
-                  Text('Без чека: $withoutReceipt'),
-                ],
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 12),
-        PremiumWorkCard(
-          radius: 24,
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Wrap(
-                spacing: 12,
-                runSpacing: 12,
-                crossAxisAlignment: WrapCrossAlignment.center,
-                children: [
-                  SizedBox(
-                    width: 260,
-                    child: DropdownButtonFormField<String>(
-                      key: ValueKey(
-                        'expense-category-$selectedCategory-${snapshot.categories.length}',
-                      ),
-                      initialValue: selectedCategory,
-                      decoration: const InputDecoration(
-                        labelText: 'Статья расходов',
-                        isDense: true,
-                      ),
-                      items: [
-                        const DropdownMenuItem(
-                          value: _allCategories,
-                          child: Text('Все статьи'),
-                        ),
-                        const DropdownMenuItem(
-                          value: _paymentsCategory,
-                          child: Text('Выплаты сотрудникам'),
-                        ),
-                        const DropdownMenuItem(
-                          value: _uncategorized,
-                          child: Text('Без статьи'),
-                        ),
-                        ...snapshot.categories.map(
-                          (item) => DropdownMenuItem(
-                            value: item.id,
-                            child: Text(item.name),
-                          ),
-                        ),
-                      ],
-                      onChanged: (value) {
-                        if (value != null) {
-                          setState(() => selectedCategory = value);
-                        }
-                      },
-                    ),
-                  ),
-                  SizedBox(
-                    width: 260,
-                    child: DropdownButtonFormField<String>(
-                      key: ValueKey(
-                        'expense-object-$selectedObject-${snapshot.objects.length}',
-                      ),
-                      initialValue: selectedObject,
-                      decoration: const InputDecoration(
-                        labelText: 'Объект',
-                        isDense: true,
-                      ),
-                      items: [
-                        const DropdownMenuItem(
-                          value: _allObjects,
-                          child: Text('Все объекты'),
-                        ),
-                        ...snapshot.objects.map(
-                          (item) => DropdownMenuItem(
-                            value: item.id,
-                            child: Text(
-                              item.isActive ? item.name : '${item.name} · архив',
-                            ),
-                          ),
-                        ),
-                      ],
-                      onChanged: (value) {
-                        if (value != null) setState(() => selectedObject = value);
-                      },
-                    ),
-                  ),
-                  OutlinedButton.icon(
-                    onPressed: choosePeriod,
-                    icon: const Icon(Icons.date_range_outlined),
-                    label: Text('${formatDate(from)} — ${formatDate(to)}'),
-                  ),
-                  FilledButton.icon(
-                    onPressed: busy ? null : () => editExpense(),
-                    icon: const Icon(Icons.add_rounded),
-                    label: const Text('Добавить расход'),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 10),
-              Text(
-                snapshot.categories.isEmpty
-                    ? 'Статьи расходов настраиваются в панели Разработчика.'
-                    : 'Выплаты синхронизированы с разделом «Выплаты»: изменение или удаление здесь меняет исходную запись.',
-                style: TextStyle(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  fontSize: 12,
-                ),
-              ),
-            ],
-          ),
-        ),
-        if (errorText != null) ...[
-          const SizedBox(height: 12),
-          PremiumWorkCard(
-            radius: 22,
-            padding: const EdgeInsets.all(14),
-            child: Text(
-              errorText!,
-              style: TextStyle(color: Theme.of(context).colorScheme.error),
-            ),
-          ),
-        ],
-        const SizedBox(height: 16),
-      ],
+  Widget compactStat(String label, String value) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 7),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Text(
+        '$label · $value',
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800),
+      ),
     );
   }
+
+  Widget categoryFilter({required bool compact}) {
+    return DropdownButtonFormField<String>(
+      key: ValueKey(
+        'expense-category-$selectedCategory-${snapshot.categories.length}',
+      ),
+      initialValue: selectedCategory,
+      isExpanded: true,
+      decoration: InputDecoration(
+        labelText: compact ? 'Статья' : 'Статья расходов',
+        isDense: true,
+        contentPadding: compact
+            ? const EdgeInsets.symmetric(horizontal: 11, vertical: 11)
+            : null,
+      ),
+      items: [
+        const DropdownMenuItem(
+          value: _allCategories,
+          child: Text(
+            'Все статьи',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+        const DropdownMenuItem(
+          value: _paymentsCategory,
+          child: Text(
+            'Выплаты сотрудникам',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+        const DropdownMenuItem(
+          value: _uncategorized,
+          child: Text(
+            'Без статьи',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+        ...snapshot.categories.map(
+          (item) => DropdownMenuItem(
+            value: item.id,
+            child: Text(
+              item.name,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ),
+      ],
+      onChanged: (value) {
+        if (value != null) setState(() => selectedCategory = value);
+      },
+    );
+  }
+
+  Widget objectFilter({required bool compact}) {
+    return DropdownButtonFormField<String>(
+      key: ValueKey(
+        'expense-object-$selectedObject-${snapshot.objects.length}',
+      ),
+      initialValue: selectedObject,
+      isExpanded: true,
+      decoration: InputDecoration(
+        labelText: 'Объект',
+        isDense: true,
+        contentPadding: compact
+            ? const EdgeInsets.symmetric(horizontal: 11, vertical: 11)
+            : null,
+      ),
+      items: [
+        const DropdownMenuItem(
+          value: _allObjects,
+          child: Text(
+            'Все объекты',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+        ...snapshot.objects.map(
+          (item) => DropdownMenuItem(
+            value: item.id,
+            child: Text(
+              item.isActive ? item.name : '${item.name} · архив',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ),
+      ],
+      onChanged: (value) {
+        if (value != null) setState(() => selectedObject = value);
+      },
+    );
+  }
+
+  return LayoutBuilder(
+    builder: (context, constraints) {
+      if (widget.compactMobileHeader && constraints.maxWidth < 700) {
+        return Column(
+          key: const ValueKey('accounting-expenses-compact-mobile'),
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            PremiumWorkCard(
+              radius: 20,
+              padding: const EdgeInsets.all(12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              formatMoney(total),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                fontSize: 24,
+                                fontWeight: FontWeight.w900,
+                                height: 1.05,
+                              ),
+                            ),
+                            const SizedBox(height: 3),
+                            Text(
+                              '${formatDate(from)} — ${formatDate(to)}',
+                              style: TextStyle(
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .onSurfaceVariant,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      FilledButton.icon(
+                        onPressed: busy ? null : () => editExpense(),
+                        style: FilledButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 10,
+                          ),
+                          minimumSize: Size.zero,
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        ),
+                        icon: const Icon(Icons.add_rounded, size: 18),
+                        label: const Text('Добавить'),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  Wrap(
+                    spacing: 7,
+                    runSpacing: 7,
+                    children: [
+                      compactStat('Выплаты', formatMoney(payments)),
+                      compactStat('Прочие', formatMoney(manual)),
+                      compactStat('Операций', '${rows.length}'),
+                      compactStat('Без чека', '$withoutReceipt'),
+                    ],
+                  ),
+                  const SizedBox(height: 11),
+                  Row(
+                    children: [
+                      Expanded(child: categoryFilter(compact: true)),
+                      const SizedBox(width: 8),
+                      Expanded(child: objectFilter(compact: true)),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      onPressed: choosePeriod,
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 10,
+                        ),
+                        minimumSize: Size.zero,
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
+                      icon: const Icon(Icons.date_range_outlined, size: 18),
+                      label: Text(
+                        'Период · ${formatDate(from)} — ${formatDate(to)}',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            if (errorText != null) ...[
+              const SizedBox(height: 10),
+              PremiumWorkCard(
+                radius: 18,
+                padding: const EdgeInsets.all(12),
+                child: Text(
+                  errorText!,
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.error,
+                  ),
+                ),
+              ),
+            ],
+            const SizedBox(height: 10),
+          ],
+        );
+      }
+
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          PremiumWorkCard(
+            radius: 24,
+            padding: const EdgeInsets.all(18),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  formatMoney(total),
+                  style: const TextStyle(
+                    fontSize: 30,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Всего за ${formatDate(from)} — ${formatDate(to)}',
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Wrap(
+                  spacing: 18,
+                  runSpacing: 8,
+                  children: [
+                    Text('Выплаты: ${formatMoney(payments)}'),
+                    Text('Другие расходы: ${formatMoney(manual)}'),
+                    Text('Операций: ${rows.length}'),
+                    Text('Без чека: $withoutReceipt'),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
+          PremiumWorkCard(
+            radius: 24,
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Wrap(
+                  spacing: 12,
+                  runSpacing: 12,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: [
+                    SizedBox(
+                      width: 260,
+                      child: categoryFilter(compact: false),
+                    ),
+                    SizedBox(
+                      width: 260,
+                      child: objectFilter(compact: false),
+                    ),
+                    OutlinedButton.icon(
+                      onPressed: choosePeriod,
+                      icon: const Icon(Icons.date_range_outlined),
+                      label: Text(
+                        '${formatDate(from)} — ${formatDate(to)}',
+                      ),
+                    ),
+                    FilledButton.icon(
+                      onPressed: busy ? null : () => editExpense(),
+                      icon: const Icon(Icons.add_rounded),
+                      label: const Text('Добавить расход'),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  snapshot.categories.isEmpty
+                      ? 'Статьи расходов настраиваются в панели Разработчика.'
+                      : 'Выплаты синхронизированы с разделом «Выплаты»: изменение или удаление здесь меняет исходную запись.',
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          if (errorText != null) ...[
+            const SizedBox(height: 12),
+            PremiumWorkCard(
+              radius: 22,
+              padding: const EdgeInsets.all(14),
+              child: Text(
+                errorText!,
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.error,
+                ),
+              ),
+            ),
+          ],
+          const SizedBox(height: 16),
+        ],
+      );
+    },
+  );
+}
 
   Widget expenseListHeader() {
     return LayoutBuilder(
