@@ -3,13 +3,14 @@ import 'package:flutter/material.dart';
 import '../../../models/app_user_profile.dart';
 import '../../../screens/profile_screen.dart';
 import '../../../widgets/premium_ui.dart';
+import '../../estimator/presentation/estimator_closing_screens.dart';
 import '../../shell/presentation/persistent_tab_shell.dart';
 import 'legal_base_complete_screen.dart';
 import 'legal_documents_complete_screen.dart';
 import 'legal_matters_complete_screen.dart';
 import 'legal_today_complete_screen.dart';
 
-// Рабочая оболочка юриста: очередь → база → документы → дела → профиль.
+// Рабочая оболочка юриста: очередь → база → документы → дела → закрытия → профиль.
 class LegalMainScreen extends StatefulWidget {
   final AppUserProfile profile;
 
@@ -20,7 +21,7 @@ class LegalMainScreen extends StatefulWidget {
 }
 
 class _LegalMainScreenState extends State<LegalMainScreen> {
-  static const int pageCount = 5;
+  static const int pageCount = 6;
   late final PersistentTabController tabs;
 
   @override
@@ -41,7 +42,8 @@ class _LegalMainScreenState extends State<LegalMainScreen> {
       1 => const LegalBaseCompleteScreen(),
       2 => const LegalDocumentsCompleteScreen(),
       3 => LegalMattersCompleteScreen(profile: widget.profile),
-      4 => ProfileScreen(profile: widget.profile),
+      4 => EstimatorClosingInboxScreen(profile: widget.profile),
+      5 => ProfileScreen(profile: widget.profile),
       _ => const SizedBox.shrink(),
     };
   }
@@ -71,6 +73,11 @@ class _LegalMainScreenState extends State<LegalMainScreen> {
           label: 'Дела',
           icon: Icons.gavel_outlined,
           selectedIcon: Icons.gavel_rounded,
+        ),
+        ProfessionalBottomNavigationItem(
+          label: 'Закрытия',
+          icon: Icons.inventory_2_outlined,
+          selectedIcon: Icons.inventory_2_rounded,
         ),
         ProfessionalBottomNavigationItem(
           label: 'Профиль',

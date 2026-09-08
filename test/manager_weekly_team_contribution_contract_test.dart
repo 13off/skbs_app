@@ -26,7 +26,9 @@ void main() {
       section,
       isNot(contains("label: const Text('Открыть недельную сводку')")),
     );
-    expect(managerShell, contains('static const int pageCount = 5;'));
+    expect(managerShell, contains('static const int pageCount = 6;'));
+    expect(managerShell, contains("label: 'Закрытия'"));
+    expect(managerShell, contains('EstimatorClosingInboxScreen'));
     expect(managerShell, isNot(contains("label: 'Вклад команды'")));
   });
 

@@ -5,7 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 void main() {
   test('estimator workspace does not nest a ListView inside AppPage', () {
     final source = File(
-      'lib/features/estimator/presentation/estimator_main_screen.dart',
+      'lib/features/estimator/presentation/estimator_work_screen.dart',
     ).readAsStringSync();
 
     final workScreenStart = source.indexOf('class _EstimatorWorkScreenState');

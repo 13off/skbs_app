@@ -355,6 +355,7 @@ class _CompanyMemberEditorScreenState extends State<CompanyMemberEditorScreen> {
       'foreman',
       'lawyer',
       'accountant',
+      'estimator',
       'hr',
       'procurement',
     };
@@ -638,6 +639,10 @@ class _CompanyMemberEditorScreenState extends State<CompanyMemberEditorScreen> {
                 DropdownMenuItem(value: 'foreman', child: Text('Прораб')),
                 DropdownMenuItem(value: 'lawyer', child: Text('Юрист')),
                 DropdownMenuItem(value: 'accountant', child: Text('Бухгалтер')),
+                DropdownMenuItem(
+                  value: 'estimator',
+                  child: Text('Инженер-сметчик'),
+                ),
                 DropdownMenuItem(value: 'hr', child: Text('HR-менеджер')),
                 DropdownMenuItem(
                   value: 'procurement',
