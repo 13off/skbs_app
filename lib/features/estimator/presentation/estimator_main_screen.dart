@@ -8,6 +8,7 @@ import '../../../widgets/premium_ui.dart';
 import '../../shell/presentation/persistent_tab_shell.dart';
 import '../data/task_completion_report_repository.dart';
 import '../models/task_completion_report.dart';
+import 'estimator_manual_volumes_screen.dart';
 import 'estimator_volumes_screen.dart';
 
 class EstimatorMainScreen extends StatefulWidget {
@@ -25,7 +26,7 @@ class _EstimatorMainScreenState extends State<EstimatorMainScreen> {
   @override
   void initState() {
     super.initState();
-    tabs = PersistentTabController(pageCount: 3);
+    tabs = PersistentTabController(pageCount: 4);
   }
 
   @override
@@ -38,7 +39,8 @@ class _EstimatorMainScreenState extends State<EstimatorMainScreen> {
     return switch (index) {
       0 => const _EstimatorWorkScreen(),
       1 => const EstimatorVolumesScreen(),
-      2 => ProfileScreen(profile: widget.profile),
+      2 => const EstimatorManualVolumesScreen(),
+      3 => ProfileScreen(profile: widget.profile),
       _ => const SizedBox.shrink(),
     };
   }
@@ -59,6 +61,11 @@ class _EstimatorMainScreenState extends State<EstimatorMainScreen> {
           label: 'Объёмы',
           icon: Icons.stacked_bar_chart_outlined,
           selectedIcon: Icons.stacked_bar_chart_rounded,
+        ),
+        ProfessionalBottomNavigationItem(
+          label: 'Ручные',
+          icon: Icons.edit_note_outlined,
+          selectedIcon: Icons.edit_note_rounded,
         ),
         ProfessionalBottomNavigationItem(
           label: 'Профиль',
