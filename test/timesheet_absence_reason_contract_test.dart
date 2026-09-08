@@ -94,6 +94,27 @@ void main() {
     expect(migration, contains("in ('sick', 'day_off')"));
   });
 
+  test('объяснительная включает болезнь и прогул, но исключает выходной', () {
+    final migration = source(
+      'supabase/migrations/20260908181000_manager_absence_todos_include_sick.sql',
+    );
+
+    expect(migration, contains('v_explanation_items'));
+    expect(
+      migration,
+      contains("lower(btrim(coalesce(attendance_row.absence_reason, ''))) = 'day_off'"),
+    );
+    expect(migration, contains('v_fine_items'));
+    expect(
+      migration,
+      contains("lower(btrim(coalesce(attendance_row.absence_reason, ''))) = 'sick'"),
+    );
+    expect(
+      migration,
+      contains('Взять объяснительную у каждого сотрудника. Для прогулов оформить акт о нарушении.'),
+    );
+  });
+
   test('объяснительная появляется не раньше 10:00 МСК', () {
     final migration = source(
       'supabase/migrations/20260908172000_manager_absence_todos_10am.sql',
