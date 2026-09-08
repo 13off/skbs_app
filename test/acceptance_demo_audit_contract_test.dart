@@ -67,11 +67,13 @@ void main() {
       'lib/features/ai/presentation/operational_audit_launcher_screen.dart',
     ).readAsStringSync();
 
-    expect(main, contains('pageCount = 6'));
+    expect(main, contains('pageCount = 7'));
     expect(main, contains("label: 'Люди'"));
     expect(main, contains("label: 'Расходы'"));
     expect(main, contains("label: 'Документы'"));
     expect(main, contains("label: 'Контроль'"));
+    expect(main, contains("label: 'Закрытия'"));
+    expect(main, contains('EstimatorClosingInboxScreen'));
     expect(main, contains('onOpenPeople: () => select(1)'));
     expect(main, contains('onOpenExpenses: () => select(2)'));
     expect(main, contains('onOpenDocuments: () => select(3)'));
