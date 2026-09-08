@@ -17,7 +17,9 @@ void main() {
     expect(mainSource, contains('BackgroundOfflineSyncService.initialize()'));
     expect(service, contains('NetworkType.connected'));
     expect(service, contains('registerOneOffTask'));
+    expect(service, contains('ExistingWorkPolicy.keep'));
     expect(service, contains('BackoffPolicy.linear'));
+    expect(service, contains('await preferences.reload()'));
     expect(service, contains('OfflineSyncService.flush()'));
     expect(service, contains('auth.refreshSession()'));
     expect(service, isNot(contains("from('tasks')")));
@@ -25,6 +27,10 @@ void main() {
 
     expect(host, contains('OfflineSyncService.state.addListener'));
     expect(host, contains('BackgroundOfflineSyncService.schedule'));
+    expect(host, contains('_ensureBackgroundFlushIfPending()'));
+    expect(host, contains('AppLifecycleState.resumed'));
+    expect(host, contains('AppLifecycleState.paused'));
+    expect(host, contains('AppLifecycleState.hidden'));
     expect(host, contains('OfflineSyncService.state.removeListener'));
   });
 

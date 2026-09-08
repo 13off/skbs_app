@@ -84,15 +84,18 @@ class _OfflineSyncHostState extends State<OfflineSyncHost>
       userId: widget.userId,
       companyId: widget.companyId,
     );
-    if (OfflineSyncService.pendingCount > 0) {
-      await _scheduleBackgroundFlush();
-    }
+    await _ensureBackgroundFlushIfPending();
     if (_isOnline) await _flushAndRefresh();
   }
 
   void _handleOfflineStateChange() {
     if (OfflineSyncService.pendingCount <= 0) return;
     unawaited(_scheduleBackgroundFlush());
+  }
+
+  Future<void> _ensureBackgroundFlushIfPending() async {
+    if (OfflineSyncService.pendingCount <= 0) return;
+    await _scheduleBackgroundFlush();
   }
 
   Future<void> _scheduleBackgroundFlush() {
@@ -107,6 +110,11 @@ class _OfflineSyncHostState extends State<OfflineSyncHost>
     if (before <= 0) return;
     await OfflineSyncService.flush();
     final after = OfflineSyncService.pendingCount;
+    if (after > 0) {
+      // Keep a native network-constrained wake registered whenever the
+      // foreground attempt could not empty the durable queue.
+      await _scheduleBackgroundFlush();
+    }
     if (after < before) {
       AppDataSync.notifyLocal(
         const <AppDataDomain>{AppDataDomain.tasks},
@@ -126,6 +134,7 @@ class _OfflineSyncHostState extends State<OfflineSyncHost>
     }
     if (mounted && !_isOnline) setState(() => _isOnline = true);
     if (OfflineSyncService.pendingCount > 0) {
+      await _ensureBackgroundFlushIfPending();
       await _flushAndRefresh();
       return;
     }
@@ -134,8 +143,23 @@ class _OfflineSyncHostState extends State<OfflineSyncHost>
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed && _isOnline) {
-      unawaited(_syncAfterConnectivitySignal());
+    if (state == AppLifecycleState.resumed) {
+      // Re-arm the native worker first. If the phone regained connectivity
+      // while AppСтрой was backgrounded, the queued upload is never dependent
+      // on the user pressing a retry button.
+      unawaited(_ensureBackgroundFlushIfPending());
+      if (_isOnline) unawaited(_syncAfterConnectivitySignal());
+      return;
+    }
+
+    if (state == AppLifecycleState.inactive ||
+        state == AppLifecycleState.hidden ||
+        state == AppLifecycleState.paused ||
+        state == AppLifecycleState.detached) {
+      // Schedule again at the exact moment the app leaves the foreground.
+      // Android WorkManager waits for NetworkType.connected; iOS keeps its
+      // background URLSession/BGProcessing wake alive until connectivity.
+      unawaited(_ensureBackgroundFlushIfPending());
     }
   }
 
