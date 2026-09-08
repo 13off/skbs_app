@@ -47,8 +47,25 @@ void main() {
     expect(actions, contains('missingAbsenceReasonEmployees'));
     expect(actions, contains('showAbsenceReasonPicker'));
     expect(actions, contains('Укажите причину невыхода'));
-    expect(sections, contains("label: Text(TimesheetAbsenceReason.labelFor(reason))"));
+    expect(
+      sections,
+      contains('label: Text(TimesheetAbsenceReason.labelFor(reason))'),
+    );
     expect(view, contains('buildMissingReasonsWarning(allEmployees)'));
+  });
+
+  test('широкий табель также сохраняет и требует причину невыхода', () {
+    final desktop = source('lib/screens/desktop_timesheet_screen.dart');
+
+    expect(
+      desktop,
+      contains('OfflineAttendanceReasonRepository.fetchReasonsForDate'),
+    );
+    expect(desktop, contains('OfflineAttendanceReasonRepository.saveReasons'));
+    expect(desktop, contains('missingAbsenceReasonEmployees'));
+    expect(desktop, contains("'Укажите причину невыхода:"));
+    expect(desktop, contains('TimesheetAbsenceReason.values'));
+    expect(desktop, contains("_HeaderText('Смена / причина')"));
   });
 
   test('причина едет через существующую offline attendance queue', () {
@@ -69,9 +86,21 @@ void main() {
     expect(migration, contains("('sick', 'day_off', 'no_show')"));
     expect(
       migration,
-      contains("coalesce(nullif(lower(btrim(a.absence_reason)), ''), 'no_show') = 'no_show'"),
+      contains(
+        "coalesce(nullif(lower(btrim(a.absence_reason)), ''), 'no_show') = 'no_show'",
+      ),
     );
     expect(migration, contains('update of\n  status,\n  shifts,\n  absence_reason'));
     expect(migration, contains("in ('sick', 'day_off')"));
+  });
+
+  test('объяснительная появляется не раньше 10:00 МСК', () {
+    final migration = source(
+      'supabase/migrations/20260908172000_manager_absence_todos_10am.sql',
+    );
+
+    expect(migration, contains("time '10:00'"));
+    expect(migration, isNot(contains("time '08:00'")));
+    expect(migration, contains("'Взять объяснительные'"));
   });
 }

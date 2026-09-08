@@ -8,8 +8,10 @@ import '../app/app_ui_tokens.dart';
 import '../data/app_data_sync.dart';
 import '../data/app_state.dart';
 import '../data/attendance_repository.dart';
+import '../data/offline_attendance_reason_repository.dart';
 import '../data/offline_master_repository.dart';
 import '../features/timesheet/data/timesheet_group_repository.dart';
+import '../features/timesheet/models/timesheet_absence_reason.dart';
 import '../features/timesheet/models/timesheet_group.dart';
 import '../models/app_user_profile.dart';
 import '../models/employee.dart';
@@ -59,6 +61,8 @@ class _DesktopTimesheetScreenState extends State<DesktopTimesheetScreen> {
   Map<String, int> groupIndexById = const <String, int>{};
   Map<String, double> shiftValuesByEmployeeId = <String, double>{};
   Map<String, double> originalShiftValuesByEmployeeId = <String, double>{};
+  Map<String, String> absenceReasonsByEmployeeId = <String, String>{};
+  Map<String, String> originalAbsenceReasonsByEmployeeId = <String, String>{};
   Map<String, ResponsibilityActor> attendanceResponsibility =
       const <String, ResponsibilityActor>{};
 
@@ -159,6 +163,21 @@ class _DesktopTimesheetScreenState extends State<DesktopTimesheetScreen> {
     return id == null ? 0 : shiftValuesByEmployeeId[id] ?? 0;
   }
 
+  String? absenceReasonFor(Employee employee) {
+    final id = employee.id;
+    if (id == null) return null;
+    return TimesheetAbsenceReason.normalize(absenceReasonsByEmployeeId[id]);
+  }
+
+  List<Employee> missingAbsenceReasonEmployees() {
+    return employees
+        .where(
+          (employee) =>
+              shiftValueFor(employee) == 0 && absenceReasonFor(employee) == null,
+        )
+        .toList(growable: false);
+  }
+
   bool changeMatchesCurrentTimesheet(AppDataChange change) {
     final workDate = change.contextValue('work_date');
     if (workDate != null &&
@@ -235,6 +254,10 @@ class _DesktopTimesheetScreenState extends State<DesktopTimesheetScreen> {
           objectName: requestedObject,
           forceRefresh: forceRefresh,
         ),
+        OfflineAttendanceReasonRepository.fetchReasonsForDate(
+          requestedDate,
+          objectName: requestedObject,
+        ),
         groupFuture,
         OfflineAttendanceRepository.fetchResponsibilityForDate(
           requestedDate,
@@ -247,9 +270,10 @@ class _DesktopTimesheetScreenState extends State<DesktopTimesheetScreen> {
 
       final loadedEmployees = results[0] as List<Employee>;
       final loadedValues = results[1] as Map<String, double>;
-      final loadedGroups = results[2] as List<TimesheetGroup>;
+      final loadedReasons = results[2] as Map<String, String>;
+      final loadedGroups = results[3] as List<TimesheetGroup>;
       final loadedResponsibility =
-          results[3] as Map<String, ResponsibilityActor>;
+          results[4] as Map<String, ResponsibilityActor>;
       final nextGroupByEmployeeId = <String, TimesheetGroup>{};
       final nextGroupIndexById = <String, int>{};
       for (var index = 0; index < loadedGroups.length; index++) {
@@ -274,6 +298,10 @@ class _DesktopTimesheetScreenState extends State<DesktopTimesheetScreen> {
         shiftValuesByEmployeeId = Map<String, double>.from(loadedValues);
         originalShiftValuesByEmployeeId = Map<String, double>.from(
           loadedValues,
+        );
+        absenceReasonsByEmployeeId = Map<String, String>.from(loadedReasons);
+        originalAbsenceReasonsByEmployeeId = Map<String, String>.from(
+          loadedReasons,
         );
         attendanceResponsibility = loadedResponsibility;
         hasUnsavedChanges = false;
@@ -314,29 +342,52 @@ class _DesktopTimesheetScreenState extends State<DesktopTimesheetScreen> {
 
   void setShiftValue(Employee employee, double value) {
     final id = employee.id;
-    if (id == null || shiftValuesByEmployeeId[id] == value) return;
+    if (id == null) return;
+    final reasonNeedsClear = value > 0 && absenceReasonsByEmployeeId[id] != null;
+    if (shiftValuesByEmployeeId[id] == value && !reasonNeedsClear) return;
 
     setState(() {
       shiftValuesByEmployeeId[id] = value;
+      if (value > 0) absenceReasonsByEmployeeId.remove(id);
       hasUnsavedChanges = true;
+      errorText = null;
+    });
+  }
+
+  void setAbsenceReason(Employee employee, String reason) {
+    final id = employee.id;
+    final normalized = TimesheetAbsenceReason.normalize(reason);
+    if (id == null || normalized == null || shiftValueFor(employee) > 0) return;
+    if (absenceReasonsByEmployeeId[id] == normalized) return;
+
+    setState(() {
+      absenceReasonsByEmployeeId[id] = normalized;
+      hasUnsavedChanges = true;
+      errorText = null;
     });
   }
 
   void setVisibleShifts(List<Employee> visible, double value) {
     final next = Map<String, double>.from(shiftValuesByEmployeeId);
+    final nextReasons = Map<String, String>.from(absenceReasonsByEmployeeId);
     var changed = false;
 
     for (final employee in visible) {
       final id = employee.id;
-      if (id == null || next[id] == value) continue;
-      next[id] = value;
-      changed = true;
+      if (id == null) continue;
+      if (next[id] != value) {
+        next[id] = value;
+        changed = true;
+      }
+      if (value > 0 && nextReasons.remove(id) != null) changed = true;
     }
 
     if (!changed) return;
     setState(() {
       shiftValuesByEmployeeId = next;
+      absenceReasonsByEmployeeId = nextReasons;
       hasUnsavedChanges = true;
+      errorText = null;
     });
   }
 
@@ -348,6 +399,8 @@ class _DesktopTimesheetScreenState extends State<DesktopTimesheetScreen> {
       selectedDate = cleanDate;
       shiftValuesByEmployeeId = <String, double>{};
       originalShiftValuesByEmployeeId = <String, double>{};
+      absenceReasonsByEmployeeId = <String, String>{};
+      originalAbsenceReasonsByEmployeeId = <String, String>{};
       hasUnsavedChanges = false;
       hasPendingRemoteAttendance = false;
     });
@@ -440,6 +493,25 @@ class _DesktopTimesheetScreenState extends State<DesktopTimesheetScreen> {
   }
 
   Future<void> saveTimesheet() async {
+    final missingReasons = missingAbsenceReasonEmployees();
+    if (missingReasons.isNotEmpty) {
+      setState(() {
+        attendanceFilter = 'Не вышли';
+        groupFilter = allGroupsFilter;
+        searchController.clear();
+        errorText =
+            'Укажите причину невыхода: ${missingReasons.length} чел.';
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Укажите причину невыхода: ${missingReasons.length} чел.',
+          ),
+        ),
+      );
+      return;
+    }
+
     setState(() {
       isSaving = true;
       errorText = null;
@@ -452,11 +524,21 @@ class _DesktopTimesheetScreenState extends State<DesktopTimesheetScreen> {
         shiftValuesByEmployeeId: shiftValuesByEmployeeId,
         originalShiftValuesByEmployeeId: originalShiftValuesByEmployeeId,
       );
+      await OfflineAttendanceReasonRepository.saveReasons(
+        date: selectedDate,
+        employees: employees,
+        shiftValuesByEmployeeId: shiftValuesByEmployeeId,
+        reasonsByEmployeeId: absenceReasonsByEmployeeId,
+        originalReasonsByEmployeeId: originalAbsenceReasonsByEmployeeId,
+      );
 
       if (!mounted) return;
       setState(() {
         originalShiftValuesByEmployeeId = Map<String, double>.from(
           shiftValuesByEmployeeId,
+        );
+        originalAbsenceReasonsByEmployeeId = Map<String, String>.from(
+          absenceReasonsByEmployeeId,
         );
         hasUnsavedChanges = false;
       });
@@ -943,9 +1025,12 @@ class _DesktopTimesheetScreenState extends State<DesktopTimesheetScreen> {
                 ? null
                 : attendanceResponsibility[employee.id!],
             value: shiftValueFor(employee),
+            absenceReason: absenceReasonFor(employee),
             formatShift: formatShift,
             enabled: !isLoading && !isSaving,
             onSelected: (value) => setShiftValue(employee, value),
+            onAbsenceReasonSelected: (reason) =>
+                setAbsenceReason(employee, reason),
             onCustom: () => showShiftPicker(employee),
           ),
         ),
@@ -971,9 +1056,12 @@ class _DesktopTimesheetScreenState extends State<DesktopTimesheetScreen> {
                 ? null
                 : attendanceResponsibility[employee.id!],
             value: shiftValueFor(employee),
+            absenceReason: absenceReasonFor(employee),
             formatShift: formatShift,
             enabled: !isLoading && !isSaving,
             onSelected: (value) => setShiftValue(employee, value),
+            onAbsenceReasonSelected: (reason) =>
+                setAbsenceReason(employee, reason),
             onCustom: () => showShiftPicker(employee),
           ),
         ),
@@ -1312,7 +1400,7 @@ class _TableHeader extends StatelessWidget {
           Expanded(flex: 4, child: _HeaderText('Сотрудник')),
           Expanded(flex: 2, child: _HeaderText('Объект')),
           Expanded(flex: 2, child: _HeaderText('Должность')),
-          Expanded(flex: 4, child: _HeaderText('Смена')),
+          Expanded(flex: 4, child: _HeaderText('Смена / причина')),
         ],
       ),
     );
@@ -1341,24 +1429,29 @@ class _TimesheetRow extends StatelessWidget {
   final Employee employee;
   final ResponsibilityActor? responsibility;
   final double value;
+  final String? absenceReason;
   final String Function(double value) formatShift;
   final bool enabled;
   final ValueChanged<double> onSelected;
+  final ValueChanged<String> onAbsenceReasonSelected;
   final VoidCallback onCustom;
 
   const _TimesheetRow({
     required this.employee,
     this.responsibility,
     required this.value,
+    required this.absenceReason,
     required this.formatShift,
     required this.enabled,
     required this.onSelected,
+    required this.onAbsenceReasonSelected,
     required this.onCustom,
   });
 
   @override
   Widget build(BuildContext context) {
     final hasWorked = value > 0;
+    final normalizedReason = TimesheetAbsenceReason.normalize(absenceReason);
 
     return Container(
       constraints: const BoxConstraints(minHeight: 72),
@@ -1438,35 +1531,92 @@ class _TimesheetRow extends StatelessWidget {
           ),
           Expanded(
             flex: 4,
-            child: Row(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                ...DesktopTimesheetScreenStateQuickOptions.values.map(
-                  (option) => Padding(
-                    padding: const EdgeInsets.only(right: 6),
-                    child: _ShiftButton(
-                      label: formatShift(option),
-                      selected: value == option,
+                Row(
+                  children: [
+                    ...DesktopTimesheetScreenStateQuickOptions.values.map(
+                      (option) => Padding(
+                        padding: const EdgeInsets.only(right: 6),
+                        child: _ShiftButton(
+                          label: formatShift(option),
+                          selected: value == option,
+                          enabled: enabled,
+                          onTap: () => onSelected(option),
+                        ),
+                      ),
+                    ),
+                    _ShiftButton(
+                      label:
+                          value > 2 ||
+                              !DesktopTimesheetScreenStateQuickOptions.values
+                                  .contains(value)
+                          ? formatShift(value)
+                          : 'Другое',
+                      selected:
+                          value > 2 ||
+                          !DesktopTimesheetScreenStateQuickOptions.values.contains(
+                            value,
+                          ),
                       enabled: enabled,
-                      onTap: () => onSelected(option),
+                      onTap: onCustom,
+                      wide: true,
+                    ),
+                  ],
+                ),
+                if (!hasWorked) ...[
+                  const SizedBox(height: 8),
+                  Container(
+                    height: 38,
+                    constraints: const BoxConstraints(maxWidth: 250),
+                    padding: const EdgeInsets.symmetric(horizontal: 10),
+                    decoration: BoxDecoration(
+                      color: _soft,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: normalizedReason == null ? _warning : _line,
+                      ),
+                    ),
+                    child: DropdownButtonHideUnderline(
+                      child: DropdownButton<String>(
+                        value: normalizedReason,
+                        hint: Text(
+                          'Причина невыхода',
+                          style: TextStyle(
+                            color: _muted,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        isDense: true,
+                        isExpanded: true,
+                        items: TimesheetAbsenceReason.values
+                            .map(
+                              (reason) => DropdownMenuItem<String>(
+                                value: reason,
+                                child: Text(
+                                  TimesheetAbsenceReason.labelFor(reason),
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w800,
+                                  ),
+                                ),
+                              ),
+                            )
+                            .toList(growable: false),
+                        onChanged: enabled
+                            ? (reason) {
+                                if (reason != null) {
+                                  onAbsenceReasonSelected(reason);
+                                }
+                              }
+                            : null,
+                      ),
                     ),
                   ),
-                ),
-                _ShiftButton(
-                  label:
-                      value > 2 ||
-                          !DesktopTimesheetScreenStateQuickOptions.values
-                              .contains(value)
-                      ? formatShift(value)
-                      : 'Другое',
-                  selected:
-                      value > 2 ||
-                      !DesktopTimesheetScreenStateQuickOptions.values.contains(
-                        value,
-                      ),
-                  enabled: enabled,
-                  onTap: onCustom,
-                  wide: true,
-                ),
+                ],
               ],
             ),
           ),

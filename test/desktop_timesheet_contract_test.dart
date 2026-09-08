@@ -36,7 +36,7 @@ void main() {
     expect(desktop, contains("'Сотрудник'"));
     expect(desktop, contains("'Объект'"));
     expect(desktop, contains("'Должность'"));
-    expect(desktop, contains("'Смена'"));
+    expect(desktop, contains("'Смена / причина'"));
 
     expect(
       shell,
