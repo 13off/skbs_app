@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../../../data/app_data_sync.dart';
+import '../../../models/app_user_profile.dart';
 import '../../../navigation/app_page_route.dart';
 import '../../../widgets/app_page.dart';
 import '../../../widgets/notification_bell.dart';
@@ -12,7 +13,17 @@ import 'accounting_today_details_screen.dart';
 import 'accounting_widgets.dart';
 
 class AccountingDashboardScreen extends StatefulWidget {
-  const AccountingDashboardScreen({super.key});
+  // Эти параметры сохранены для совместимости с adaptive-обёрткой. На
+  // мобильном «Сегодня» больше не использует общие переходы по вкладкам:
+  // каждое нажатие открывает свой контекстный drill-down.
+  const AccountingDashboardScreen({
+    super.key,
+    AppUserProfile? profile,
+    VoidCallback? onOpenPeople,
+    VoidCallback? onOpenExpenses,
+    VoidCallback? onOpenDocuments,
+    VoidCallback? onOpenControl,
+  });
 
   @override
   State<AccountingDashboardScreen> createState() =>
