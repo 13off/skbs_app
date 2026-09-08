@@ -1,6 +1,7 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../models/task_completion_report.dart';
+import 'estimator_manual_volume_repository.dart';
 
 abstract final class TaskCompletionReportRepository {
   static final SupabaseClient _client = Supabase.instance.client;
@@ -39,11 +40,46 @@ abstract final class TaskCompletionReportRepository {
               .select(_queueFields)
               .eq('review_status', cleanStatus)
               .order('submitted_at', ascending: false);
-    return rows
+    final reports = rows
         .map<TaskCompletionReport>(
           (row) => TaskCompletionReport.fromMap(Map<String, dynamic>.from(row)),
         )
-        .toList(growable: false);
+        .toList(growable: true);
+
+    // The cumulative «Объёмы» screen requests only approved entries. Add active
+    // estimator-created manual facts to that feed so they participate in the
+    // same grouping and period calculations without polluting the work queue.
+    if (cleanStatus == 'approved') {
+      final manualRows = await EstimatorManualVolumeRepository.fetchAll();
+      for (final manual in manualRows) {
+        if (manual.isVoided) continue;
+        reports.add(
+          TaskCompletionReport(
+            id: 'manual:${manual.id}',
+            taskId: 'manual:${manual.id}',
+            reportedQuantity: manual.quantity,
+            unit: manual.unit,
+            workLocation: 'Вручную',
+            completionComment:
+                '${manual.reasonTitle}: ${manual.reasonComment}',
+            reviewStatus: 'approved',
+            approvedQuantity: manual.quantity,
+            reviewComment: 'Ручная запись инженера-сметчика',
+            submittedByName: manual.createdByName,
+            submittedAt: manual.createdAt,
+            reviewedByName: manual.createdByName,
+            reviewedAt: manual.createdAt,
+            taskDate: manual.workDate,
+            objectName: manual.objectName,
+            axes: 'Вручную · ${manual.reasonTitle}',
+            work: manual.work,
+          ),
+        );
+      }
+      reports.sort((a, b) => b.taskDate.compareTo(a.taskDate));
+    }
+
+    return List<TaskCompletionReport>.unmodifiable(reports);
   }
 
   static Future<void> submit({
