@@ -45,7 +45,7 @@ extension _TimesheetView on _TimesheetScreenState {
                             buildWorkedSummaryPanel(
                               visibleEmployees: visibleEmployees,
                             ),
-                            if (missingReasonCount > 0) ...[
+                            if (!isAttendanceLoading && missingReasonCount > 0) ...[
                               const SizedBox(height: 12),
                               buildMissingReasonsWarning(allEmployees),
                             ],
