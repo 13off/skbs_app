@@ -22,6 +22,7 @@ class EstimatorVolumeSummary {
     required this.manualSources,
   });
 
+  List<TaskCompletionReport> get sources => taskSources;
   int get sourceCount => taskSources.length + manualSources.length;
   int get manualSourceCount => manualSources.length;
 
