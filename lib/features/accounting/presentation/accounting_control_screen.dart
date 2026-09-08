@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../../navigation/app_page_route.dart';
 import '../../shared/presentation/specialist_desktop_table.dart';
 import '../../shared/presentation/specialist_desktop_ui.dart';
 import '../data/accounting_repository.dart';
 import '../data/accounting_workbench_repository.dart';
+import 'accounting_document_detail_screen.dart';
+import 'accounting_task_detail_screen.dart';
+import 'accounting_today_details_screen.dart';
 import 'accounting_widgets.dart';
 import 'accounting_workspace_widgets.dart';
 
@@ -49,9 +53,7 @@ class _AccountingControlScreenState extends State<AccountingControlScreen> {
     );
   }
 
-  Future<List<AccountingCalendarTask>> _fetchCompletedTasks({
-    int limit = 30,
-  }) async {
+  Future<List<AccountingCalendarTask>> _fetchCompletedTasks({int limit = 30}) async {
     final raw = await client
         .from('accounting_calendar_tasks')
         .select()
@@ -74,10 +76,7 @@ class _AccountingControlScreenState extends State<AccountingControlScreen> {
   ) async {
     final raw = await client.rpc(
       'get_accounting_trial_balance',
-      params: {
-        'p_start_date': _date(start),
-        'p_end_date': _date(end),
-      },
+      params: {'p_start_date': _date(start), 'p_end_date': _date(end)},
     );
     if (raw is! List) return const [];
     return raw
@@ -93,6 +92,68 @@ class _AccountingControlScreenState extends State<AccountingControlScreen> {
     final next = load();
     setState(() => future = next);
     await next;
+  }
+
+  Future<void> openTask(AccountingCalendarTask task) async {
+    await Navigator.of(context).push<void>(
+      AppPageRoute<void>(
+        builder: (_) => AccountingTaskDetailScreen(taskId: task.id),
+      ),
+    );
+    if (mounted) await refresh();
+  }
+
+  Future<void> openDocument(AccountingPrimaryDocument document) async {
+    await Navigator.of(context).push<void>(
+      AppPageRoute<void>(
+        builder: (_) => AccountingDocumentDetailScreen(
+          documentId: document.id,
+        ),
+      ),
+    );
+    if (mounted) await refresh();
+  }
+
+  Future<void> openTodayDetails(
+    DateTime month,
+    AccountingTodayDetailsMode mode,
+  ) async {
+    await Navigator.of(context).push<void>(
+      AppPageRoute<void>(
+        builder: (_) => AccountingTodayDetailsScreen(month: month, mode: mode),
+      ),
+    );
+    if (mounted) await refresh();
+  }
+
+  Future<void> openMissingReceipt(
+    AccountingMissingReceipt receipt,
+    DateTime settlementMonth,
+  ) async {
+    final rows = await AccountingRepository.fetchSettlementPaymentRegister(
+      month: settlementMonth,
+      forceRefresh: true,
+    );
+    AccountingPaymentRegisterRow? match;
+    for (final row in rows) {
+      if (row.paymentId == receipt.paymentId) {
+        match = row;
+        break;
+      }
+    }
+    if (!mounted) return;
+    if (match == null || match.employee == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Не удалось открыть конкретную выплату')),
+      );
+      return;
+    }
+    await Navigator.of(context).push<void>(
+      AppPageRoute<void>(
+        builder: (_) => AccountingPaymentDetailScreen(row: match!),
+      ),
+    );
+    if (mounted) await refresh();
   }
 
   Future<void> addTask() async {
@@ -195,6 +256,7 @@ class _AccountingControlScreenState extends State<AccountingControlScreen> {
       rows: tasks
           .map(
             (task) => SpecialistTableRowData(
+              onTap: () => openTask(task),
               cells: [
                 specialistCellText(accountingDate(task.dueDate)),
                 specialistCellText(task.title, weight: FontWeight.w900),
@@ -301,6 +363,10 @@ class _AccountingControlScreenState extends State<AccountingControlScreen> {
                 accent: data.dashboard.missingReceiptCount > 0
                     ? specialistDanger
                     : specialistSuccess,
+                onTap: () => openTodayDetails(
+                  data.dashboard.month,
+                  AccountingTodayDetailsMode.missingReceipts,
+                ),
               ),
             ),
             const SizedBox(width: 12),
@@ -321,6 +387,10 @@ class _AccountingControlScreenState extends State<AccountingControlScreen> {
                 label: 'К выплате сотрудникам',
                 value: accountingMoney(data.dashboard.totalBalance.abs()),
                 accent: specialistWarning,
+                onTap: () => openTodayDetails(
+                  data.dashboard.month,
+                  AccountingTodayDetailsMode.balances,
+                ),
               ),
             ),
           ],
@@ -347,6 +417,7 @@ class _AccountingControlScreenState extends State<AccountingControlScreen> {
               rows: data.dashboard.missingReceipts
                   .map(
                     (row) => SpecialistTableRowData(
+                      onTap: () => openMissingReceipt(row, data.dashboard.month),
                       cells: [
                         specialistCellText(accountingDate(row.paymentDate)),
                         specialistCellText(
@@ -355,7 +426,7 @@ class _AccountingControlScreenState extends State<AccountingControlScreen> {
                         ),
                         specialistCellText(row.objectName),
                         specialistCellText(accountingMoney(row.amount)),
-                        AccountingStatusBadge(
+                        const AccountingStatusBadge(
                           label: 'Нет чека',
                           color: specialistDanger,
                         ),
@@ -378,6 +449,7 @@ class _AccountingControlScreenState extends State<AccountingControlScreen> {
               rows: attentionDocs
                   .map(
                     (row) => SpecialistTableRowData(
+                      onTap: () => openDocument(row),
                       cells: [
                         specialistCellText(accountingDate(row.date)),
                         specialistCellText(
@@ -442,8 +514,7 @@ class _AccountingControlScreenState extends State<AccountingControlScreen> {
   Widget reporting(List<AccountingCalendarTask> tasks) {
     final reportingTasks = tasks
         .where(
-          (e) =>
-              e.kind == 'report' || e.kind == 'tax' || e.kind == 'salary',
+          (e) => e.kind == 'report' || e.kind == 'tax' || e.kind == 'salary',
         )
         .toList();
     return Column(
@@ -622,29 +693,20 @@ class _AddTaskDialogState extends State<_AddTaskDialog> {
           children: [
             TextField(
               controller: title,
-              decoration: const InputDecoration(
-                labelText: 'Что нужно сделать',
-              ),
+              decoration: const InputDecoration(labelText: 'Что нужно сделать'),
             ),
             const SizedBox(height: 12),
             DropdownButtonFormField<String>(
               initialValue: kind,
               decoration: const InputDecoration(labelText: 'Тип'),
               items: const [
-                DropdownMenuItem(
-                  value: 'report',
-                  child: Text('Отчётность'),
-                ),
+                DropdownMenuItem(value: 'report', child: Text('Отчётность')),
                 DropdownMenuItem(value: 'tax', child: Text('Налог')),
-                DropdownMenuItem(
-                  value: 'salary',
-                  child: Text('Зарплата'),
-                ),
+                DropdownMenuItem(value: 'salary', child: Text('Зарплата')),
                 DropdownMenuItem(value: 'payment', child: Text('Платёж')),
                 DropdownMenuItem(value: 'other', child: Text('Другое')),
               ],
-              onChanged: (value) =>
-                  setState(() => kind = value ?? 'report'),
+              onChanged: (value) => setState(() => kind = value ?? 'report'),
             ),
             const SizedBox(height: 12),
             OutlinedButton.icon(
@@ -743,18 +805,14 @@ class _AddManualOperationDialogState
                 Expanded(
                   child: TextField(
                     controller: debit,
-                    decoration: const InputDecoration(
-                      labelText: 'Дебет счёта',
-                    ),
+                    decoration: const InputDecoration(labelText: 'Дебет счёта'),
                   ),
                 ),
                 const SizedBox(width: 10),
                 Expanded(
                   child: TextField(
                     controller: credit,
-                    decoration: const InputDecoration(
-                      labelText: 'Кредит счёта',
-                    ),
+                    decoration: const InputDecoration(labelText: 'Кредит счёта'),
                   ),
                 ),
               ],
