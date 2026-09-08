@@ -3,6 +3,7 @@ part of '../employee_details_screen.dart';
 extension _EmployeeDetailsView on _EmployeeDetailsScreenState {
   Widget buildEmployeeDetailsView() {
     final isAdmin = widget.profile.isAdmin;
+    final canViewEmployeeData = isAdmin || widget.profile.isAccountant;
     final toolsScreen = CompanyToolsScreen(profile: widget.profile);
 
     return Scaffold(
@@ -15,12 +16,13 @@ extension _EmployeeDetailsView on _EmployeeDetailsScreenState {
           if (isAdmin) ...[
             buildEmployeeAccessTile(),
             const SizedBox(height: 8),
+          ],
+          if (canViewEmployeeData)
             buildActionTile(
               icon: Icons.badge_outlined,
               title: 'Паспорт специалиста',
               onTap: openProfessionalPassport,
             ),
-          ],
           buildActionTile(
             icon: Icons.donut_large_rounded,
             title: 'Личный вклад',
@@ -31,7 +33,7 @@ extension _EmployeeDetailsView on _EmployeeDetailsScreenState {
             title: 'Индивидуальный табель',
             onTap: openTimesheet,
           ),
-          if (isAdmin)
+          if (canViewEmployeeData)
             DocumentToolAvailabilityBuilder(
               companyId: widget.profile.activeCompanyId,
               builder: (context, enabled, loading) => Column(
