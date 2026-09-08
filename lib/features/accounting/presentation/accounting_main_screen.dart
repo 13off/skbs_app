@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
 
 import '../../../models/app_user_profile.dart';
+import '../../../screens/adaptive_employees_screen.dart';
 import '../../../screens/profile_screen.dart';
 import '../../../widgets/premium_ui.dart';
+import '../../expenses/presentation/expenses_screen.dart';
 import '../../shell/presentation/persistent_tab_shell.dart';
-import 'adaptive_accounting_dashboard_screen.dart';
-import 'adaptive_accounting_operations_screen.dart';
 import 'accounting_documents_screen.dart';
 import 'accounting_control_screen.dart';
+import 'adaptive_accounting_dashboard_screen.dart';
 
 class AccountingMainScreen extends StatefulWidget {
   final AppUserProfile profile;
@@ -19,7 +20,7 @@ class AccountingMainScreen extends StatefulWidget {
 }
 
 class _AccountingMainScreenState extends State<AccountingMainScreen> {
-  static const int pageCount = 5;
+  static const int pageCount = 6;
   late final PersistentTabController tabs;
 
   @override
@@ -41,12 +42,16 @@ class _AccountingMainScreenState extends State<AccountingMainScreen> {
       0 => AdaptiveAccountingDashboardScreen(
         profile: widget.profile,
         onOpenPayments: () => select(1),
-        onOpenReports: () => select(3),
+        onOpenReports: () => select(4),
       ),
-      1 => const AdaptiveAccountingOperationsScreen(),
-      2 => const AccountingDocumentsScreen(),
-      3 => const AccountingControlScreen(),
-      4 => ProfileScreen(profile: widget.profile),
+      1 => AdaptiveEmployeesScreen(
+        profile: widget.profile,
+        selectedObjectName: null,
+      ),
+      2 => const ExpensesScreen(),
+      3 => const AccountingDocumentsScreen(),
+      4 => const AccountingControlScreen(),
+      5 => ProfileScreen(profile: widget.profile),
       _ => const SizedBox.shrink(),
     };
   }
@@ -63,9 +68,14 @@ class _AccountingMainScreenState extends State<AccountingMainScreen> {
           selectedIcon: Icons.home_rounded,
         ),
         ProfessionalBottomNavigationItem(
-          label: 'Операции',
-          icon: Icons.account_balance_wallet_outlined,
-          selectedIcon: Icons.account_balance_wallet_rounded,
+          label: 'Люди',
+          icon: Icons.groups_outlined,
+          selectedIcon: Icons.groups_rounded,
+        ),
+        ProfessionalBottomNavigationItem(
+          label: 'Расходы',
+          icon: Icons.receipt_long_outlined,
+          selectedIcon: Icons.receipt_long_rounded,
         ),
         ProfessionalBottomNavigationItem(
           label: 'Документы',
