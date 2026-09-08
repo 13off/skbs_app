@@ -1,3 +1,4 @@
+import 'estimator_manual_volume.dart';
 import 'task_completion_report.dart';
 
 class EstimatorVolumeSummary {
@@ -7,7 +8,8 @@ class EstimatorVolumeSummary {
   final double previousQuantity;
   final double periodQuantity;
   final double totalQuantity;
-  final List<TaskCompletionReport> sources;
+  final List<TaskCompletionReport> taskSources;
+  final List<EstimatorManualVolume> manualSources;
 
   const EstimatorVolumeSummary({
     required this.objectName,
@@ -16,10 +18,12 @@ class EstimatorVolumeSummary {
     required this.previousQuantity,
     required this.periodQuantity,
     required this.totalQuantity,
-    required this.sources,
+    required this.taskSources,
+    required this.manualSources,
   });
 
-  int get sourceCount => sources.length;
+  int get sourceCount => taskSources.length + manualSources.length;
+  int get manualSourceCount => manualSources.length;
 
   String get previousTitle => TaskCompletionReport.formatQuantity(previousQuantity);
   String get periodTitle => TaskCompletionReport.formatQuantity(periodQuantity);
@@ -66,6 +70,7 @@ class EstimatorVolumeSummary {
 
   static List<EstimatorVolumeSummary> build({
     required List<TaskCompletionReport> reports,
+    List<EstimatorManualVolume> manualVolumes = const <EstimatorManualVolume>[],
     required DateTime period,
     String objectFilter = '',
   }) {
@@ -73,6 +78,19 @@ class EstimatorVolumeSummary {
     final nextPeriodStart = DateTime(period.year, period.month + 1);
     final filter = objectFilter.trim().toLowerCase();
     final buckets = <String, _VolumeBucket>{};
+
+    _VolumeBucket bucketFor({
+      required String objectName,
+      required String work,
+      required String unit,
+    }) {
+      final key =
+          '${objectName.toLowerCase()}|${work.toLowerCase()}|${unit.toLowerCase()}';
+      return buckets.putIfAbsent(
+        key,
+        () => _VolumeBucket(objectName: objectName, work: work, unit: unit),
+      );
+    }
 
     for (final report in reports) {
       if (!report.isApproved || report.approvedQuantity == null) continue;
@@ -85,21 +103,36 @@ class EstimatorVolumeSummary {
       final work = report.work.trim().isEmpty
           ? 'Без наименования работы'
           : report.work.trim();
-      final unit = normalizeUnit(report.unit).isEmpty
-          ? '—'
-          : normalizeUnit(report.unit);
-      final key = '${objectName.toLowerCase()}|${work.toLowerCase()}|${unit.toLowerCase()}';
-      final bucket = buckets.putIfAbsent(
-        key,
-        () => _VolumeBucket(objectName: objectName, work: work, unit: unit),
-      );
+      final normalizedUnit = normalizeUnit(report.unit);
+      final unit = normalizedUnit.isEmpty ? '—' : normalizedUnit;
+      final bucket = bucketFor(objectName: objectName, work: work, unit: unit);
       final quantity = report.approvedQuantity!;
       if (report.taskDate.isBefore(periodStart)) {
         bucket.previousQuantity += quantity;
       } else {
         bucket.periodQuantity += quantity;
       }
-      bucket.sources.add(report);
+      bucket.taskSources.add(report);
+    }
+
+    for (final manual in manualVolumes) {
+      if (manual.isVoided || !manual.workDate.isBefore(nextPeriodStart)) continue;
+      final objectName = manual.objectName.trim().isEmpty
+          ? 'Без объекта'
+          : manual.objectName.trim();
+      if (filter.isNotEmpty && objectName.toLowerCase() != filter) continue;
+      final work = manual.work.trim().isEmpty
+          ? 'Без наименования работы'
+          : manual.work.trim();
+      final normalizedUnit = normalizeUnit(manual.unit);
+      final unit = normalizedUnit.isEmpty ? '—' : normalizedUnit;
+      final bucket = bucketFor(objectName: objectName, work: work, unit: unit);
+      if (manual.workDate.isBefore(periodStart)) {
+        bucket.previousQuantity += manual.quantity;
+      } else {
+        bucket.periodQuantity += manual.quantity;
+      }
+      bucket.manualSources.add(manual);
     }
 
     final result = buckets.values
@@ -111,7 +144,12 @@ class EstimatorVolumeSummary {
             previousQuantity: bucket.previousQuantity,
             periodQuantity: bucket.periodQuantity,
             totalQuantity: bucket.previousQuantity + bucket.periodQuantity,
-            sources: List<TaskCompletionReport>.unmodifiable(bucket.sources),
+            taskSources: List<TaskCompletionReport>.unmodifiable(
+              bucket.taskSources,
+            ),
+            manualSources: List<EstimatorManualVolume>.unmodifiable(
+              bucket.manualSources,
+            ),
           ),
         )
         .toList(growable: false);
@@ -135,7 +173,8 @@ class _VolumeBucket {
   final String unit;
   double previousQuantity = 0;
   double periodQuantity = 0;
-  final List<TaskCompletionReport> sources = <TaskCompletionReport>[];
+  final List<TaskCompletionReport> taskSources = <TaskCompletionReport>[];
+  final List<EstimatorManualVolume> manualSources = <EstimatorManualVolume>[];
 
   _VolumeBucket({
     required this.objectName,
