@@ -32,8 +32,10 @@ void main() {
         'ExpensesScreen()',
         'AccountingDocumentsScreen()',
         'AccountingControlScreen()',
-        'onOpenPayments: () => select(1)',
-        'onOpenReports: () => select(4)',
+        'onOpenPeople: () => select(1)',
+        'onOpenExpenses: () => select(2)',
+        'onOpenDocuments: () => select(3)',
+        'onOpenControl: () => select(4)',
       ],
     );
 
@@ -42,6 +44,8 @@ void main() {
     );
     expect(main, isNot(contains("label: 'Операции'")));
     expect(main, isNot(contains("label: 'Отчёты'")));
+    expect(main, isNot(contains('onOpenPayments')));
+    expect(main, isNot(contains('onOpenReports')));
     expect(main, isNot(contains('AdaptiveAccountingOperationsScreen')));
     expect(main, isNot(contains('AdaptiveAccountingReportsScreen')));
 
@@ -85,6 +89,9 @@ void main() {
         "('checks', 'Проверки'",
         "('osv', 'ОСВ'",
         "('reporting', 'Отчётность'",
+        "title: 'Просрочено · ",
+        "title: 'Ближайшие · ",
+        "title: 'Выполнено · ",
         'get_accounting_trial_balance',
         'accounting_journal_entries',
         'accounting_journal_lines',
