@@ -1,10 +1,11 @@
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
-import 'package:url_launcher/url_launcher.dart';
 
+import '../../../navigation/app_page_route.dart';
 import '../../shared/presentation/specialist_desktop_table.dart';
 import '../../shared/presentation/specialist_desktop_ui.dart';
 import '../data/accounting_workbench_repository.dart';
+import 'accounting_document_detail_screen.dart';
 import 'accounting_widgets.dart';
 import 'accounting_workspace_widgets.dart';
 
@@ -12,7 +13,8 @@ class AccountingDocumentsScreen extends StatefulWidget {
   const AccountingDocumentsScreen({super.key});
 
   @override
-  State<AccountingDocumentsScreen> createState() => _AccountingDocumentsScreenState();
+  State<AccountingDocumentsScreen> createState() =>
+      _AccountingDocumentsScreenState();
 }
 
 class _AccountingDocumentsScreenState extends State<AccountingDocumentsScreen> {
@@ -45,6 +47,17 @@ class _AccountingDocumentsScreenState extends State<AccountingDocumentsScreen> {
     final next = load();
     setState(() => future = next);
     await next;
+  }
+
+  Future<void> openDocument(AccountingPrimaryDocument document) async {
+    await Navigator.of(context).push<void>(
+      AppPageRoute<void>(
+        builder: (_) => AccountingDocumentDetailScreen(
+          documentId: document.id,
+        ),
+      ),
+    );
+    if (mounted) await refresh();
   }
 
   Future<void> addDocument(String type) async {
@@ -139,55 +152,6 @@ class _AccountingDocumentsScreenState extends State<AccountingDocumentsScreen> {
       documentNumber: draft.documentNumber,
     );
     await refresh();
-  }
-
-  Future<void> showDocumentFiles(AccountingPrimaryDocument document) async {
-    if (document.files.isEmpty) return;
-    await showDialog<void>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(
-          document.number.isEmpty
-              ? 'Файлы документа'
-              : 'Файлы документа № ${document.number}',
-        ),
-        content: SizedBox(
-          width: 560,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: document.files
-                .map(
-                  (file) => ListTile(
-                    leading: const Icon(Icons.attach_file_rounded),
-                    title: Text(
-                      file.fileName.isEmpty ? 'Файл' : file.fileName,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    subtitle: Text(file.contentType),
-                    trailing: const Icon(Icons.open_in_new_rounded),
-                    onTap: () async {
-                      final url = await repository.createDocumentFileSignedUrl(
-                        file,
-                      );
-                      await launchUrl(
-                        Uri.parse(url),
-                        mode: LaunchMode.externalApplication,
-                      );
-                    },
-                  ),
-                )
-                .toList(growable: false),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Закрыть'),
-          ),
-        ],
-      ),
-    );
   }
 
   Widget actions() {
@@ -295,7 +259,7 @@ class _AccountingDocumentsScreenState extends State<AccountingDocumentsScreen> {
       rows: rows
           .map(
             (row) => SpecialistTableRowData(
-              onTap: row.files.isEmpty ? null : () => showDocumentFiles(row),
+              onTap: () => openDocument(row),
               cells: [
                 specialistCellText(accountingDate(row.date)),
                 specialistCellText(
@@ -402,7 +366,9 @@ class _AccountingDocumentsScreenState extends State<AccountingDocumentsScreen> {
                 specialistCellText(_nomenclatureKind(row.kind)),
                 specialistCellText(row.unit.isEmpty ? '—' : row.unit),
                 specialistCellText(
-                  row.vatRate == null ? 'Без НДС' : '${row.vatRate!.toStringAsFixed(0)}%',
+                  row.vatRate == null
+                      ? 'Без НДС'
+                      : '${row.vatRate!.toStringAsFixed(0)}%',
                 ),
                 specialistCellText(
                   row.comment.isEmpty ? '—' : row.comment,
