@@ -249,7 +249,8 @@ class _TaskCompletionReportDialogState
                   const SizedBox(width: 12),
                   Expanded(
                     child: DropdownButtonFormField<String>(
-                      value: selectedUnit.isEmpty ? null : selectedUnit,
+                      key: ValueKey<String>('completion-unit:$selectedUnit'),
+                      initialValue: selectedUnit.isEmpty ? null : selectedUnit,
                       isExpanded: true,
                       decoration: const InputDecoration(
                         labelText: 'Единица измерения',
