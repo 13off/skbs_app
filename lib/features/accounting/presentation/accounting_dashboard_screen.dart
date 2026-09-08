@@ -152,86 +152,6 @@ class _AccountingDashboardScreenState extends State<AccountingDashboardScreen> {
     );
   }
 
-  Widget workspaceActions() {
-    return PremiumWorkCard(
-      radius: 28,
-      padding: const EdgeInsets.all(14),
-      child: Wrap(
-        spacing: 8,
-        runSpacing: 8,
-        children: [
-          FilledButton.tonalIcon(
-            onPressed: widget.onOpenPeople,
-            icon: const Icon(Icons.groups_outlined),
-            label: const Text('Люди'),
-          ),
-          FilledButton.tonalIcon(
-            onPressed: widget.onOpenExpenses,
-            icon: const Icon(Icons.receipt_long_outlined),
-            label: const Text('Расходы'),
-          ),
-          FilledButton.tonalIcon(
-            onPressed: widget.onOpenDocuments,
-            icon: const Icon(Icons.description_outlined),
-            label: const Text('Документы'),
-          ),
-          FilledButton.tonalIcon(
-            onPressed: widget.onOpenControl,
-            icon: const Icon(Icons.fact_check_outlined),
-            label: const Text('Контроль'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget balances(AccountingDashboardData data) {
-    return PremiumWorkCard(
-      radius: 28,
-      padding: const EdgeInsets.all(18),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Крупные остатки',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w900,
-              letterSpacing: -0.25,
-            ),
-          ),
-          const SizedBox(height: 10),
-          if (data.largestBalances.isEmpty)
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: 18),
-              child: Center(child: Text('Задолженностей за период нет')),
-            ),
-          ...data.largestBalances.map(
-            (row) => ListTile(
-              contentPadding: EdgeInsets.zero,
-              leading: CircleAvatar(
-                backgroundColor: accountingSoft,
-                child: Icon(Icons.person_outline, color: accountingText),
-              ),
-              title: Text(
-                row.employee.name,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(fontWeight: FontWeight.w800),
-              ),
-              subtitle: Text(row.employee.objectName),
-              trailing: Text(
-                accountingMoney(row.balance),
-                style: const TextStyle(fontWeight: FontWeight.w900),
-              ),
-              onTap: widget.onOpenPeople,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget receipts(AccountingDashboardData data) {
     return PremiumWorkCard(
       radius: 28,
@@ -325,8 +245,6 @@ class _AccountingDashboardScreenState extends State<AccountingDashboardScreen> {
             children: [
               summary(data),
               const SizedBox(height: 14),
-              workspaceActions(),
-              const SizedBox(height: 14),
               AccountingMetricCard(
                 icon: Icons.groups_outlined,
                 title: 'Сотрудников с остатком',
@@ -350,8 +268,6 @@ class _AccountingDashboardScreenState extends State<AccountingDashboardScreen> {
                 subtitle: 'Требуют подтверждающего файла',
                 onTap: widget.onOpenExpenses,
               ),
-              const SizedBox(height: 16),
-              balances(data),
               const SizedBox(height: 16),
               receipts(data),
             ],
