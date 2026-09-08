@@ -418,11 +418,22 @@ class _RolePreviewScreenState extends State<RolePreviewScreen> {
                         icon: Icons.engineering_rounded,
                         title: 'Прораб',
                         selected: preview.isForemanMode,
-                        onTap:
-                            objectSnapshot.connectionState ==
-                                ConnectionState.waiting
-                            ? null
-                            : () => selectForeman(objectNames),
+                        onTap: () async {
+                          try {
+                            final names = objectSnapshot.data ?? await objectNamesFuture;
+                            if (!mounted) return;
+                            await selectForeman(names);
+                          } catch (error) {
+                            if (!mounted) return;
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  'Не удалось загрузить объекты: $error',
+                                ),
+                              ),
+                            );
+                          }
+                        },
                         badge:
                             preview.isForemanMode &&
                                 preview.objectName.isNotEmpty
@@ -433,11 +444,22 @@ class _RolePreviewScreenState extends State<RolePreviewScreen> {
                         icon: Icons.construction_rounded,
                         title: 'Сотрудник',
                         selected: preview.isEmployeeMode,
-                        onTap:
-                            employeeSnapshot.connectionState ==
-                                ConnectionState.waiting
-                            ? null
-                            : () => selectEmployee(employees),
+                        onTap: () async {
+                          try {
+                            final list = employeeSnapshot.data ?? await employeesFuture;
+                            if (!mounted) return;
+                            await selectEmployee(list);
+                          } catch (error) {
+                            if (!mounted) return;
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  'Не удалось загрузить сотрудников: $error',
+                                ),
+                              ),
+                            );
+                          }
+                        },
                         badge:
                             preview.isEmployeeMode &&
                                 preview.employeeName.isNotEmpty
