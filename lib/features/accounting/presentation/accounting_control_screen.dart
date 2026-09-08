@@ -33,16 +33,39 @@ class _AccountingControlScreenState extends State<AccountingControlScreen> {
     final end = DateTime(now.year, now.month + 1, 0);
     final result = await Future.wait<dynamic>([
       workbench.fetchCalendarTasks(limit: 100),
+      _fetchCompletedTasks(limit: 30),
       AccountingRepository.fetchDashboard(month: now),
       workbench.fetchDocuments(),
       _fetchTrialBalance(start, end),
     ]);
     return _ControlData(
-      tasks: result[0] as List<AccountingCalendarTask>,
-      dashboard: result[1] as AccountingDashboardData,
-      documents: result[2] as List<AccountingPrimaryDocument>,
-      trialBalance: result[3] as List<_TrialBalanceRow>,
+      tasks: <AccountingCalendarTask>[
+        ...result[0] as List<AccountingCalendarTask>,
+        ...result[1] as List<AccountingCalendarTask>,
+      ],
+      dashboard: result[2] as AccountingDashboardData,
+      documents: result[3] as List<AccountingPrimaryDocument>,
+      trialBalance: result[4] as List<_TrialBalanceRow>,
     );
+  }
+
+  Future<List<AccountingCalendarTask>> _fetchCompletedTasks({
+    int limit = 30,
+  }) async {
+    final raw = await client
+        .from('accounting_calendar_tasks')
+        .select()
+        .eq('status', 'done')
+        .order('due_date', ascending: false)
+        .limit(limit);
+    return (raw as List)
+        .whereType<Map>()
+        .map(
+          (row) => AccountingCalendarTask.fromMap(
+            Map<String, dynamic>.from(row),
+          ),
+        )
+        .toList(growable: false);
   }
 
   Future<List<_TrialBalanceRow>> _fetchTrialBalance(
@@ -147,15 +170,19 @@ class _AccountingControlScreenState extends State<AccountingControlScreen> {
     );
   }
 
-  Widget calendar(List<AccountingCalendarTask> tasks) {
-    if (tasks.isEmpty) {
-      return const AccountingEmptyState(
-        icon: Icons.event_available_outlined,
-        title: 'Обязательных задач пока нет',
-        description:
-            'Добавьте сроки зарплаты, налогов и отчётности — они будут видны бухгалтеру на главной.',
-      );
-    }
+  bool _isOverdue(AccountingCalendarTask task) {
+    if (task.status == 'done') return false;
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final due = DateTime(task.dueDate.year, task.dueDate.month, task.dueDate.day);
+    return due.isBefore(today);
+  }
+
+  Widget _taskTable(
+    List<AccountingCalendarTask> tasks, {
+    required String openStatusLabel,
+    required Color openStatusColor,
+  }) {
     return SpecialistDesktopTable(
       minWidth: 950,
       columns: const [
@@ -173,10 +200,10 @@ class _AccountingControlScreenState extends State<AccountingControlScreen> {
                 specialistCellText(task.title, weight: FontWeight.w900),
                 specialistCellText(_taskKind(task.kind)),
                 AccountingStatusBadge(
-                  label: task.status == 'done' ? 'Готово' : 'К выполнению',
+                  label: task.status == 'done' ? 'Готово' : openStatusLabel,
                   color: task.status == 'done'
                       ? specialistSuccess
-                      : specialistWarning,
+                      : openStatusColor,
                 ),
                 task.status == 'done'
                     ? const SizedBox.shrink()
@@ -192,6 +219,70 @@ class _AccountingControlScreenState extends State<AccountingControlScreen> {
           )
           .toList(),
     );
+  }
+
+  Widget calendar(List<AccountingCalendarTask> tasks) {
+    if (tasks.isEmpty) {
+      return const AccountingEmptyState(
+        icon: Icons.event_available_outlined,
+        title: 'Обязательных задач пока нет',
+        description:
+            'Добавьте сроки зарплаты, налогов и отчётности — они будут видны бухгалтеру на главной.',
+      );
+    }
+
+    final overdue = tasks.where(_isOverdue).toList(growable: false);
+    final upcoming = tasks
+        .where((task) => task.status != 'done' && !_isOverdue(task))
+        .toList(growable: false);
+    final completed = tasks
+        .where((task) => task.status == 'done')
+        .toList(growable: false)
+      ..sort((a, b) => b.dueDate.compareTo(a.dueDate));
+
+    final sections = <Widget>[];
+    if (overdue.isNotEmpty) {
+      sections.add(
+        SpecialistDesktopSection(
+          title: 'Просрочено · ${overdue.length}',
+          subtitle: 'Срок уже прошёл — требует внимания',
+          child: _taskTable(
+            overdue,
+            openStatusLabel: 'Просрочено',
+            openStatusColor: specialistDanger,
+          ),
+        ),
+      );
+    }
+    if (upcoming.isNotEmpty) {
+      if (sections.isNotEmpty) sections.add(const SizedBox(height: 18));
+      sections.add(
+        SpecialistDesktopSection(
+          title: 'Ближайшие · ${upcoming.length}',
+          subtitle: 'Предстоящие налоги, выплаты и отчётность',
+          child: _taskTable(
+            upcoming,
+            openStatusLabel: 'К выполнению',
+            openStatusColor: specialistWarning,
+          ),
+        ),
+      );
+    }
+    if (completed.isNotEmpty) {
+      if (sections.isNotEmpty) sections.add(const SizedBox(height: 18));
+      sections.add(
+        SpecialistDesktopSection(
+          title: 'Выполнено · ${completed.length}',
+          subtitle: 'Последние закрытые бухгалтерские задачи',
+          child: _taskTable(
+            completed,
+            openStatusLabel: 'Готово',
+            openStatusColor: specialistSuccess,
+          ),
+        ),
+      );
+    }
+    return Column(children: sections);
   }
 
   Widget checks(_ControlData data) {

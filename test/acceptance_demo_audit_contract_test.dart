@@ -72,7 +72,12 @@ void main() {
     expect(main, contains("label: 'Расходы'"));
     expect(main, contains("label: 'Документы'"));
     expect(main, contains("label: 'Контроль'"));
-    expect(main, contains('onOpenReports: () => select(4)'));
+    expect(main, contains('onOpenPeople: () => select(1)'));
+    expect(main, contains('onOpenExpenses: () => select(2)'));
+    expect(main, contains('onOpenDocuments: () => select(3)'));
+    expect(main, contains('onOpenControl: () => select(4)'));
+    expect(main, isNot(contains('onOpenPayments')));
+    expect(main, isNot(contains('onOpenReports')));
     expect(main, contains('AccountingControlScreen'));
     expect(control, contains('AccountingControlScreen'));
     expect(launcher, contains('AiAssistantRepository.request'));

@@ -52,6 +52,9 @@ void main() {
     final dashboard = source(
       'lib/features/accounting/presentation/adaptive_accounting_dashboard_screen.dart',
     );
+    final mobileDashboard = source(
+      'lib/features/accounting/presentation/accounting_dashboard_screen.dart',
+    );
     final people = source('lib/screens/adaptive_employees_screen.dart');
     final expenses = source(
       'lib/features/expenses/presentation/expenses_screen.dart',
@@ -66,12 +69,30 @@ void main() {
     expect(main, contains('AccountingDocumentsScreen'));
     expect(main, contains('AccountingControlScreen'));
     expect(main, contains('PersistentTabShell'));
-    expect(main, contains('onOpenReports: () => select(4)'));
+    expect(main, contains('onOpenPeople: () => select(1)'));
+    expect(main, contains('onOpenExpenses: () => select(2)'));
+    expect(main, contains('onOpenDocuments: () => select(3)'));
+    expect(main, contains('onOpenControl: () => select(4)'));
     expect(main, isNot(contains('AdaptiveAccountingOperationsScreen')));
 
     expect(dashboard, contains('AccountingDashboardScreen('));
     expect(dashboard, contains('specialistDesktopBreakpoint'));
     expect(dashboard, contains("title: 'Сегодня'"));
+    expect(dashboard, contains("label: const Text('Открыть расходы')"));
+    expect(dashboard, contains('onTap: widget.onOpenPeople'));
+    expect(dashboard, contains('onTap: widget.onOpenExpenses'));
+    expect(dashboard, contains('onTap: widget.onOpenDocuments'));
+    expect(dashboard, contains('onPressed: widget.onOpenControl'));
+    expect(dashboard, isNot(contains('onOpenPayments')));
+    expect(dashboard, isNot(contains('onOpenReports')));
+    expect(dashboard, isNot(contains('Открыть операции')));
+
+    expect(mobileDashboard, contains('widget.onOpenPeople'));
+    expect(mobileDashboard, contains('widget.onOpenExpenses'));
+    expect(mobileDashboard, contains('widget.onOpenDocuments'));
+    expect(mobileDashboard, contains('widget.onOpenControl'));
+    expect(mobileDashboard, isNot(contains('AddPaymentScreen')));
+    expect(mobileDashboard, isNot(contains('Добавить выплату')));
 
     expect(people, contains('desktopBreakpoint = 1050'));
     expect(people, contains('kIsWeb && constraints.maxWidth >= desktopBreakpoint'));

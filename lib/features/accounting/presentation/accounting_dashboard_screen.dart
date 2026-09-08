@@ -4,24 +4,26 @@ import 'package:flutter/material.dart';
 
 import '../../../data/app_data_sync.dart';
 import '../../../models/app_user_profile.dart';
-import '../../../screens/add_payment_screen.dart';
 import '../../../widgets/app_page.dart';
 import '../../../widgets/notification_bell.dart';
 import '../../../widgets/premium_ui.dart';
 import '../data/accounting_repository.dart';
 import 'accounting_widgets.dart';
-import '../../../navigation/app_page_route.dart';
 
 class AccountingDashboardScreen extends StatefulWidget {
   final AppUserProfile profile;
-  final VoidCallback onOpenPayments;
-  final VoidCallback onOpenReports;
+  final VoidCallback onOpenPeople;
+  final VoidCallback onOpenExpenses;
+  final VoidCallback onOpenDocuments;
+  final VoidCallback onOpenControl;
 
   const AccountingDashboardScreen({
     super.key,
     required this.profile,
-    required this.onOpenPayments,
-    required this.onOpenReports,
+    required this.onOpenPeople,
+    required this.onOpenExpenses,
+    required this.onOpenDocuments,
+    required this.onOpenControl,
   });
 
   @override
@@ -63,21 +65,6 @@ class _AccountingDashboardScreenState extends State<AccountingDashboardScreen> {
     );
     setState(() => future = next);
     await next;
-  }
-
-  Future<void> addPayment() async {
-    final now = DateTime.now();
-    final saved = await Navigator.push<bool>(
-      context,
-      AppPageRoute<bool>(
-        builder: (_) => AddPaymentScreen(
-          periodYear: now.year,
-          periodMonth: now.month,
-          periodTitle: accountingMonth(now),
-        ),
-      ),
-    );
-    if (mounted && saved == true) await refresh();
   }
 
   Widget summary(AccountingDashboardData data) {
@@ -165,6 +152,39 @@ class _AccountingDashboardScreenState extends State<AccountingDashboardScreen> {
     );
   }
 
+  Widget workspaceActions() {
+    return PremiumWorkCard(
+      radius: 28,
+      padding: const EdgeInsets.all(14),
+      child: Wrap(
+        spacing: 8,
+        runSpacing: 8,
+        children: [
+          FilledButton.tonalIcon(
+            onPressed: widget.onOpenPeople,
+            icon: const Icon(Icons.groups_outlined),
+            label: const Text('Люди'),
+          ),
+          FilledButton.tonalIcon(
+            onPressed: widget.onOpenExpenses,
+            icon: const Icon(Icons.receipt_long_outlined),
+            label: const Text('Расходы'),
+          ),
+          FilledButton.tonalIcon(
+            onPressed: widget.onOpenDocuments,
+            icon: const Icon(Icons.description_outlined),
+            label: const Text('Документы'),
+          ),
+          FilledButton.tonalIcon(
+            onPressed: widget.onOpenControl,
+            icon: const Icon(Icons.fact_check_outlined),
+            label: const Text('Контроль'),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget balances(AccountingDashboardData data) {
     return PremiumWorkCard(
       radius: 28,
@@ -204,7 +224,7 @@ class _AccountingDashboardScreenState extends State<AccountingDashboardScreen> {
                 accountingMoney(row.balance),
                 style: const TextStyle(fontWeight: FontWeight.w900),
               ),
-              onTap: widget.onOpenPayments,
+              onTap: widget.onOpenPeople,
             ),
           ),
         ],
@@ -250,7 +270,7 @@ class _AccountingDashboardScreenState extends State<AccountingDashboardScreen> {
                 accountingMoney(item.amount),
                 style: const TextStyle(fontWeight: FontWeight.w900),
               ),
-              onTap: widget.onOpenPayments,
+              onTap: widget.onOpenExpenses,
             ),
           ),
         ],
@@ -305,12 +325,14 @@ class _AccountingDashboardScreenState extends State<AccountingDashboardScreen> {
             children: [
               summary(data),
               const SizedBox(height: 14),
+              workspaceActions(),
+              const SizedBox(height: 14),
               AccountingMetricCard(
                 icon: Icons.groups_outlined,
                 title: 'Сотрудников с остатком',
                 value: data.employeesWithBalance.toString(),
                 subtitle: 'Всего в расчёте: ${data.employeeCount}',
-                onTap: widget.onOpenPayments,
+                onTap: widget.onOpenPeople,
               ),
               const SizedBox(height: 12),
               AccountingMetricCard(
@@ -318,7 +340,7 @@ class _AccountingDashboardScreenState extends State<AccountingDashboardScreen> {
                 title: 'Выплат проведено',
                 value: data.paymentCount.toString(),
                 subtitle: accountingMonth(data.month),
-                onTap: widget.onOpenPayments,
+                onTap: widget.onOpenPeople,
               ),
               const SizedBox(height: 12),
               AccountingMetricCard(
@@ -326,13 +348,7 @@ class _AccountingDashboardScreenState extends State<AccountingDashboardScreen> {
                 title: 'Выплат без чека',
                 value: data.missingReceiptCount.toString(),
                 subtitle: 'Требуют подтверждающего файла',
-                onTap: widget.onOpenPayments,
-              ),
-              const SizedBox(height: 16),
-              PremiumActionButton(
-                label: 'Добавить выплату',
-                icon: Icons.add_card_rounded,
-                onPressed: addPayment,
+                onTap: widget.onOpenExpenses,
               ),
               const SizedBox(height: 16),
               balances(data),

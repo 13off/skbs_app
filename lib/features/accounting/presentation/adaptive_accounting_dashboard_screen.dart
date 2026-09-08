@@ -15,14 +15,18 @@ import 'accounting_workspace_widgets.dart';
 
 class AdaptiveAccountingDashboardScreen extends StatelessWidget {
   final AppUserProfile profile;
-  final VoidCallback onOpenPayments;
-  final VoidCallback onOpenReports;
+  final VoidCallback onOpenPeople;
+  final VoidCallback onOpenExpenses;
+  final VoidCallback onOpenDocuments;
+  final VoidCallback onOpenControl;
 
   const AdaptiveAccountingDashboardScreen({
     super.key,
     required this.profile,
-    required this.onOpenPayments,
-    required this.onOpenReports,
+    required this.onOpenPeople,
+    required this.onOpenExpenses,
+    required this.onOpenDocuments,
+    required this.onOpenControl,
   });
 
   @override
@@ -32,13 +36,17 @@ class AdaptiveAccountingDashboardScreen extends StatelessWidget {
         if (!kIsWeb || constraints.maxWidth < specialistDesktopBreakpoint) {
           return AccountingDashboardScreen(
             profile: profile,
-            onOpenPayments: onOpenPayments,
-            onOpenReports: onOpenReports,
+            onOpenPeople: onOpenPeople,
+            onOpenExpenses: onOpenExpenses,
+            onOpenDocuments: onOpenDocuments,
+            onOpenControl: onOpenControl,
           );
         }
         return _DesktopAccountingDashboardScreen(
-          onOpenPayments: onOpenPayments,
-          onOpenControl: onOpenReports,
+          onOpenPeople: onOpenPeople,
+          onOpenExpenses: onOpenExpenses,
+          onOpenDocuments: onOpenDocuments,
+          onOpenControl: onOpenControl,
         );
       },
     );
@@ -46,11 +54,15 @@ class AdaptiveAccountingDashboardScreen extends StatelessWidget {
 }
 
 class _DesktopAccountingDashboardScreen extends StatefulWidget {
-  final VoidCallback onOpenPayments;
+  final VoidCallback onOpenPeople;
+  final VoidCallback onOpenExpenses;
+  final VoidCallback onOpenDocuments;
   final VoidCallback onOpenControl;
 
   const _DesktopAccountingDashboardScreen({
-    required this.onOpenPayments,
+    required this.onOpenPeople,
+    required this.onOpenExpenses,
+    required this.onOpenDocuments,
     required this.onOpenControl,
   });
 
@@ -161,9 +173,9 @@ class _DesktopAccountingDashboardScreenState
           icon: const Icon(Icons.chevron_right_rounded),
         ),
         FilledButton.icon(
-          onPressed: widget.onOpenPayments,
-          icon: const Icon(Icons.account_balance_wallet_outlined),
-          label: const Text('Открыть операции'),
+          onPressed: widget.onOpenExpenses,
+          icon: const Icon(Icons.receipt_long_outlined),
+          label: const Text('Открыть расходы'),
         ),
       ],
     );
@@ -215,9 +227,9 @@ class _DesktopAccountingDashboardScreenState
       title: 'Крупные остатки сотрудникам',
       subtitle: 'Кому нужно выплатить в первую очередь',
       trailing: TextButton.icon(
-        onPressed: widget.onOpenPayments,
+        onPressed: widget.onOpenPeople,
         icon: const Icon(Icons.arrow_forward_rounded),
-        label: const Text('Все выплаты'),
+        label: const Text('Открыть людей'),
       ),
       child: data.largestBalances.isEmpty
           ? const AccountingEmptyState(
@@ -236,7 +248,7 @@ class _DesktopAccountingDashboardScreenState
               rows: data.largestBalances
                   .map(
                     (row) => SpecialistTableRowData(
-                      onTap: widget.onOpenPayments,
+                      onTap: widget.onOpenPeople,
                       cells: [
                         specialistCellText(
                           row.employee.name,
@@ -264,6 +276,11 @@ class _DesktopAccountingDashboardScreenState
     return SpecialistDesktopSection(
       title: 'Документы к обработке',
       subtitle: 'Черновики и первичка, требующая внимания',
+      trailing: TextButton.icon(
+        onPressed: widget.onOpenDocuments,
+        icon: const Icon(Icons.arrow_forward_rounded),
+        label: const Text('Документы'),
+      ),
       child: rows.isEmpty
           ? const AccountingEmptyState(
               icon: Icons.description_outlined,
@@ -281,6 +298,7 @@ class _DesktopAccountingDashboardScreenState
               rows: rows
                   .map(
                     (row) => SpecialistTableRowData(
+                      onTap: widget.onOpenDocuments,
                       cells: [
                         specialistCellText(accountingDate(row.date)),
                         specialistCellText(
@@ -346,7 +364,7 @@ class _DesktopAccountingDashboardScreenState
                     icon: Icons.account_balance_outlined,
                     label: 'На счетах сейчас',
                     value: accountingMoney(currentBalance),
-                    onTap: widget.onOpenPayments,
+                    onTap: widget.onOpenExpenses,
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -356,7 +374,7 @@ class _DesktopAccountingDashboardScreenState
                     label: 'Поступления по банку',
                     value: accountingMoney(incoming),
                     accent: specialistSuccess,
-                    onTap: widget.onOpenPayments,
+                    onTap: widget.onOpenExpenses,
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -366,7 +384,7 @@ class _DesktopAccountingDashboardScreenState
                     label: 'Списания по банку',
                     value: accountingMoney(outgoing),
                     accent: specialistDanger,
-                    onTap: widget.onOpenPayments,
+                    onTap: widget.onOpenExpenses,
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -376,7 +394,7 @@ class _DesktopAccountingDashboardScreenState
                     label: 'К выплате сотрудникам',
                     value: accountingMoney(data.finance.totalBalance.abs()),
                     accent: specialistWarning,
-                    onTap: widget.onOpenPayments,
+                    onTap: widget.onOpenPeople,
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -388,7 +406,7 @@ class _DesktopAccountingDashboardScreenState
                     accent: data.finance.missingReceiptCount > 0
                         ? specialistDanger
                         : specialistSuccess,
-                    onTap: widget.onOpenPayments,
+                    onTap: widget.onOpenExpenses,
                   ),
                 ),
               ],

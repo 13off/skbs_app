@@ -41,8 +41,10 @@ class _AccountingMainScreenState extends State<AccountingMainScreen> {
     return switch (index) {
       0 => AdaptiveAccountingDashboardScreen(
         profile: widget.profile,
-        onOpenPayments: () => select(1),
-        onOpenReports: () => select(4),
+        onOpenPeople: () => select(1),
+        onOpenExpenses: () => select(2),
+        onOpenDocuments: () => select(3),
+        onOpenControl: () => select(4),
       ),
       1 => AdaptiveEmployeesScreen(
         profile: widget.profile,

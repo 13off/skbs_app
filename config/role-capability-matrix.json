@@ -155,8 +155,21 @@
       "platform": "AccountingMainScreen",
       "object_scope": "company",
       "can_preview_roles": false,
-      "capabilities": ["payments.manage", "payment_receipts.manage", "employees.payment_fields.read", "procurement.reports.read"],
-      "denied": ["candidate_documents.manage", "objects.manage"],
+      "capabilities": [
+        "payments.manage",
+        "payment_receipts.manage",
+        "employees.payment_fields.read",
+        "employees.workspace",
+        "employee_documents.manage",
+        "expenses.manage",
+        "procurement.reports.read"
+      ],
+      "denied": [
+        "employees.delete",
+        "candidate_documents.manage",
+        "objects.manage",
+        "company.manage"
+      ],
       "acceptance": {
         "live_probe_table": "payments",
         "live_probe_tables": ["payments", "attendance", "employees"],
@@ -167,12 +180,18 @@
           "accounting.receipts.view",
           "accounting.receipts.edit",
           "employees.view",
+          "employees.create",
+          "employees.edit",
+          "employees.archive",
+          "documents.workflow.view",
+          "documents.onboarding.create",
+          "documents.onboarding.edit",
           "objects.view",
           "reports.view",
           "notifications.center.view"
         ],
         "forbidden_permissions": [
-          "employees.edit",
+          "employees.delete",
           "attendance.edit",
           "tasks.edit",
           "recruitment.documents.edit",
