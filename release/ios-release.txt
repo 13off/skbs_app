@@ -1,6 +1,6 @@
 AppСтрой iOS verification release
 version: 1.3.9+23
-release date: 2026-09-07
-accepted application commit: d8e31547fd267425109e9fdb6f7239c0d4cd7762
-reason: publish iOS verification build with durable background offline synchronization using background URLSession network wake, headless Flutter queue flush and existing OfflineSyncService logic
-expected output: unsigned verification IPA for real-device background connectivity test; Android release stays unpublished
+release date: 2026-09-08
+application source commit: f4880fc76d6c4507234a2f5f15931c83befd9bf6
+reason: user-requested iOS rebuild with all updates currently merged into main, including compact accounting people and expenses workspaces
+expected output: unsigned verification IPA using the existing iOS release workflow
