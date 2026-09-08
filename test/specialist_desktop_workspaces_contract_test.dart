@@ -45,7 +45,7 @@ void main() {
     expect(matters, contains("('claim', 'Претензии')"));
   });
 
-  test('accountant platform uses shared people and expenses desktop workspaces', () {
+  test('accountant platform keeps contextual drilldowns across workspaces', () {
     final main = source(
       'lib/features/accounting/presentation/accounting_main_screen.dart',
     );
@@ -58,12 +58,30 @@ void main() {
     final todayDetails = source(
       'lib/features/accounting/presentation/accounting_today_details_screen.dart',
     );
+    final bankDetails = source(
+      'lib/features/accounting/presentation/accounting_bank_details_screen.dart',
+    );
+    final documentDetails = source(
+      'lib/features/accounting/presentation/accounting_document_detail_screen.dart',
+    );
+    final taskDetails = source(
+      'lib/features/accounting/presentation/accounting_task_detail_screen.dart',
+    );
+    final documents = source(
+      'lib/features/accounting/presentation/accounting_documents_screen.dart',
+    );
+    final control = source(
+      'lib/features/accounting/presentation/accounting_control_screen.dart',
+    );
     final people = source('lib/screens/adaptive_employees_screen.dart');
     final expenses = source(
       'lib/features/expenses/presentation/expenses_screen.dart',
     );
     final repository = source(
       'lib/features/accounting/data/accounting_repository.dart',
+    );
+    final detailRepository = source(
+      'lib/features/accounting/data/accounting_detail_repository.dart',
     );
 
     expect(main, contains('AdaptiveAccountingDashboardScreen'));
@@ -81,17 +99,18 @@ void main() {
     expect(dashboard, contains('AccountingDashboardScreen('));
     expect(dashboard, contains('specialistDesktopBreakpoint'));
     expect(dashboard, contains("title: 'Сегодня'"));
-    expect(dashboard, contains('onTap: widget.onOpenPeople'));
-    expect(dashboard, contains('onTap: widget.onOpenExpenses'));
-    expect(dashboard, contains('onTap: widget.onOpenDocuments'));
-    expect(dashboard, contains('onTap: widget.onOpenControl'));
-    expect(dashboard, isNot(contains('onOpenPayments')));
-    expect(dashboard, isNot(contains('onOpenReports')));
-    expect(dashboard, isNot(contains('Открыть операции')));
-    expect(dashboard, isNot(contains("label: const Text('Открыть расходы')")));
-    expect(dashboard, isNot(contains("title: 'Крупные остатки сотрудникам'")));
-    expect(dashboard, isNot(contains("label: const Text('Контроль')")));
-    expect(dashboard, isNot(contains("label: const Text('Документы')")));
+    expect(dashboard, contains('AccountingBankDetailsScreen('));
+    expect(dashboard, contains('AccountingBankDetailsMode.accounts'));
+    expect(dashboard, contains('AccountingBankDetailsMode.incoming'));
+    expect(dashboard, contains('AccountingBankDetailsMode.outgoing'));
+    expect(dashboard, contains('AccountingTodayDetailsMode.balances'));
+    expect(dashboard, contains('AccountingTodayDetailsMode.missingReceipts'));
+    expect(dashboard, contains('AccountingDocumentDetailScreen('));
+    expect(dashboard, contains('AccountingTaskDetailScreen('));
+    expect(dashboard, isNot(contains('onTap: widget.onOpenPeople')));
+    expect(dashboard, isNot(contains('onTap: widget.onOpenExpenses')));
+    expect(dashboard, isNot(contains('onTap: widget.onOpenDocuments')));
+    expect(dashboard, isNot(contains('onTap: widget.onOpenControl')));
 
     expect(mobileDashboard, contains('AccountingTodayDetailsMode.balances'));
     expect(mobileDashboard, contains('AccountingTodayDetailsMode.payments'));
@@ -101,14 +120,7 @@ void main() {
     );
     expect(mobileDashboard, contains('AccountingPaymentDetailScreen'));
     expect(mobileDashboard, contains('fetchSettlementPaymentRegister'));
-    expect(mobileDashboard, isNot(contains('widget.onOpenPeople')));
-    expect(mobileDashboard, isNot(contains('widget.onOpenExpenses')));
     expect(mobileDashboard, isNot(contains('Widget workspaceActions()')));
-    expect(mobileDashboard, isNot(contains("label: const Text('Люди')")));
-    expect(mobileDashboard, isNot(contains("label: const Text('Расходы')")));
-    expect(mobileDashboard, isNot(contains("label: const Text('Документы')")));
-    expect(mobileDashboard, isNot(contains("label: const Text('Контроль')")));
-    expect(mobileDashboard, isNot(contains("'Крупные остатки'")));
     expect(mobileDashboard, isNot(contains('AddPaymentScreen')));
     expect(mobileDashboard, isNot(contains('Добавить выплату')));
 
@@ -120,6 +132,33 @@ void main() {
     expect(todayDetails, contains('PaymentRepository.addReceiptsToPayment'));
     expect(todayDetails, contains('Осталось выплатить'));
     expect(todayDetails, contains('Приложить чек к этой выплате'));
+
+    expect(bankDetails, contains('AccountingBankTransactionDetailScreen'));
+    expect(bankDetails, contains('AccountingBankAccountDetailScreen'));
+    expect(bankDetails, contains('fetchBankTransactions'));
+    expect(bankDetails, contains('fetchBankAccounts'));
+
+    expect(documents, contains('AccountingDocumentDetailScreen('));
+    expect(documents, contains('onTap: () => openDocument(row)'));
+    expect(documentDetails, contains('Редактировать документ'));
+    expect(documentDetails, contains('Добавить файл'));
+    expect(documentDetails, contains('replaceDocumentFile'));
+    expect(documentDetails, contains('deleteDocumentFile'));
+
+    expect(control, contains('AccountingTaskDetailScreen('));
+    expect(control, contains('AccountingDocumentDetailScreen('));
+    expect(control, contains('AccountingPaymentDetailScreen(row: match!)'));
+    expect(control, contains('onTap: () => openTask(task)'));
+    expect(control, contains('onTap: () => openDocument(row)'));
+    expect(taskDetails, contains('Редактировать задачу'));
+    expect(taskDetails, contains('Отметить выполненной'));
+    expect(taskDetails, contains('Вернуть в работу'));
+
+    expect(detailRepository, contains('fetchDocument('));
+    expect(detailRepository, contains('updateDocument('));
+    expect(detailRepository, contains('replaceDocumentFile('));
+    expect(detailRepository, contains('fetchCalendarTask('));
+    expect(detailRepository, contains('updateCalendarTask('));
 
     expect(people, contains('desktopBreakpoint = 1050'));
     expect(people, contains('kIsWeb && constraints.maxWidth >= desktopBreakpoint'));
