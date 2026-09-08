@@ -10,7 +10,9 @@ void main() {
 
     expect(
       migration,
-      contains("v_due_at timestamptz := ((now() at time zone 'Europe/Moscow')::date + time '10:00')"),
+      contains(
+        "v_due_at timestamptz := ((now() at time zone 'Europe/Moscow')::date + time '10:00')",
+      ),
     );
     expect(
       migration,
