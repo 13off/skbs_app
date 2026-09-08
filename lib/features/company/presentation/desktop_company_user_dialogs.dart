@@ -122,6 +122,7 @@ class _DesktopCompanyMemberDialogState
       'foreman',
       'lawyer',
       'accountant',
+      'estimator',
       'hr',
       'procurement',
     };
@@ -302,7 +303,7 @@ class _DesktopCompanyMemberDialogState
               Text(
                 isEditing
                     ? 'Измените роль и назначенный объект.'
-                    : 'Одна форма для администратора, разработчика, прораба, юриста, бухгалтера, снабженца и HR.',
+                    : 'Одна форма для администратора, разработчика, прораба, юриста, бухгалтера, инженера-сметчика, снабженца и HR.',
                 style: TextStyle(
                   color: specialistMuted,
                   fontWeight: FontWeight.w600,
@@ -412,6 +413,10 @@ class _DesktopCompanyMemberDialogState
                         DropdownMenuItem(
                           value: 'accountant',
                           child: Text('Бухгалтер'),
+                        ),
+                        DropdownMenuItem(
+                          value: 'estimator',
+                          child: Text('Инженер-сметчик'),
                         ),
                         DropdownMenuItem(
                           value: 'hr',
