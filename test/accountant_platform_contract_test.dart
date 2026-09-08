@@ -32,8 +32,10 @@ void main() {
         'ExpensesScreen()',
         'AccountingDocumentsScreen()',
         'AccountingControlScreen()',
-        'onOpenPayments: () => select(1)',
-        'onOpenReports: () => select(4)',
+        'onOpenPeople: () => select(1)',
+        'onOpenExpenses: () => select(2)',
+        'onOpenDocuments: () => select(3)',
+        'onOpenControl: () => select(4)',
       ],
     );
 
