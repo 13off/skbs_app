@@ -17,6 +17,7 @@ import 'developer_readiness_screen.dart';
 import 'developer_role_acceptance_screen.dart';
 import 'expense_categories_screen.dart';
 import 'role_permission_matrix_screen.dart';
+import 'timesheet_edit_policy_screen.dart';
 import '../../../navigation/app_page_route.dart';
 
 class DeveloperSystemScreen extends StatelessWidget {
@@ -203,6 +204,12 @@ class DeveloperSystemScreen extends StatelessWidget {
               title: 'Ограничения задач и объектов',
               onTap: () =>
                   open(context, DeveloperPanelScreen(profile: profile)),
+            ),
+            actionCard(
+              context,
+              icon: Icons.edit_calendar_outlined,
+              title: 'Редактирование табеля',
+              onTap: () => open(context, const TimesheetEditPolicyScreen()),
             ),
             actionCard(
               context,

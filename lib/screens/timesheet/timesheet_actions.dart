@@ -32,6 +32,7 @@ extension _TimesheetActions on _TimesheetScreenState {
   }
 
   void setShiftValue(Employee employee, double value) {
+    if (!canEditSelectedTimesheetDate) return;
     final nextDraft = timesheetDraft.withValue(employee.id, value);
     if (identical(nextDraft, timesheetDraft)) return;
     setState(() => timesheetDraft = nextDraft);
@@ -151,6 +152,7 @@ extension _TimesheetActions on _TimesheetScreenState {
     required List<Employee> employees,
     required double value,
   }) {
+    if (!canEditSelectedTimesheetDate) return;
     final nextDraft = timesheetDraft.withValues(
       employees.map((employee) => employee.id),
       value,
@@ -160,6 +162,7 @@ extension _TimesheetActions on _TimesheetScreenState {
   }
 
   Future<void> showShiftPicker(Employee employee) async {
+    if (!canEditSelectedTimesheetDate) return;
     final employeeId = employee.id;
     if (employeeId == null) return;
 
@@ -252,6 +255,7 @@ extension _TimesheetActions on _TimesheetScreenState {
   }
 
   Future<void> saveTimesheet(List<Employee> allEmployees) async {
+    if (!canEditSelectedTimesheetDate) return;
     setState(() {
       isSaving = true;
       errorText = null;

@@ -9,6 +9,8 @@ import '../data/app_data_sync.dart';
 import '../data/app_state.dart';
 import '../data/attendance_repository.dart';
 import '../data/offline_master_repository.dart';
+import '../features/developer/data/developer_policy_repository.dart';
+import '../features/developer/models/task_policy.dart';
 import '../features/timesheet/data/timesheet_group_repository.dart';
 import '../features/timesheet/models/timesheet_group.dart';
 import '../models/app_user_profile.dart';
@@ -61,11 +63,15 @@ class _DesktopTimesheetScreenState extends State<DesktopTimesheetScreen> {
   Map<String, double> originalShiftValuesByEmployeeId = <String, double>{};
   Map<String, ResponsibilityActor> attendanceResponsibility =
       const <String, ResponsibilityActor>{};
+  TaskPolicy timesheetPolicy = TaskPolicy.defaults;
+  String? timesheetPolicyObjectName;
 
   String? objectFilter;
   String groupFilter = allGroupsFilter;
   String attendanceFilter = 'Все сотрудники';
   bool isLoading = true;
+  bool isTimesheetPolicyLoading = false;
+  bool hasTimesheetPolicy = false;
   bool isSaving = false;
   bool hasUnsavedChanges = false;
   bool hasPendingRemoteAttendance = false;
@@ -77,10 +83,25 @@ class _DesktopTimesheetScreenState extends State<DesktopTimesheetScreen> {
       widget.profile.actualRole == 'admin' ||
       widget.profile.actualRole == 'developer';
 
+  bool get isForemanTimesheetRestrictionActive =>
+      widget.profile.actualRole == 'foreman';
+
+  bool get canEditSelectedTimesheetDate {
+    if (!isForemanTimesheetRestrictionActive) return true;
+    final today = AppState.today;
+    if (!selectedDate.isBefore(today)) return true;
+    if (!hasTimesheetPolicy) return false;
+    return timesheetPolicy.canForemanEditTimesheetDate(
+      selectedDate,
+      today: today,
+    );
+  }
+
   @override
   void initState() {
     super.initState();
     objectFilter = cleanObjectName(widget.selectedObjectName);
+    loadTimesheetPolicy();
     loadData();
     dataChangeSubscription = AppDataSync.changes.listen(handleDataChange);
   }
@@ -94,6 +115,7 @@ class _DesktopTimesheetScreenState extends State<DesktopTimesheetScreen> {
       groupFilter = allGroupsFilter;
       attendanceFilter = 'Все сотрудники';
       searchController.clear();
+      loadTimesheetPolicy(forceRefresh: true);
       loadData(forceRefresh: true);
     }
   }
@@ -113,6 +135,59 @@ class _DesktopTimesheetScreenState extends State<DesktopTimesheetScreen> {
 
   String get objectTitle =>
       cleanObjectName(widget.selectedObjectName) ?? 'Все объекты';
+
+  String? get timesheetPolicyObject =>
+      cleanObjectName(widget.selectedObjectName) ??
+      cleanObjectName(widget.profile.objectName);
+
+  Future<void> loadTimesheetPolicy({bool forceRefresh = false}) async {
+    if (!isForemanTimesheetRestrictionActive) {
+      if (!mounted) return;
+      setState(() {
+        timesheetPolicy = TaskPolicy.defaults;
+        timesheetPolicyObjectName = timesheetPolicyObject;
+        hasTimesheetPolicy = true;
+        isTimesheetPolicyLoading = false;
+      });
+      return;
+    }
+
+    final objectName = timesheetPolicyObject;
+    if (objectName == null) {
+      if (!mounted) return;
+      setState(() {
+        timesheetPolicyObjectName = null;
+        hasTimesheetPolicy = false;
+        isTimesheetPolicyLoading = false;
+      });
+      return;
+    }
+
+    if (mounted) setState(() => isTimesheetPolicyLoading = true);
+    try {
+      final policy = await DeveloperPolicyRepository.ensurePolicy(
+        objectName,
+        forceRefresh: forceRefresh,
+      );
+      if (!mounted || timesheetPolicyObject != objectName) return;
+      setState(() {
+        timesheetPolicy = policy;
+        timesheetPolicyObjectName = objectName;
+        hasTimesheetPolicy = true;
+      });
+    } catch (_) {
+      if (!mounted || timesheetPolicyObject != objectName) return;
+      setState(() {
+        final hasSameObjectPolicy =
+            hasTimesheetPolicy && timesheetPolicyObjectName == objectName;
+        hasTimesheetPolicy = hasSameObjectPolicy;
+      });
+    } finally {
+      if (mounted && timesheetPolicyObject == objectName) {
+        setState(() => isTimesheetPolicyLoading = false);
+      }
+    }
+  }
 
   bool isSameDate(DateTime first, DateTime second) {
     return first.year == second.year &&
@@ -313,6 +388,7 @@ class _DesktopTimesheetScreenState extends State<DesktopTimesheetScreen> {
   }
 
   void setShiftValue(Employee employee, double value) {
+    if (!canEditSelectedTimesheetDate) return;
     final id = employee.id;
     if (id == null || shiftValuesByEmployeeId[id] == value) return;
 
@@ -323,6 +399,7 @@ class _DesktopTimesheetScreenState extends State<DesktopTimesheetScreen> {
   }
 
   void setVisibleShifts(List<Employee> visible, double value) {
+    if (!canEditSelectedTimesheetDate) return;
     final next = Map<String, double>.from(shiftValuesByEmployeeId);
     var changed = false;
 
@@ -368,6 +445,7 @@ class _DesktopTimesheetScreenState extends State<DesktopTimesheetScreen> {
   }
 
   Future<void> showShiftPicker(Employee employee) async {
+    if (!canEditSelectedTimesheetDate) return;
     var selected = shiftValueFor(employee);
 
     final picked = await showDialog<double>(
@@ -440,6 +518,7 @@ class _DesktopTimesheetScreenState extends State<DesktopTimesheetScreen> {
   }
 
   Future<void> saveTimesheet() async {
+    if (!canEditSelectedTimesheetDate) return;
     setState(() {
       isSaving = true;
       errorText = null;
@@ -601,6 +680,35 @@ class _DesktopTimesheetScreenState extends State<DesktopTimesheetScreen> {
     );
   }
 
+  Widget? buildTimesheetEditNotice() {
+    if (!isForemanTimesheetRestrictionActive || canEditSelectedTimesheetDate) {
+      return null;
+    }
+    final loadingText = isTimesheetPolicyLoading || !hasTimesheetPolicy;
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: _warning.withValues(alpha: 0.09),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: _warning.withValues(alpha: 0.22)),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.lock_clock_outlined, color: _warning),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              loadingText
+                  ? 'Прошлая дата открыта только для просмотра. Проверяем разрешённый срок редактирования.'
+                  : 'Эта дата закрыта для редактирования прорабом. Просмотр доступен, изменение и сохранение заблокированы.',
+              style: TextStyle(color: _text, fontWeight: FontWeight.w700),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget buildToolbar() {
     final enabled = !isLoading && !isSaving;
 
@@ -697,7 +805,12 @@ class _DesktopTimesheetScreenState extends State<DesktopTimesheetScreen> {
             const SizedBox(width: 10),
           ],
           IconButton(
-            onPressed: enabled ? () => loadData(forceRefresh: true) : null,
+            onPressed: enabled
+                ? () {
+                    loadTimesheetPolicy(forceRefresh: true);
+                    loadData(forceRefresh: true);
+                  }
+                : null,
             tooltip: 'Обновить табель',
             icon: const Icon(Icons.refresh_rounded),
           ),
@@ -765,6 +878,7 @@ class _DesktopTimesheetScreenState extends State<DesktopTimesheetScreen> {
     final currentGroupFilter = validGroupValues.contains(groupFilter)
         ? groupFilter
         : allGroupsFilter;
+    final editEnabled = canEditSelectedTimesheetDate;
 
     return PremiumWorkCard(
       radius: 24,
@@ -911,7 +1025,8 @@ class _DesktopTimesheetScreenState extends State<DesktopTimesheetScreen> {
                 const SizedBox(width: 10),
               ],
               FilledButton.tonalIcon(
-                onPressed: visible.isEmpty || isLoading || isSaving
+                onPressed:
+                    visible.isEmpty || isLoading || isSaving || !editEnabled
                     ? null
                     : () => setVisibleShifts(visible, 1),
                 icon: const Icon(Icons.done_all_rounded),
@@ -919,7 +1034,8 @@ class _DesktopTimesheetScreenState extends State<DesktopTimesheetScreen> {
               ),
               const SizedBox(width: 8),
               FilledButton.tonalIcon(
-                onPressed: visible.isEmpty || isLoading || isSaving
+                onPressed:
+                    visible.isEmpty || isLoading || isSaving || !editEnabled
                     ? null
                     : () => setVisibleShifts(visible, 0),
                 icon: const Icon(Icons.remove_done_rounded),
@@ -933,6 +1049,7 @@ class _DesktopTimesheetScreenState extends State<DesktopTimesheetScreen> {
   }
 
   List<Widget> buildGroupedTableRows(List<Employee> visible) {
+    final editEnabled = canEditSelectedTimesheetDate;
     if (timesheetGroups.isEmpty) {
       return <Widget>[
         _TimesheetGroupTableHeader(title: 'Общая', count: visible.length),
@@ -944,7 +1061,7 @@ class _DesktopTimesheetScreenState extends State<DesktopTimesheetScreen> {
                 : attendanceResponsibility[employee.id!],
             value: shiftValueFor(employee),
             formatShift: formatShift,
-            enabled: !isLoading && !isSaving,
+            enabled: !isLoading && !isSaving && editEnabled,
             onSelected: (value) => setShiftValue(employee, value),
             onCustom: () => showShiftPicker(employee),
           ),
@@ -972,7 +1089,7 @@ class _DesktopTimesheetScreenState extends State<DesktopTimesheetScreen> {
                 : attendanceResponsibility[employee.id!],
             value: shiftValueFor(employee),
             formatShift: formatShift,
-            enabled: !isLoading && !isSaving,
+            enabled: !isLoading && !isSaving && editEnabled,
             onSelected: (value) => setShiftValue(employee, value),
             onCustom: () => showShiftPicker(employee),
           ),
@@ -1011,6 +1128,7 @@ class _DesktopTimesheetScreenState extends State<DesktopTimesheetScreen> {
   @override
   Widget build(BuildContext context) {
     final visible = visibleEmployees();
+    final editNotice = buildTimesheetEditNotice();
 
     return Scaffold(
       backgroundColor: Colors.transparent,
@@ -1042,11 +1160,15 @@ class _DesktopTimesheetScreenState extends State<DesktopTimesheetScreen> {
                           ),
                           const SizedBox(height: 18),
                           buildToolbar(),
+                          if (editNotice != null) ...[
+                            const SizedBox(height: 12),
+                            editNotice,
+                          ],
                           const SizedBox(height: 16),
                           buildMetrics(visible),
                           const SizedBox(height: 16),
                           buildFilters(visible),
-                          if (isLoading || isSaving) ...[
+                          if (isLoading || isTimesheetPolicyLoading || isSaving) ...[
                             const SizedBox(height: 12),
                             const LinearProgressIndicator(),
                           ],
@@ -1092,9 +1214,11 @@ class _DesktopTimesheetScreenState extends State<DesktopTimesheetScreen> {
                         children: [
                           Expanded(
                             child: Text(
-                              hasUnsavedChanges
-                                  ? 'Есть несохранённые изменения'
-                                  : 'Все изменения сохранены',
+                              canEditSelectedTimesheetDate
+                                  ? hasUnsavedChanges
+                                        ? 'Есть несохранённые изменения'
+                                        : 'Все изменения сохранены'
+                                  : 'Дата доступна только для просмотра',
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: TextStyle(
@@ -1108,7 +1232,10 @@ class _DesktopTimesheetScreenState extends State<DesktopTimesheetScreen> {
                             width: 280,
                             child: FilledButton.icon(
                               onPressed:
-                                  employees.isEmpty || isLoading || isSaving
+                                  employees.isEmpty ||
+                                      isLoading ||
+                                      isSaving ||
+                                      !canEditSelectedTimesheetDate
                                   ? null
                                   : saveTimesheet,
                               icon: isSaving

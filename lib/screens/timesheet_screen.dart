@@ -11,6 +11,8 @@ import '../data/app_data_sync.dart';
 import '../data/app_state.dart';
 import '../data/attendance_repository.dart';
 import '../data/offline_master_repository.dart';
+import '../features/developer/data/developer_policy_repository.dart';
+import '../features/developer/models/task_policy.dart';
 import '../features/timesheet/data/timesheet_group_repository.dart';
 import '../features/timesheet/models/timesheet_draft.dart';
 import '../features/timesheet/models/timesheet_group.dart';
@@ -63,9 +65,13 @@ class _TimesheetScreenState extends State<TimesheetScreen> {
       const <String, ResponsibilityActor>{};
   List<TimesheetGroup> timesheetGroups = const <TimesheetGroup>[];
   String selectedGroupFilter = _allTimesheetGroupsFilter;
+  TaskPolicy timesheetPolicy = TaskPolicy.defaults;
+  String? timesheetPolicyObjectName;
 
   bool isAttendanceLoading = false;
   bool isGroupsLoading = false;
+  bool isTimesheetPolicyLoading = false;
+  bool hasTimesheetPolicy = false;
   bool isSaving = false;
   String? errorText;
   bool hasPendingRemoteAttendance = false;
@@ -82,6 +88,20 @@ class _TimesheetScreenState extends State<TimesheetScreen> {
       widget.profile.actualRole == 'admin' ||
       widget.profile.actualRole == 'developer';
 
+  bool get isForemanTimesheetRestrictionActive =>
+      widget.profile.actualRole == 'foreman';
+
+  bool get canEditSelectedTimesheetDate {
+    if (!isForemanTimesheetRestrictionActive) return true;
+    final today = AppState.today;
+    if (!selectedDate.isBefore(today)) return true;
+    if (!hasTimesheetPolicy) return false;
+    return timesheetPolicy.canForemanEditTimesheetDate(
+      selectedDate,
+      today: today,
+    );
+  }
+
   List<double> get allShiftOptions {
     return List<double>.generate(31, (index) => index / 10);
   }
@@ -91,6 +111,7 @@ class _TimesheetScreenState extends State<TimesheetScreen> {
     super.initState();
     reloadEmployees();
     loadTimesheetGroups();
+    loadTimesheetPolicy();
     loadAttendance();
     dataChangeSubscription = AppDataSync.changes.listen(handleDataChange);
   }
@@ -102,6 +123,7 @@ class _TimesheetScreenState extends State<TimesheetScreen> {
       selectedGroupFilter = _allTimesheetGroupsFilter;
       reloadEmployees(forceRefresh: true);
       loadTimesheetGroups(forceRefresh: true);
+      loadTimesheetPolicy(forceRefresh: true);
       loadAttendance(forceRefresh: true);
     }
   }

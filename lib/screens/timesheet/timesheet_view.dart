@@ -35,10 +35,15 @@ extension _TimesheetView on _TimesheetScreenState {
                       constraints: const BoxConstraints(maxWidth: 860),
                       child: Builder(
                         builder: (context) {
+                          final editNotice = buildTimesheetEditNotice();
                           final leading = <Widget>[
                             buildPageHeader(),
                             const SizedBox(height: 18),
                             buildDatePanel(),
+                            if (editNotice != null) ...[
+                              const SizedBox(height: 12),
+                              editNotice,
+                            ],
                             const SizedBox(height: 16),
                             buildWorkedSummaryPanel(
                               visibleEmployees: visibleEmployees,
@@ -50,7 +55,10 @@ extension _TimesheetView on _TimesheetScreenState {
                             const SizedBox(height: 16),
                             buildQuickActions(visibleEmployees),
                             const SizedBox(height: 18),
-                            if (isAttendanceLoading || isGroupsLoading || isSaving)
+                            if (isAttendanceLoading ||
+                                isGroupsLoading ||
+                                isTimesheetPolicyLoading ||
+                                isSaving)
                               const Padding(
                                 padding: EdgeInsets.symmetric(vertical: 10),
                                 child: LinearProgressIndicator(),
@@ -120,7 +128,8 @@ extension _TimesheetView on _TimesheetScreenState {
                         onPressed:
                             allEmployees.isEmpty ||
                                 isAttendanceLoading ||
-                                isSaving
+                                isSaving ||
+                                !canEditSelectedTimesheetDate
                             ? null
                             : () => saveTimesheet(allEmployees),
                       ),

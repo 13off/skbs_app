@@ -115,6 +115,40 @@ extension _TimesheetSections on _TimesheetScreenState {
     );
   }
 
+  Widget? buildTimesheetEditNotice() {
+    if (!isForemanTimesheetRestrictionActive || canEditSelectedTimesheetDate) {
+      return null;
+    }
+    final loadingText = isTimesheetPolicyLoading || !hasTimesheetPolicy;
+    return PremiumWorkCard(
+      radius: 20,
+      padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 13),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(
+            Icons.lock_clock_outlined,
+            color: AppAdaptivePalette.warning,
+            size: 22,
+          ),
+          const SizedBox(width: 11),
+          Expanded(
+            child: Text(
+              loadingText
+                  ? 'Прошлая дата открыта только для просмотра. Проверяем разрешённый срок редактирования.'
+                  : 'Эта дата уже закрыта для редактирования прорабом. Табель можно просматривать, но нельзя изменять или сохранять.',
+              style: TextStyle(
+                color: AppAdaptivePalette.textPrimary,
+                fontWeight: FontWeight.w700,
+                height: 1.3,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget buildWorkedSummaryPanel({required List<Employee> visibleEmployees}) {
     final visibleWorked = workedCountFor(visibleEmployees);
     final totalShifts = totalShiftsFor(visibleEmployees);
@@ -315,6 +349,7 @@ extension _TimesheetSections on _TimesheetScreenState {
   }
 
   Widget buildQuickActions(List<Employee> visibleEmployees) {
+    final editEnabled = canEditSelectedTimesheetDate;
     return PremiumWorkCard(
       radius: 22,
       padding: const EdgeInsets.all(15),
@@ -333,7 +368,10 @@ extension _TimesheetSections on _TimesheetScreenState {
           const SizedBox(width: 10),
           FilledButton.tonalIcon(
             onPressed:
-                visibleEmployees.isEmpty || isSaving || isAttendanceLoading
+                visibleEmployees.isEmpty ||
+                    isSaving ||
+                    isAttendanceLoading ||
+                    !editEnabled
                 ? null
                 : () {
                     setVisibleEmployeesShifts(
@@ -347,7 +385,10 @@ extension _TimesheetSections on _TimesheetScreenState {
           const SizedBox(width: 8),
           FilledButton.tonalIcon(
             onPressed:
-                visibleEmployees.isEmpty || isSaving || isAttendanceLoading
+                visibleEmployees.isEmpty ||
+                    isSaving ||
+                    isAttendanceLoading ||
+                    !editEnabled
                 ? null
                 : () {
                     setVisibleEmployeesShifts(
@@ -366,6 +407,7 @@ extension _TimesheetSections on _TimesheetScreenState {
   Widget buildEmployeeRow(Employee employee) {
     final shifts = shiftValueFor(employee);
     final hasWorked = shifts > 0;
+    final editEnabled = canEditSelectedTimesheetDate;
     return PremiumWorkCard(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(15),
@@ -445,7 +487,7 @@ extension _TimesheetSections on _TimesheetScreenState {
                 return ChoiceChip(
                   label: Text(formatShift(option)),
                   selected: isSelected,
-                  onSelected: isAttendanceLoading || isSaving
+                  onSelected: isAttendanceLoading || isSaving || !editEnabled
                       ? null
                       : (_) => setShiftValue(employee, option),
                 );
@@ -453,7 +495,7 @@ extension _TimesheetSections on _TimesheetScreenState {
               ActionChip(
                 avatar: const Icon(Icons.tune, size: 18),
                 label: const Text('Другое'),
-                onPressed: isAttendanceLoading || isSaving
+                onPressed: isAttendanceLoading || isSaving || !editEnabled
                     ? null
                     : () => showShiftPicker(employee),
               ),
