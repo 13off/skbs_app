@@ -1,6 +1,7 @@
 AppСтрой PWA release
-release date: 2026-09-05
-reason: финальная сборка расширенной панели Бухгалтера по реальному рабочему процессу 1С; «Сегодня», «Операции», «Документы», «Контроль»; банк и импорт выписки, расходы и выплаты, поступления и реализация с первичкой, контрагенты, номенклатура, материалы, календарь, проверки, ОСВ и ручные проводки
-verification: PWA workflow должен выполнить flutter test, flutter analyze и release web build перед публикацией
-release target: PWA only; no Android APK or iOS IPA publication
-trigger: fresh pipeline after accounting workspace completion
+release date: 2026-09-08
+accepted application commit: db4693407fea86ab99d264954ad5c0b241d85c5f
+reason: синхронный выпуск ПК/PWA вместе с Android и iOS; включает полный offline cold start, background sync и текущую бизнес-логику main
+verification: PWA workflow должен выполнить flutter test, flutter analyze, release web build и публикацию
+release target: PC/PWA production
+trigger: coordinated 2026-09-08 release

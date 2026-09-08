@@ -1,10 +1,10 @@
 AppСтрой mobile release
-version: 1.3.9+18
-previous mobile release: 1.3.9+17
-release date: 2026-08-18
+version: 1.3.9+23
+previous mobile release: 1.3.9+18
+release date: 2026-09-08
 release attempt: 1
-accepted application commit: 0746ea6d59706555eb7c431866c354dd4c93b807
-features: global floating chat launcher removed across all roles and screens; global floating microphone/voice overlay removed across all roles and screens; task photo native picker, iOS in-app viewer, pinch-to-zoom, signed URL cache and photo delete isolation remain included; built-in «Что нового» since 12 August remains included
-web: PWA already published from accepted application commit with build status success
+accepted application commit: db4693407fea86ab99d264954ad5c0b241d85c5f
+features: complete offline cold start and automatic background sync; current production business logic including engineer-estimator closing workflow
+web: publish the same accepted main for PC/PWA
 mobile: build Android release APK and unsigned verification iOS IPA from current main
-quality gates: PR #515 PR Check green including strict analyzer, regression tests, web release and Chrome smoke; no business rules, RLS, tasks, timesheets, documents or role navigation changed
+quality gates: release workflows must run regression tests/analyzer and publish only successful artifacts
