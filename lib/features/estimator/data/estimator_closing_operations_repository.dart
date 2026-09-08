@@ -1,6 +1,7 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../models/estimator_closing_operations.dart';
+import '../models/estimator_payment_candidate.dart';
 
 abstract final class EstimatorClosingOperationsRepository {
   static final SupabaseClient _client = Supabase.instance.client;
@@ -62,6 +63,24 @@ abstract final class EstimatorClosingOperationsRepository {
         .order('employee_name');
     return rows
         .map<EstimatorClosingPayoutLine>((row) => EstimatorClosingPayoutLine.fromMap(Map<String, dynamic>.from(row)))
+        .toList(growable: false);
+  }
+
+  static Future<List<EstimatorPaymentCandidate>> fetchCandidatePayments({
+    required String employeeId,
+    required int periodYear,
+    required int periodMonth,
+  }) async {
+    final rows = await _client
+        .from('payments')
+        .select('id, payment_date, amount, payment_type, comment')
+        .eq('employee_id', employeeId)
+        .eq('period_year', periodYear)
+        .eq('period_month', periodMonth)
+        .isFilter('deleted_at', null)
+        .order('payment_date', ascending: false);
+    return rows
+        .map<EstimatorPaymentCandidate>((row) => EstimatorPaymentCandidate.fromMap(Map<String, dynamic>.from(row)))
         .toList(growable: false);
   }
 
