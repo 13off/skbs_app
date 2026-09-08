@@ -51,7 +51,7 @@ class _AccountingMainScreenState extends State<AccountingMainScreen> {
         profile: widget.profile,
         selectedObjectName: null,
       ),
-      2 => const ExpensesScreen(),
+      2 => const ExpensesScreen(compactMobileHeader: true),
       3 => const AccountingDocumentsScreen(),
       4 => const AccountingControlScreen(),
       5 => EstimatorClosingInboxScreen(profile: widget.profile),
