@@ -97,11 +97,12 @@ class BackgroundOfflineSyncService {
           _androidOfflineSyncUniqueName,
           _backgroundOfflineSyncTaskName,
           constraints: Constraints(networkType: NetworkType.connected),
+          existingWorkPolicy: ExistingWorkPolicy.keep,
           tag: _androidOfflineSyncUniqueName,
           backoffPolicy: BackoffPolicy.linear,
           backoffPolicyDelay: const Duration(seconds: 30),
         );
-        await _recordResult('android-workmanager-scheduled');
+        await _recordResult('android-network-wake-scheduled');
         return;
       }
 
@@ -133,6 +134,10 @@ class BackgroundOfflineSyncService {
 
     try {
       final preferences = await SharedPreferences.getInstance();
+      // Workmanager/headless engines live in a different isolate. Reload the
+      // shared cache so scope and queue writes made by the UI isolate are
+      // visible before the background worker decides whether there is work.
+      await preferences.reload();
       final userId = preferences.getString(_backgroundScopeUserKey)?.trim() ?? '';
       final companyId =
           preferences.getString(_backgroundScopeCompanyKey)?.trim() ?? '';
