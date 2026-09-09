@@ -1,7 +1,6 @@
 import 'package:excel/excel.dart' hide Border;
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:universal_html/html.dart' as html;
 
 import '../app/app_adaptive_palette.dart';
 import '../data/attendance_repository.dart';
@@ -265,17 +264,10 @@ class _EmployeeTimesheetDownloadPanelState
     final baseName = TimesheetExcelExporter.safeFileName(
       'Табель_${widget.employee.name}_$period',
     );
-    final blob = html.Blob(<dynamic>[
-      bytes,
-    ], 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-    final url = html.Url.createObjectUrlFromBlob(blob);
-    final anchor = html.AnchorElement(href: url)
-      ..download = '$baseName.xlsx'
-      ..style.display = 'none';
-    html.document.body?.children.add(anchor);
-    anchor.click();
-    anchor.remove();
-    html.Url.revokeObjectUrl(url);
+    await TimesheetExcelExporter.saveWorkbookBytes(
+      bytes: bytes,
+      fileName: baseName,
+    );
   }
 
   @override

@@ -1,8 +1,8 @@
 import 'dart:convert';
 import 'dart:math' as math;
 import 'package:archive/archive.dart';
+import 'package:file_saver/file_saver.dart';
 import 'package:flutter/services.dart';
-import 'package:universal_html/html.dart' as html;
 
 import '../models/monthly_timesheet_row.dart';
 
@@ -158,24 +158,23 @@ class TimesheetExcelExporter {
         : '${monthTitle(firstMonth)}-${monthTitle(lastMonth)}';
 
     final fileName =
-        '${safeFileName(fileNamePrefix)}_${safeFileName(filePeriod)}.xlsx';
+        '${safeFileName(fileNamePrefix)}_${safeFileName(filePeriod)}';
 
-    final blob = html.Blob([
-      bytes,
-    ], 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    await saveWorkbookBytes(bytes: bytes, fileName: fileName);
+  }
 
-    final url = html.Url.createObjectUrlFromBlob(blob);
-
-    final anchor = html.AnchorElement(href: url)
-      ..download = fileName
-      ..style.display = 'none';
-
-    html.document.body?.children.add(anchor);
-
-    anchor.click();
-    anchor.remove();
-
-    html.Url.revokeObjectUrl(url);
+  static Future<void> saveWorkbookBytes({
+    required List<int> bytes,
+    required String fileName,
+  }) async {
+    await FileSaver.instance.saveFile(
+      name: safeFileName(fileName.replaceFirst(RegExp(r'\.xlsx$'), '')),
+      bytes: Uint8List.fromList(bytes),
+      fileExtension: 'xlsx',
+      mimeType: MimeType.custom,
+      customMimeType:
+          'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    );
   }
 
   static Future<_XlsxTemplate> _loadTemplate() async {
