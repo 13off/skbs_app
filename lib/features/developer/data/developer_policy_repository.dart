@@ -11,12 +11,38 @@ class DeveloperPolicyRepository {
       <String, Future<TaskPolicy>>{};
   static const Duration _cacheTtl = Duration(minutes: 3);
   static const Duration _fieldNetworkDeadline = Duration(seconds: 3);
+
+  // Пока компания небольшая, рабочие ограничения прораба отключены целиком.
+  // Политики и их настройки сохраняем, чтобы позже вернуть контроль одним
+  // переключением без восстановления всей механики с нуля.
+  static const bool _enforceForemanTaskRestrictions = false;
+  static const TaskPolicy _unrestrictedForemanPolicy = TaskPolicy(
+    requireBeforePhoto: false,
+    minBeforePhotos: 0,
+    requireAfterPhotoOnComplete: false,
+    minAfterPhotos: 0,
+    requireNotDoneComment: false,
+    foremanCanCreateAnyDate: true,
+    foremanCanEditPastTasks: true,
+    editWindowDays: null,
+    foremanCanEditDate: true,
+    foremanCanEditAxesWork: true,
+    foremanCanEditAssignees: true,
+    foremanCanEditStatus: true,
+    foremanCanDeleteBeforePhotos: true,
+    foremanCanDeleteAfterPhotos: true,
+    foremanCanDeleteTask: true,
+  );
+
   static int _cacheGeneration = 0;
 
   static String _key(String objectName) => objectName.trim().toLowerCase();
   static String _snapshotKey(String key) => 'task_policy::$key';
 
   static TaskPolicy policyForObjectSync(String objectName) {
+    if (!_enforceForemanTaskRestrictions) {
+      return _unrestrictedForemanPolicy;
+    }
     final entry = _cache[_key(objectName)];
     // Для обычного online-refresh TTL по-прежнему применяется в ensurePolicy.
     // Синхронный fallback намеренно держит последнюю известную политику дольше,
@@ -28,6 +54,10 @@ class DeveloperPolicyRepository {
     String objectName, {
     bool forceRefresh = false,
   }) async {
+    if (!_enforceForemanTaskRestrictions) {
+      return _unrestrictedForemanPolicy;
+    }
+
     final key = _key(objectName);
     final cached = _cache[key];
     if (!forceRefresh &&
