@@ -1,7 +1,8 @@
-AppСтрой PWA release
-release date: 2026-09-08
-accepted application commit: db4693407fea86ab99d264954ad5c0b241d85c5f
-reason: синхронный выпуск ПК/PWA вместе с Android и iOS; включает полный offline cold start, background sync и текущую бизнес-логику main
-verification: PWA workflow должен выполнить flutter test, flutter analyze, release web build и публикацию
-release target: PC/PWA production
-trigger: coordinated 2026-09-08 release
+AppСтрой PWA release 2
+release date: 2026-09-10
+accepted application commit: d3d69c8a97f1d763c8c1104ec4bf693d466dd4dd
+app version: 1.3.9+23
+release target: PWA/Web production
+reason: новая PWA/Web версия для текущего использования; публикация в безопасный snapshot-репозиторий appstroy-web-deploy
+verification: PWA workflow должен выполнить flutter test, flutter analyze, release web build, browser smoke, offline cold-start smoke и публикацию
+trigger: PWA/Web release 2
