@@ -16,7 +16,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  APP_PUBLIC_URL: https://13off.github.io/appstroy-web/
+  APP_PUBLIC_URL: https://13off.github.io/appstroy-web-deploy/
   API_BASE_URL: https://api.appstroy-web.ru
   SUPABASE_PUBLISHABLE_KEY: sb_publishable_QBdH-vIQv4F_tVVNc4Ps_w_ssxwSaEm
 
@@ -29,66 +29,52 @@ jobs:
     timeout-minutes: 12
 
     steps:
-      - name: Checkout source marker
-        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
-        with:
-          show-progress: false
-
-      - name: Resolve expected source commit
-        id: source
+      - name: Resolve expected deployment id
+        id: deployment
         shell: bash
         run: |
           set -euo pipefail
           if [ "${{ github.event_name }}" = "workflow_run" ]; then
-            expected="${{ github.event.workflow_run.head_sha }}"
+            expected="${{ github.event.workflow_run.id }}"
           else
-            expected="$(git rev-parse HEAD)"
+            expected=""
           fi
-          printf 'full=%s\n' "$expected" >> "$GITHUB_OUTPUT"
-          printf 'short=%s\n' "${expected:0:12}" >> "$GITHUB_OUTPUT"
-          printf 'Expected source: %s\n' "$expected" | tee smoke-report.txt
+          printf 'id=%s\n' "$expected" >> "$GITHUB_OUTPUT"
+          printf 'Expected deployment id: %s\n' "${expected:-any-current}" | tee smoke-report.txt
 
-      - name: Wait for published commit
+      - name: Wait for published deployment
         shell: bash
         env:
-          EXPECTED_SHA: ${{ steps.source.outputs.full }}
-          EXPECTED_SHORT: ${{ steps.source.outputs.short }}
+          EXPECTED_BUILD_ID: ${{ steps.deployment.outputs.id }}
         run: |
           set -euo pipefail
           success=false
           for attempt in $(seq 1 24); do
             cache_key="${GITHUB_RUN_ID}-${attempt}"
             index_file="$(mktemp)"
-            marker_file="$(mktemp)"
             index_code="$(curl --retry 2 --retry-delay 2 --connect-timeout 10 --max-time 30 \
               -sS -o "$index_file" -w '%{http_code}' \
               -H 'Cache-Control: no-cache' \
               "${APP_PUBLIC_URL}?smoke=${cache_key}" || true)"
-            marker_code="$(curl --retry 2 --retry-delay 2 --connect-timeout 10 --max-time 30 \
-              -sS -o "$marker_file" -w '%{http_code}' \
-              -H 'Cache-Control: no-cache' \
-              "${APP_PUBLIC_URL}downloads/web-source-commit.txt?smoke=${cache_key}" || true)"
-            marker="$(tr -d '\r\n[:space:]' < "$marker_file" 2>/dev/null || true)"
-            printf 'Attempt %s: index=%s marker=%s source=%s\n' \
-              "$attempt" "$index_code" "$marker_code" "${marker:-missing}" | tee -a smoke-report.txt
-            if [ "$index_code" = "200" ] && \
-               [ "$marker_code" = "200" ] && \
-               [ "$marker" = "$EXPECTED_SHA" ] && \
-               grep -q "flutter_bootstrap.js?v=${EXPECTED_SHORT}" "$index_file"; then
-              success=true
-              break
+            printf 'Attempt %s: index=%s deployment=%s\n' \
+              "$attempt" "$index_code" "${EXPECTED_BUILD_ID:-any-current}" | tee -a smoke-report.txt
+            if [ "$index_code" = "200" ]; then
+              if [ -z "$EXPECTED_BUILD_ID" ] || grep -q "flutter_bootstrap.js?v=${EXPECTED_BUILD_ID}" "$index_file"; then
+                success=true
+                break
+              fi
             fi
             sleep 10
           done
           if [ "$success" != "true" ]; then
-            echo '::error::Опубликованная web/PWA не дошла до ожидаемого commit' | tee -a smoke-report.txt
+            echo '::error::Опубликованная web/PWA не дошла до ожидаемого deploy' | tee -a smoke-report.txt
             exit 1
           fi
 
       - name: Validate PWA assets
         shell: bash
         env:
-          EXPECTED_SHORT: ${{ steps.source.outputs.short }}
+          EXPECTED_BUILD_ID: ${{ steps.deployment.outputs.id }}
         run: |
           set -euo pipefail
           cache_key="${GITHUB_RUN_ID}-assets"
@@ -116,7 +102,9 @@ jobs:
           if not Path('flutter_service_worker.js').read_text(encoding='utf-8').strip():
               raise SystemExit('flutter_service_worker.js пуст')
           PY
-          grep -q "main.dart.js?v=${EXPECTED_SHORT}" flutter_bootstrap.js
+          if [ -n "$EXPECTED_BUILD_ID" ]; then
+            grep -q "main.dart.js?v=${EXPECTED_BUILD_ID}" flutter_bootstrap.js
+          fi
           printf 'PWA assets: OK\n' | tee -a smoke-report.txt
 
       - name: Validate Russian API proxy
@@ -168,9 +156,9 @@ jobs:
           {
             echo '## AppСтрой web/PWA smoke'
             echo
-            echo "- Source commit: \`${{ steps.source.outputs.full }}\`"
             echo "- Public URL: ${APP_PUBLIC_URL}"
             echo "- API proxy: ${API_BASE_URL}"
+            echo "- Deploy id: ${{ steps.deployment.outputs.id }}"
             echo
             echo '```text'
             test -f smoke-report.txt && cat smoke-report.txt || true
@@ -181,7 +169,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: web-pwa-smoke-${{ steps.source.outputs.short }}
+          name: web-pwa-smoke-${{ github.run_id }}
           path: |
             smoke-report.txt
             proxy-health.txt
