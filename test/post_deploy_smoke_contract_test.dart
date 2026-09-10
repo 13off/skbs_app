@@ -10,7 +10,10 @@ void main() {
 
     expect(workflow, contains('workflow_run:'));
     expect(workflow, contains('Build and publish web'));
-    expect(workflow, contains('downloads/web-source-commit.txt'));
+    expect(workflow, contains('https://13off.github.io/appstroy-web-deploy/'));
+    expect(workflow, contains('EXPECTED_BUILD_ID'));
+    expect(workflow, contains(r'${{ github.event.workflow_run.id }}'));
+    expect(workflow, isNot(contains('downloads/web-source-commit.txt')));
     expect(workflow, contains('flutter_bootstrap.js?v='));
     expect(workflow, contains('manifest.json'));
     expect(workflow, contains('flutter_service_worker.js'));

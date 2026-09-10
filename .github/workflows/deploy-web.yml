@@ -4,17 +4,6 @@ on:
   push:
     branches:
       - main
-    paths:
-      - lib/**
-      - test/**
-      - assets/**
-      - web/**
-      - tool/web_smoke.py
-      - tool/pwa_offline_smoke.py
-      - pubspec.yaml
-      - pubspec.lock
-      - .fvmrc
-      - .github/workflows/deploy-web.yml
   workflow_dispatch:
 
 permissions:
@@ -154,6 +143,8 @@ jobs:
 
           forbidden="$(find "$BUILD_DIR" -type f \( \
             -name '*.dart' -o \
+            -name '*.sql' -o \
+            -name '*.log' -o \
             -name '*.map' -o \
             -name '.env' -o \
             -name '.env.*' -o \
@@ -222,6 +213,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
+          expected_head="$(git rev-parse origin/main)"
           git checkout --orphan deploy-snapshot
           git rm -rf . >/dev/null 2>&1 || true
           cp -R ../skbs_app/build/web/. ./
@@ -231,7 +223,7 @@ jobs:
           git add -A
           git commit -m "Deploy AppСтрой"
           git branch -M main
-          git push --force origin main
+          git push --force-with-lease="refs/heads/main:${expected_head}" origin main
 
       - name: Verify public repository contains one reachable root commit
         working-directory: appstroy-web-deploy

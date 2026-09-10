@@ -19,13 +19,16 @@ void main() {
     expect(source, isNot(contains('final isDesktop = screenWidth >= 760')));
   });
 
-  test('release workflow keeps conflict-safe web publishing enabled', () {
+  test('release workflow safely replaces the public snapshot', () {
     final workflow = File(
       '.github/workflows/deploy-web.yml',
     ).readAsStringSync();
 
-    expect(workflow, contains('Publish web files with conflict-safe retries'));
-    expect(workflow, contains('git reset --hard origin/main'));
-    expect(workflow, contains('for attempt in 1 2 3 4 5'));
+    expect(workflow, contains('Publish one clean root snapshot'));
+    expect(workflow, contains('git checkout --orphan deploy-snapshot'));
+    expect(workflow, contains('git push --force-with-lease='));
+    expect(workflow, contains('cancel-in-progress: true'));
+    expect(workflow, contains(r'test "$count" = "1"'));
+    expect(workflow, contains(r'test "$parents" = "0"'));
   });
 }
