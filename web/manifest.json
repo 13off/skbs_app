@@ -1,10 +1,10 @@
 {
-  "id": "/appstroy-web/",
+  "id": "/appstroy-web-deploy/",
   "name": "AppСтрой",
   "short_name": "AppСтрой",
   "description": "AppСтрой — сотрудники, табель, задачи, выплаты и документы строительного объекта.",
-  "start_url": "/appstroy-web/?source=pwa",
-  "scope": "/appstroy-web/",
+  "start_url": "/appstroy-web-deploy/?source=pwa",
+  "scope": "/appstroy-web-deploy/",
   "display": "standalone",
   "display_override": ["window-controls-overlay", "standalone"],
   "background_color": "#F3F1EC",
