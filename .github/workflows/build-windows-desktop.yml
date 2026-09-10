@@ -148,6 +148,7 @@ jobs:
           Get-FileHash $installer -Algorithm SHA256 | ForEach-Object { "$($_.Hash.ToLower())  AppStroy-Windows-Setup.exe" } | Set-Content 'windows-output/AppStroy-Windows-Setup.sha256' -Encoding ascii
 
       - name: Upload Windows package
+        continue-on-error: true
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: AppStroy-Windows-Desktop
