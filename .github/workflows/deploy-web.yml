@@ -18,14 +18,14 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
-  group: appstroy-web
+  group: appstroy-web-deploy
   cancel-in-progress: true
 
 env:
-  APP_PUBLIC_URL: https://13off.github.io/appstroy-web/
+  APP_PUBLIC_URL: https://13off.github.io/appstroy-web-deploy/
   FIREBASE_API_KEY: ${{ vars.FIREBASE_API_KEY }}
   FIREBASE_PROJECT_ID: ${{ vars.FIREBASE_PROJECT_ID }}
   FIREBASE_MESSAGING_SENDER_ID: ${{ vars.FIREBASE_MESSAGING_SENDER_ID }}
@@ -39,6 +39,7 @@ env:
 jobs:
   build-and-publish:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
 
     steps:
       - name: Check deploy token
@@ -49,18 +50,10 @@ jobs:
             exit 1
           fi
 
-      - name: Checkout source app
+      - name: Checkout private source app
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           path: skbs_app
-          show-progress: false
-
-      - name: Checkout web repository
-        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
-        with:
-          repository: 13off/appstroy-web
-          token: ${{ secrets.WEB_DEPLOY_TOKEN }}
-          path: appstroy-web
           show-progress: false
 
       - name: Setup Flutter
@@ -120,11 +113,13 @@ jobs:
           path.write_text(text, encoding='utf-8')
           PY
 
-      - name: Build Flutter Web through proxy
+      - name: Build Flutter Web
         working-directory: skbs_app
+        shell: bash
         run: |
+          set -o pipefail
           flutter build web --release \
-            --base-href /appstroy-web/ \
+            --base-href /appstroy-web-deploy/ \
             --dart-define=SUPABASE_URL=https://api.appstroy-web.ru \
             --dart-define=FIREBASE_API_KEY="$FIREBASE_API_KEY" \
             --dart-define=FIREBASE_PROJECT_ID="$FIREBASE_PROJECT_ID" \
@@ -137,15 +132,53 @@ jobs:
             --dart-define=FIREBASE_VAPID_KEY="$FIREBASE_VAPID_KEY" \
             2>&1 | tee ../flutter-web-build.log
 
-      - name: Bust cache
+      - name: Prepare cache-busted public build
         shell: bash
         run: |
-          BUILD_ID="$(git -C skbs_app rev-parse --short=12 HEAD)"
+          BUILD_ID="${GITHUB_RUN_ID}"
           sed -i '/class="loader-progress"/d' skbs_app/build/web/index.html
           sed -i "s/manifest\.json/manifest.json?v=${BUILD_ID}/g" skbs_app/build/web/index.html
           sed -i "s/flutter_bootstrap\.js/flutter_bootstrap.js?v=${BUILD_ID}/g" skbs_app/build/web/index.html
           sed -i "s/main\.dart\.js/main.dart.js?v=${BUILD_ID}/g" skbs_app/build/web/flutter_bootstrap.js
           cp skbs_app/build/web/index.html skbs_app/build/web/404.html
+          rm -rf skbs_app/build/web/downloads
+
+      - name: Reject source files and private material in public snapshot
+        shell: bash
+        run: |
+          set -euo pipefail
+          BUILD_DIR="skbs_app/build/web"
+          test -s "${BUILD_DIR}/index.html"
+          test -s "${BUILD_DIR}/main.dart.js"
+          test -s "${BUILD_DIR}/flutter_bootstrap.js"
+
+          forbidden="$(find "$BUILD_DIR" -type f \( \
+            -name '*.dart' -o \
+            -name '*.map' -o \
+            -name '.env' -o \
+            -name '.env.*' -o \
+            -name '*.pem' -o \
+            -name '*.key' -o \
+            -name '*.p12' -o \
+            -name '*.jks' -o \
+            -name '*.keystore' \
+          \) -print)"
+          if [ -n "$forbidden" ]; then
+            echo "::error::В публичной сборке найдены запрещённые файлы"
+            printf '%s\n' "$forbidden"
+            exit 1
+          fi
+
+          if grep -RIl --exclude-dir='.git' -E -- \
+            '-----BEGIN ([A-Z0-9 ]+ )?PRIVATE KEY-----' "$BUILD_DIR" | grep -q .; then
+            echo "::error::В публичной сборке найден приватный ключ"
+            exit 1
+          fi
+
+          if [ -e "${BUILD_DIR}/downloads" ]; then
+            echo "::error::Папка внутренних deploy-диагностик не должна публиковаться"
+            exit 1
+          fi
 
       - name: Install browser smoke dependencies
         run: python3 -m pip install --disable-pip-version-check --quiet selenium==4.28.1 pillow==11.1.0
@@ -153,12 +186,12 @@ jobs:
       - name: Validate built PWA in headless Chrome
         id: browser-smoke
         working-directory: skbs_app
-        run: python3 tool/web_smoke.py
+        run: python3 tool/web_smoke.py --base-path appstroy-web-deploy
 
       - name: Validate PWA cold start without network
         id: offline-smoke
         working-directory: skbs_app
-        run: python3 tool/pwa_offline_smoke.py
+        run: python3 tool/pwa_offline_smoke.py --base-path appstroy-web-deploy
 
       - name: Upload browser smoke evidence
         if: always()
@@ -171,99 +204,48 @@ jobs:
           if-no-files-found: warn
           retention-days: 3
 
-      - name: Publish web files with conflict-safe retries
-        working-directory: appstroy-web
+      - name: Checkout public deployment repository
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          repository: 13off/appstroy-web-deploy
+          token: ${{ secrets.WEB_DEPLOY_TOKEN }}
+          path: appstroy-web-deploy
+          ref: main
+          fetch-depth: 1
+          show-progress: false
+
+      - name: Publish one clean root snapshot
+        working-directory: appstroy-web-deploy
         shell: bash
         run: |
+          set -euo pipefail
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-          for attempt in 1 2 3 4 5; do
-            echo "Publish attempt ${attempt}/5"
-            git fetch origin main
-            git reset --hard origin/main
+          git checkout --orphan deploy-snapshot
+          git rm -rf . >/dev/null 2>&1 || true
+          cp -R ../skbs_app/build/web/. ./
+          touch .nojekyll
+          rm -rf downloads
 
-            find . -mindepth 1 -maxdepth 1 ! -name '.git' ! -name 'downloads' -exec rm -rf {} +
-            cp -R ../skbs_app/build/web/. ./
-            touch .nojekyll
+          git add -A
+          git commit -m "Deploy AppСтрой"
+          git branch -M main
+          git push --force origin main
 
-            git add -A
-            if git diff --cached --quiet; then
-              echo "No web changes to publish"
-              exit 0
-            fi
-
-            git commit -m "обновлена веб версия через российский прокси"
-            if git push origin HEAD:main; then
-              echo "Web files published successfully"
-              exit 0
-            fi
-
-            echo "Remote changed during publish; rebuilding commit on latest main"
-            sleep $((attempt * 3))
-          done
-
-          echo "::error::Не удалось опубликовать веб-файлы после 5 попыток"
-          exit 1
-
-      - name: Publish web build status
-        if: always()
-        working-directory: appstroy-web
+      - name: Verify public repository contains one reachable root commit
+        working-directory: appstroy-web-deploy
         shell: bash
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          BUILD_ID="$(git -C ../skbs_app rev-parse --short=12 HEAD)"
-
-          for attempt in 1 2 3 4 5; do
-            echo "Status attempt ${attempt}/5"
-            git fetch origin main
-            git reset --hard origin/main
-            mkdir -p downloads
-
-            if grep -q "flutter_bootstrap.js?v=${BUILD_ID}" index.html 2>/dev/null; then
-              BUILD_STATUS="success"
-            else
-              BUILD_STATUS="failure"
-            fi
-
-            printf '%s\n' "${BUILD_STATUS}" > downloads/web-build-status.txt
-            printf '%s\n' "${{ github.sha }}" > downloads/web-source-commit.txt
-
-            if [ "${BUILD_STATUS}" = "failure" ]; then
-              {
-                echo "AppStroy web build failure diagnostics"
-                echo "source=${{ github.sha }}"
-                for log in ../flutter-test.log ../flutter-analyze.log ../flutter-web-build.log; do
-                  if [ -f "${log}" ]; then
-                    echo
-                    echo "===== $(basename "${log}") ====="
-                    tail -n 1000 "${log}"
-                  fi
-                done
-              } > downloads/web-build.log
-              test -f ../flutter-test.log && tail -n 800 ../flutter-test.log > downloads/flutter-test-tail.log || rm -f downloads/flutter-test-tail.log
-              test -f ../flutter-analyze.log && tail -n 300 ../flutter-analyze.log > downloads/flutter-analyze-tail.log || rm -f downloads/flutter-analyze-tail.log
-              test -f ../flutter-web-build.log && tail -n 300 ../flutter-web-build.log > downloads/flutter-web-build-tail.log || rm -f downloads/flutter-web-build-tail.log
-            else
-              rm -f downloads/web-build.log downloads/flutter-test-tail.log downloads/flutter-analyze-tail.log downloads/flutter-web-build-tail.log
-            fi
-
-            git add -A downloads
-            if git diff --cached --quiet; then
-              echo "Web build status is already current"
-              exit 0
-            fi
-
-            git commit -m "сохранён статус веб-сборки"
-            if git push origin HEAD:main; then
-              echo "Web build status published"
-              exit 0
-            fi
-
-            echo "Remote changed during status publish; retrying"
-            sleep $((attempt * 2))
-          done
-
-          echo "::error::Не удалось сохранить статус веб-сборки после 5 попыток"
-          exit 1
+          set -euo pipefail
+          git fetch --force origin main
+          git checkout -B main origin/main
+          count="$(git rev-list --count HEAD)"
+          parents="$(git rev-list --parents -n 1 HEAD | awk '{print NF-1}')"
+          printf 'Reachable commits: %s\n' "$count"
+          printf 'Root parents: %s\n' "$parents"
+          test "$count" = "1"
+          test "$parents" = "0"
+          test -s index.html
+          test -s main.dart.js
+          test ! -e downloads
