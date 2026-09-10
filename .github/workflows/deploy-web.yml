@@ -185,6 +185,8 @@ jobs:
         run: python3 tool/pwa_offline_smoke.py --base-path appstroy-web-deploy
 
       - name: Upload browser smoke evidence
+        # Optional screenshots: storage quota must not block a validated build.
+        continue-on-error: true
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:

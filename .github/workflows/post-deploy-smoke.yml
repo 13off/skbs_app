@@ -166,6 +166,8 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload smoke diagnostics
+        # HTTP/PWA checks above remain required; their summary is kept in logs.
+        continue-on-error: true
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
