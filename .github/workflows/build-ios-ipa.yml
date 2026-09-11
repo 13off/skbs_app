@@ -61,6 +61,12 @@ jobs:
         if: github.event_name == 'workflow_dispatch'
         run: flutter test
 
+      - name: Clean generated package sources before analysis
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          flutter clean
+          flutter pub get --enforce-lockfile
+
       - name: Analyze source for manual releases
         if: github.event_name == 'workflow_dispatch'
         run: flutter analyze --no-fatal-infos --no-fatal-warnings
