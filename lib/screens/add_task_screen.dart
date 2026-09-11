@@ -16,6 +16,7 @@ import '../features/tasks/voice/task_voice_employee_matcher.dart';
 import '../features/tasks/voice/task_voice_parser.dart';
 import '../features/tasks/voice/task_voice_recognition.dart';
 import '../features/tasks/voice/task_voice_strict_session.dart';
+import '../features/work_orders/work_order_repository.dart';
 import '../models/employee.dart';
 import '../models/task_item_data.dart';
 part 'task_create/task_create_actions.dart';
@@ -28,6 +29,8 @@ class TaskCreateDraft {
   final TaskItemData task;
   final List<String> assigneeIds;
   final List<TaskPhotoFile> photos;
+  final double? plannedQuantity;
+  final String unitLabel;
   final bool saveAsDraft;
   final String? sourceDraftId;
   final List<TaskCreateDraft> additionalTasks;
@@ -36,6 +39,8 @@ class TaskCreateDraft {
     required this.task,
     required this.assigneeIds,
     required this.photos,
+    this.plannedQuantity,
+    this.unitLabel = 'м³',
     this.saveAsDraft = false,
     this.sourceDraftId,
     this.additionalTasks = const <TaskCreateDraft>[],
@@ -51,6 +56,32 @@ class TaskCreateDraft {
   }
 }
 
+Future<TaskItemData> _persistOneTaskCreateDraft(
+  TaskCreateDraft draft, {
+  required String objectName,
+  required List<TaskPhotoFile> photos,
+}) async {
+  final created = await OfflineTaskCreateService.queueTask(
+    draft.task,
+    objectName: objectName,
+    assigneeIds: draft.assigneeIds,
+    photos: photos,
+    isDraft: draft.saveAsDraft,
+    preferredId: draft.sourceDraftId,
+  );
+  final taskId = created.id?.trim() ?? '';
+  final planned = draft.plannedQuantity;
+  if (taskId.isNotEmpty && planned != null) {
+    await WorkOrderRepository.queuePlan(
+      taskId: taskId,
+      planned: planned,
+      unit: draft.unitLabel,
+      taskDate: draft.task.date,
+    );
+  }
+  return created;
+}
+
 Future<List<TaskItemData>> persistTaskCreateDraft(
   TaskCreateDraft draft, {
   required String objectName,
@@ -58,13 +89,10 @@ Future<List<TaskItemData>> persistTaskCreateDraft(
   final drafts = draft.allTasks;
   if (drafts.length == 1) {
     return <TaskItemData>[
-      await OfflineTaskCreateService.queueTask(
-        draft.task,
+      await _persistOneTaskCreateDraft(
+        draft,
         objectName: objectName,
-        assigneeIds: draft.assigneeIds,
         photos: draft.photos,
-        isDraft: draft.saveAsDraft,
-        preferredId: draft.sourceDraftId,
       ),
     ];
   }
@@ -78,13 +106,10 @@ Future<List<TaskItemData>> persistTaskCreateDraft(
   final created = <TaskItemData>[];
   for (final item in drafts) {
     created.add(
-      await OfflineTaskCreateService.queueTask(
-        item.task,
+      await _persistOneTaskCreateDraft(
+        item,
         objectName: objectName,
-        assigneeIds: item.assigneeIds,
         photos: const <TaskPhotoFile>[],
-        isDraft: item.saveAsDraft,
-        preferredId: item.sourceDraftId,
       ),
     );
   }
@@ -130,8 +155,10 @@ class AddTaskScreen extends StatefulWidget {
 
 class _AddTaskScreenState extends State<AddTaskScreen> {
   final TextEditingController axesController = TextEditingController(),
-      workController = TextEditingController();
+      workController = TextEditingController(),
+      plannedQuantityController = TextEditingController();
   late DateTime selectedDate;
+  String selectedWorkUnit = WorkOrderRepository.unitOptions.first;
 
   List<Employee> employees = <Employee>[];
   final Set<String> selectedAssigneeIds = <String>{};
@@ -185,6 +212,7 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
   void dispose() {
     axesController.dispose();
     workController.dispose();
+    plannedQuantityController.dispose();
     super.dispose();
   }
 
