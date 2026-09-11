@@ -2,10 +2,10 @@ AppСтрой mobile release
 version: 1.3.9+23
 previous mobile release: 1.3.9+18
 release date: 2026-09-11
-release attempt: 3
+release attempt: 4
 accepted application commit: d0438cd8df4d58436a4d394a772a5a922f6313ce
-validation workflow commit: 538ca3158046c8dd12e36a70ce5192de064beac4
+validation workflow commit: bba0c6b9338fa2f7cad1da3e5c4916d579589cc6
 features: fix XLSX timesheet and DOCX work-act downloads on Android and iOS through the native system file saver
 web: publish the same accepted main for PC/PWA
 mobile: build Android release APK and unsigned verification iOS IPA from current main
-quality gates: release workflows must run regression tests/analyzer and mobile builds; download-repository publishing is optional infrastructure and must not block validation
+quality gates: release workflows must run regression tests/analyzer and mobile builds; generated iOS package sources are cleaned before analysis; download-repository publishing is optional infrastructure and must not block validation
