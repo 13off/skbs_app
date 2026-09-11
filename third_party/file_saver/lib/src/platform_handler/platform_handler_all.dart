@@ -61,11 +61,15 @@ class PlatformHandlerAll extends PlatformHandler {
 
   @override
   Future<String?> saveFile(FileModel fileModel) async {
-    if (Platform.isAndroid) {
-      return await saveFileForAndroid(fileModel);
-    } else {
-      return await saveFileForOtherPlatforms(fileModel);
+    // На мобильных платформах файл должен уходить в системный файловый
+    // диалог. Это даёт пользователю реальный доступ к XLSX/DOCX и не зависит
+    // от приватной директории приложения. На iOS нативный плагин реализует
+    // именно saveAs, поэтому saveFile через файловую директорию здесь не
+    // используем.
+    if (Platform.isAndroid || Platform.isIOS) {
+      return _channel.invokeMethod<String>(_saveAs, fileModel.toMap());
     }
+    return saveFileForOtherPlatforms(fileModel);
   }
 
   ///Open File Manager
