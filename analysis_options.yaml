@@ -7,6 +7,12 @@
 
 include: package:flutter_lints/flutter.yaml
 
+analyzer:
+  exclude:
+    # Generated native/Swift Package sources are build output, not AppСтрой
+    # source. macOS/iOS runners may materialize third-party packages here.
+    - build/**
+
 linter:
   rules:
     # The document workflow branch contains one generated conditional that is
