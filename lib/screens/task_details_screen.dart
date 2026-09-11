@@ -6,12 +6,13 @@ import '../data/task_progress_repository.dart';
 import '../features/estimator/data/task_completion_report_repository.dart';
 import '../features/estimator/presentation/task_completion_report_dialog.dart';
 import '../features/tasks/presentation/task_contribution_dialog.dart';
+import '../features/work_orders/work_order_repository.dart';
 import '../models/app_user_profile.dart';
 import '../models/task_item_data.dart';
 import 'task_details/task_details_editor_screen.dart' as editor;
 
-/// Публичный слой дополняет редактор задачи учётом дневного прогресса
-/// и распределением личного вклада между назначенными участниками.
+/// Публичный слой дополняет редактор задачи учётом дневного прогресса,
+/// фактического объёма и КТУ назначенных участников.
 class TaskDetailsScreen extends StatefulWidget {
   final TaskItemData task;
   final AppUserProfile profile;
@@ -73,14 +74,21 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
       try {
         final previousChecklistItemId = await previousChecklistItemFuture;
         final linked = _isLinked(result);
-        List<TaskContributionEntry>? contributionsToSave;
-        TaskContributionDraft? contributionDraft;
+        TaskCompletionWorkResult? completionWork;
+        Map<String, dynamic>? workPlan;
 
         if (result.status == 'Выполнено') {
-          contributionDraft = await TaskContributionRepository.fetchDraft(
-            result.id!,
-          );
+          final loaded = await Future.wait<dynamic>([
+            TaskContributionRepository.fetchDraft(result.id!),
+            WorkOrderRepository.plan(result.id!),
+            WorkOrderRepository.day(result.id!, result.date),
+          ]);
           if (!mounted) return;
+
+          final contributionDraft = loaded[0] as TaskContributionDraft;
+          workPlan = loaded[1] as Map<String, dynamic>?;
+          final existingDay = loaded[2] as Map<String, dynamic>?;
+
           if (contributionDraft.entries.isEmpty) {
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
@@ -92,16 +100,38 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
             continue;
           }
 
-          final needsContributionConfirmation =
-              previousTask.status != 'Выполнено' ||
-              !contributionDraft.hasSavedExactDistribution;
-          if (needsContributionConfirmation) {
-            contributionsToSave = await showTaskContributionDialog(
+          final needsCompletionFact =
+              previousTask.status != 'Выполнено' || existingDay == null;
+          if (needsCompletionFact) {
+            final existingKtu = <String, int>{};
+            final rawParticipants = existingDay?['participants'];
+            if (rawParticipants is List) {
+              for (final raw in rawParticipants.whereType<Map>()) {
+                final row = Map<String, dynamic>.from(raw);
+                final employeeId = row['employee_id']?.toString().trim() ?? '';
+                if (employeeId.isNotEmpty) {
+                  existingKtu[employeeId] = _intValue(row['ktu']).clamp(0, 200);
+                }
+              }
+            }
+
+            final ktuEntries = <TaskContributionEntry>[
+              for (final entry in contributionDraft.entries)
+                entry.copyWith(
+                  percent: existingKtu[entry.employeeId] ?? 100,
+                ),
+            ];
+            final planUnit = workPlan?['unit']?.toString().trim() ?? '';
+            final existingUnit = existingDay?['unit']?.toString().trim() ?? '';
+            completionWork = await showTaskContributionDialog(
               context: context,
-              entries: contributionDraft.entries,
+              entries: ktuEntries,
+              initialQuantity: _doubleValue(existingDay?['quantity']),
+              initialUnit: existingUnit.isNotEmpty ? existingUnit : planUnit,
+              plannedQuantity: _doubleValue(workPlan?['planned_quantity']),
             );
             if (!mounted) return;
-            if (contributionsToSave == null) continue;
+            if (completionWork == null) continue;
           }
         }
 
@@ -136,15 +166,30 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
         }
 
         if (result.status == 'Выполнено') {
-          if (contributionsToSave != null) {
+          if (completionWork != null) {
+            await WorkOrderRepository.save(
+              taskId: result.id!,
+              planned: _doubleValue(workPlan?['planned_quantity']),
+              unit: completionWork.unit,
+              date: result.date,
+              quantity: completionWork.quantity,
+              participants: <Map<String, dynamic>>[
+                for (final entry in completionWork.entries)
+                  <String, dynamic>{
+                    'employee_id': entry.employeeId,
+                    'ktu': entry.percent,
+                  },
+              ],
+            );
             await TaskContributionRepository.save(
               taskId: result.id!,
-              entries: contributionsToSave,
+              entries: _legacyContributionShares(completionWork.entries),
             );
           }
           await _offerEstimatorSubmission(result);
         } else if (previousTask.status == 'Выполнено') {
           await TaskContributionRepository.clear(result.id!);
+          await WorkOrderRepository.deleteDay(result.id!, previousTask.date);
         }
 
         if (!mounted) return;
@@ -157,6 +202,50 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
         );
       }
     }
+  }
+
+  List<TaskContributionEntry> _legacyContributionShares(
+    List<TaskContributionEntry> ktuEntries,
+  ) {
+    final total = ktuEntries.fold<int>(0, (sum, entry) => sum + entry.percent);
+    if (total <= 0) {
+      throw StateError('Хотя бы один КТУ должен быть больше 0');
+    }
+
+    final raw = <double>[
+      for (final entry in ktuEntries) 100 * entry.percent / total,
+    ];
+    final percents = raw.map((value) => value.floor()).toList();
+    var missing = 100 - percents.fold<int>(0, (sum, value) => sum + value);
+    final order = List<int>.generate(raw.length, (index) => index)
+      ..sort((first, second) {
+        final firstPart = raw[first] - raw[first].floor();
+        final secondPart = raw[second] - raw[second].floor();
+        final comparison = secondPart.compareTo(firstPart);
+        return comparison == 0 ? first.compareTo(second) : comparison;
+      });
+    for (final index in order) {
+      if (missing <= 0) break;
+      percents[index]++;
+      missing--;
+    }
+
+    return <TaskContributionEntry>[
+      for (var index = 0; index < ktuEntries.length; index++)
+        ktuEntries[index].copyWith(percent: percents[index]),
+    ];
+  }
+
+  int _intValue(Object? value) {
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    return int.tryParse(value?.toString() ?? '') ?? 0;
+  }
+
+  double? _doubleValue(Object? value) {
+    if (value == null) return null;
+    if (value is num) return value.toDouble();
+    return double.tryParse(value.toString().replaceAll(',', '.'));
   }
 
   Future<void> _offerEstimatorSubmission(TaskItemData task) async {
