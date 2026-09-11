@@ -1,17 +1,18 @@
 import 'package:flutter/material.dart';
 
 import '../app/app_adaptive_palette.dart';
-import '../data/task_contribution_repository.dart';
+import '../data/task_assignee_repository.dart';
 import '../data/task_progress_repository.dart';
 import '../features/estimator/data/task_completion_report_repository.dart';
 import '../features/estimator/presentation/task_completion_report_dialog.dart';
 import '../features/tasks/presentation/task_contribution_dialog.dart';
+import '../features/work_orders/work_order_repository.dart';
 import '../models/app_user_profile.dart';
 import '../models/task_item_data.dart';
 import 'task_details/task_details_editor_screen.dart' as editor;
 
 /// Публичный слой дополняет редактор задачи учётом дневного прогресса
-/// и распределением личного вклада между назначенными участниками.
+/// и фактического объёма/КТУ исполнителей при завершении.
 class TaskDetailsScreen extends StatefulWidget {
   final TaskItemData task;
   final AppUserProfile profile;
@@ -73,38 +74,67 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
       try {
         final previousChecklistItemId = await previousChecklistItemFuture;
         final linked = _isLinked(result);
-        List<TaskContributionEntry>? contributionsToSave;
-        TaskContributionDraft? contributionDraft;
+        TaskCompletionWorkResult? completionWork;
+        double? plannedQuantity;
+        String? workUnit;
 
-        if (result.status == 'Выполнено') {
-          contributionDraft = await TaskContributionRepository.fetchDraft(
+        final newlyCompleted =
+            result.status == 'Выполнено' && previousTask.status != 'Выполнено';
+        if (newlyCompleted) {
+          final assignees = await TaskAssigneeRepository.fetchAssignees(
             result.id!,
           );
           if (!mounted) return;
-          if (contributionDraft.entries.isEmpty) {
+          if (assignees.isEmpty) {
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
                 content: Text(
-                  'Чтобы завершить задачу, добавьте хотя бы одного участника',
+                  'Чтобы завершить задачу, добавьте хотя бы одного исполнителя',
                 ),
               ),
             );
             continue;
           }
 
-          final needsContributionConfirmation =
-              previousTask.status != 'Выполнено' ||
-              !contributionDraft.hasSavedExactDistribution;
-          if (needsContributionConfirmation) {
-            contributionsToSave = await showTaskContributionDialog(
-              context: context,
-              entries: contributionDraft.entries,
+          final plan = await WorkOrderRepository.plan(result.id!);
+          if (!mounted) return;
+          final rawPlan = plan?['planned_quantity'];
+          plannedQuantity = rawPlan is num
+              ? rawPlan.toDouble()
+              : double.tryParse(rawPlan?.toString() ?? '');
+          workUnit = plan?['unit']?.toString().trim() ?? '';
+          if (plannedQuantity == null ||
+              !plannedQuantity.isFinite ||
+              plannedQuantity <= 0 ||
+              workUnit.isEmpty) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text(
+                  'Сначала укажите плановый объём и единицу измерения в блоке «Объём и наряд»',
+                ),
+              ),
             );
-            if (!mounted) return;
-            if (contributionsToSave == null) continue;
+            continue;
           }
+
+          completionWork = await showTaskContributionDialog(
+            context: context,
+            entries: <TaskKtuEntry>[
+              for (final assignee in assignees)
+                TaskKtuEntry(
+                  employeeId: assignee.employeeId,
+                  employeeName: assignee.employeeName,
+                  position: assignee.position,
+                ),
+            ],
+            unitLabel: workUnit,
+            plannedQuantity: plannedQuantity,
+          );
+          if (!mounted) return;
+          if (completionWork == null) continue;
         }
 
+        int? selectedProgress;
         if (result.status == 'Выполнено' && linked) {
           final progressContext = await TaskProgressRepository.fetchContext(
             taskId: result.id!,
@@ -112,20 +142,38 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
           );
           if (!mounted) return;
 
-          final selectedPercent = await showDialog<int>(
+          selectedProgress = await showDialog<int>(
             context: context,
             barrierDismissible: false,
             builder: (_) => _DailyProgressDialog(contextData: progressContext),
           );
           if (!mounted) return;
+          if (selectedProgress == null) continue;
+        }
 
-          if (selectedPercent == null) {
-            continue;
-          }
+        // Persist the work-order fact before changing the operational status:
+        // a task must never become completed without its actual volume and KTU.
+        if (completionWork != null) {
+          await WorkOrderRepository.save(
+            taskId: result.id!,
+            planned: plannedQuantity,
+            unit: workUnit!,
+            date: result.date,
+            quantity: completionWork.actualVolume,
+            participants: <Map<String, dynamic>>[
+              for (final entry in completionWork.participants)
+                <String, dynamic>{
+                  'employee_id': entry.employeeId,
+                  'ktu': entry.ktu,
+                },
+            ],
+          );
+        }
 
+        if (result.status == 'Выполнено' && linked) {
           await TaskProgressRepository.saveCompletedTask(
             task: result,
-            progressPercent: selectedPercent,
+            progressPercent: selectedProgress!,
             previousChecklistItemId: previousChecklistItemId,
           );
         } else {
@@ -136,15 +184,11 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
         }
 
         if (result.status == 'Выполнено') {
-          if (contributionsToSave != null) {
-            await TaskContributionRepository.save(
-              taskId: result.id!,
-              entries: contributionsToSave,
-            );
-          }
           await _offerEstimatorSubmission(result);
         } else if (previousTask.status == 'Выполнено') {
-          await TaskContributionRepository.clear(result.id!);
+          // Reopening removes the completion fact so the work order cannot keep
+          // reporting a task that is no longer completed.
+          await WorkOrderRepository.deleteDay(result.id!, previousTask.date);
         }
 
         if (!mounted) return;

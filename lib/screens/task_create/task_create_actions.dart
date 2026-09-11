@@ -93,6 +93,24 @@ extension _TaskCreateActions on _AddTaskScreenState {
     ).showSnackBar(SnackBar(content: Text(message)));
   }
 
+  double? plannedQuantityValue() {
+    final raw = plannedQuantityController.text.trim().replaceAll(',', '.');
+    if (raw.isEmpty) return null;
+    return double.tryParse(raw);
+  }
+
+  String? plannedQuantityError() {
+    if (plannedQuantityController.text.trim().isEmpty) return null;
+    final value = plannedQuantityValue();
+    if (value == null || !value.isFinite || value <= 0 || value > 1e12) {
+      return 'Проверь плановый объём задачи';
+    }
+    if (!WorkOrderRepository.unitOptions.contains(selectedWorkUnit)) {
+      return 'Выбери единицу измерения';
+    }
+    return null;
+  }
+
   List<TaskCreateDraft> buildVoiceAdditionalResults() {
     if (voiceBatchDrafts.length <= 1 || isGoalTask) {
       return const <TaskCreateDraft>[];
@@ -144,6 +162,8 @@ extension _TaskCreateActions on _AddTaskScreenState {
       photos: asDraft
           ? const <TaskPhotoFile>[]
           : List<TaskPhotoFile>.from(selectedPhotos),
+      plannedQuantity: plannedQuantityValue(),
+      unitLabel: selectedWorkUnit,
       saveAsDraft: asDraft,
       sourceDraftId: widget.sourceDraftId,
       additionalTasks: additionalTasks,
@@ -156,6 +176,11 @@ extension _TaskCreateActions on _AddTaskScreenState {
     final goalWork = selectedChecklistTitle?.trim() ?? '';
     if (axes.isEmpty && work.isEmpty && goalWork.isEmpty) {
       showValidationError('Заполни хотя бы оси или вид работ');
+      return;
+    }
+    final planError = plannedQuantityError();
+    if (planError != null) {
+      showValidationError(planError);
       return;
     }
     Navigator.pop(context, buildResult(asDraft: true));
@@ -174,6 +199,12 @@ extension _TaskCreateActions on _AddTaskScreenState {
     );
     if (coreError != null) {
       showValidationError(coreError);
+      return;
+    }
+
+    final planError = plannedQuantityError();
+    if (planError != null) {
+      showValidationError(planError);
       return;
     }
 

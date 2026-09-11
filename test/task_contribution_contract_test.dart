@@ -4,30 +4,63 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  test('completed task asks for one exact 100 percent contribution split', () {
+  test('completion records actual volume and independent 0-200 KTU', () {
     final wrapper = File(
       'lib/screens/task_details_screen.dart',
     ).readAsStringSync();
     final dialog = File(
       'lib/features/tasks/presentation/task_contribution_dialog.dart',
     ).readAsStringSync();
-    final repository = File(
-      'lib/data/task_contribution_repository.dart',
+    final workRepository = File(
+      'lib/features/work_orders/work_order_repository.dart',
     ).readAsStringSync();
 
-    expect(wrapper, contains('TaskContributionRepository.fetchDraft'));
+    expect(wrapper, contains('WorkOrderRepository.plan'));
     expect(wrapper, contains('showTaskContributionDialog'));
-    expect(wrapper, contains('hasSavedExactDistribution'));
-    expect(wrapper, contains('добавьте хотя бы одного участника'));
-    expect(wrapper, contains('TaskContributionRepository.clear'));
-    expect(dialog, contains("title: const Text('Вклад в результат')"));
-    expect(dialog, contains("'Всего: \$total%'"));
-    expect(dialog, contains("label: const Text('Поровну')"));
-    expect(repository, contains('static List<int> equalPercents'));
-    expect(repository, contains("'save_task_contributions'"));
+    expect(wrapper, contains('WorkOrderRepository.save'));
+    expect(wrapper, contains("'ktu': entry.ktu"));
+    expect(dialog, contains("labelText: 'Фактически выполненный объём'"));
+    expect(dialog, contains("'КТУ исполнителей'"));
+    expect(dialog, contains('this.ktu = 100'));
+    expect(dialog, contains('max: 200'));
+    expect(dialog, contains('divisions: 200'));
+    expect(dialog, contains('changeKtu(index, value.round())'));
+    expect(dialog, isNot(contains("'Всего: \$total%'")));
+    expect(dialog, isNot(contains("label: const Text('Поровну')")));
+    expect(dialog, isNot(contains('Распределите 100%')));
+    expect(workRepository, contains("'м³', 'м²', 'т', 'шт.', 'м.п.'"));
   });
 
-  test('server validates tenant task participants and exact total', () {
+  test('task creation asks for compact plan before assignees', () {
+    final view = File(
+      'lib/screens/task_create/task_create_view.dart',
+    ).readAsStringSync();
+    final sections = File(
+      'lib/screens/task_create/task_create_sections.dart',
+    ).readAsStringSync();
+    final workCard = File(
+      'lib/features/work_orders/task_work_section.dart',
+    ).readAsStringSync();
+
+    final taskFields = view.indexOf('buildTaskFields()');
+    final workPlan = view.indexOf('buildWorkPlanBlock()');
+    final assignees = view.indexOf('buildAssigneesBlock()');
+    expect(taskFields, greaterThanOrEqualTo(0));
+    expect(workPlan, greaterThan(taskFields));
+    expect(assignees, greaterThan(workPlan));
+
+    expect(sections, contains("labelText: 'Количество'"));
+    expect(sections, contains('DropdownButtonFormField<String>'));
+    expect(sections, contains('WorkOrderRepository.unitOptions'));
+
+    expect(workCard, contains("'Плановый объём задачи'"));
+    expect(workCard, isNot(contains('Всего сохранено по дням')));
+    expect(workCard, isNot(contains('Факт за')));
+    expect(workCard, isNot(contains('Выполненный объём за этот день')));
+    expect(workCard, isNot(contains('Сохранить объём и КТУ')));
+  });
+
+  test('server validates tenant task participants and exact legacy contribution total', () {
     final migration = File(
       'supabase/migrations/20260725100000_task_employee_contributions.sql',
     ).readAsStringSync();
