@@ -115,6 +115,8 @@ extension _TaskCreateActions on _AddTaskScreenState {
             task: task,
             assigneeIds: List<String>.from(voiceDraft.assigneeIds),
             photos: const <TaskPhotoFile>[],
+            plannedQuantity: plannedQuantityValue,
+            workUnit: selectedWorkUnit,
           );
         })
         .toList(growable: false);
@@ -144,6 +146,8 @@ extension _TaskCreateActions on _AddTaskScreenState {
       photos: asDraft
           ? const <TaskPhotoFile>[]
           : List<TaskPhotoFile>.from(selectedPhotos),
+      plannedQuantity: plannedQuantityValue,
+      workUnit: selectedWorkUnit,
       saveAsDraft: asDraft,
       sourceDraftId: widget.sourceDraftId,
       additionalTasks: additionalTasks,
@@ -174,6 +178,16 @@ extension _TaskCreateActions on _AddTaskScreenState {
     );
     if (coreError != null) {
       showValidationError(coreError);
+      return;
+    }
+
+    final planned = plannedQuantityValue;
+    if (planned == null || !planned.isFinite || planned <= 0) {
+      showValidationError('Укажи плановый объём больше 0');
+      return;
+    }
+    if (!WorkOrderRepository.supportedUnits.contains(selectedWorkUnit)) {
+      showValidationError('Выбери единицу измерения');
       return;
     }
 

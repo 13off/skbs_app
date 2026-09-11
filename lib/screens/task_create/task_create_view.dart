@@ -56,6 +56,8 @@ extension _TaskCreateView on _AddTaskScreenState {
           const SizedBox(height: 16),
           buildTaskFields(),
           const SizedBox(height: 16),
+          buildWorkPlanSection(),
+          const SizedBox(height: 16),
           buildAssigneesBlock(),
           const SizedBox(height: 16),
           buildPhotosBlock(),

@@ -1,3 +1,7 @@
+// State helpers below are part of the owning screen library and intentionally
+// update that exact State instance.
+// ignore_for_file: invalid_use_of_protected_member
+
 part of '../add_task_screen.dart';
 
 extension _TaskCreateSections on _AddTaskScreenState {
@@ -92,6 +96,72 @@ extension _TaskCreateSections on _AddTaskScreenState {
           ),
         ],
       ],
+    );
+  }
+
+  Widget buildWorkPlanSection() {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppAdaptivePalette.surfaceSoft,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: AppAdaptivePalette.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Объём и наряд',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
+          ),
+          const SizedBox(height: 10),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: plannedQuantityController,
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
+                  decoration: InputDecoration(
+                    labelText: 'Плановый объём',
+                    hintText: '0',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              SizedBox(
+                width: 118,
+                child: DropdownButtonFormField<String>(
+                  key: ValueKey('create-work-unit-$selectedWorkUnit'),
+                  initialValue: selectedWorkUnit,
+                  decoration: InputDecoration(
+                    labelText: 'Ед.',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                  ),
+                  items: [
+                    for (final unit in WorkOrderRepository.supportedUnits)
+                      DropdownMenuItem<String>(
+                        value: unit,
+                        child: Text(unit),
+                      ),
+                  ],
+                  onChanged: (value) {
+                    if (value == null) return;
+                    setState(() => selectedWorkUnit = value);
+                  },
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 

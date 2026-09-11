@@ -13,6 +13,9 @@ void main() {
     final actions = File(
       'lib/screens/task_create/task_create_actions.dart',
     ).readAsStringSync();
+    final persistence = File(
+      'lib/screens/task_create/task_create_persistence.dart',
+    ).readAsStringSync();
     final sections = File(
       'lib/screens/task_create/task_create_sections.dart',
     ).readAsStringSync();
@@ -22,17 +25,18 @@ void main() {
 
     expect(shell, contains("part 'task_create/task_create_loading.dart';"));
     expect(shell, contains("part 'task_create/task_create_actions.dart';"));
+    expect(shell, contains("part 'task_create/task_create_persistence.dart';"));
     expect(shell, contains("part 'task_create/task_create_sections.dart';"));
     expect(shell, contains("part 'task_create/task_create_view.dart';"));
     expect(shell, contains('class TaskCreateDraft'));
     expect(shell, contains('class AddTaskScreen extends StatefulWidget'));
     expect(shell.split('\n').length, lessThan(200));
     expect(
-      shell,
+      persistence,
       contains('Future<List<TaskItemData>> persistTaskCreateDraft'),
     );
-    expect(shell, contains('OfflineTaskCreateService.queueTask('));
-    expect(shell, isNot(contains('TaskRepository.addTaskBatch(')));
+    expect(persistence, contains('OfflineTaskCreateService.queueTask('));
+    expect(persistence, isNot(contains('TaskRepository.addTaskBatch(')));
 
     expect(loading, contains('Future<void> loadPolicy()'));
     expect(loading, contains('Future<void> loadEmployees()'));

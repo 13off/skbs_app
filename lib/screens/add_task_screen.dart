@@ -16,10 +16,12 @@ import '../features/tasks/voice/task_voice_employee_matcher.dart';
 import '../features/tasks/voice/task_voice_parser.dart';
 import '../features/tasks/voice/task_voice_recognition.dart';
 import '../features/tasks/voice/task_voice_strict_session.dart';
+import '../features/work_orders/work_order_repository.dart';
 import '../models/employee.dart';
 import '../models/task_item_data.dart';
 part 'task_create/task_create_actions.dart';
 part 'task_create/task_create_loading.dart';
+part 'task_create/task_create_persistence.dart';
 part 'task_create/task_create_sections.dart';
 part 'task_create/task_create_view.dart';
 part 'task_create/task_create_voice.dart';
@@ -28,6 +30,8 @@ class TaskCreateDraft {
   final TaskItemData task;
   final List<String> assigneeIds;
   final List<TaskPhotoFile> photos;
+  final double? plannedQuantity;
+  final String workUnit;
   final bool saveAsDraft;
   final String? sourceDraftId;
   final List<TaskCreateDraft> additionalTasks;
@@ -36,6 +40,8 @@ class TaskCreateDraft {
     required this.task,
     required this.assigneeIds,
     required this.photos,
+    this.plannedQuantity,
+    this.workUnit = '',
     this.saveAsDraft = false,
     this.sourceDraftId,
     this.additionalTasks = const <TaskCreateDraft>[],
@@ -51,46 +57,6 @@ class TaskCreateDraft {
   }
 }
 
-Future<List<TaskItemData>> persistTaskCreateDraft(
-  TaskCreateDraft draft, {
-  required String objectName,
-}) async {
-  final drafts = draft.allTasks;
-  if (drafts.length == 1) {
-    return <TaskItemData>[
-      await OfflineTaskCreateService.queueTask(
-        draft.task,
-        objectName: objectName,
-        assigneeIds: draft.assigneeIds,
-        photos: draft.photos,
-        isDraft: draft.saveAsDraft,
-        preferredId: draft.sourceDraftId,
-      ),
-    ];
-  }
-  if (drafts.any((item) => item.photos.isNotEmpty)) {
-    throw Exception('Пакет задач с фотографиями нужно сохранять по одной');
-  }
-
-  // A weak LTE connection must not turn batch creation into a long blocking
-  // server request. Every task is accepted locally first and replayed by the
-  // same durable queue as a single task.
-  final created = <TaskItemData>[];
-  for (final item in drafts) {
-    created.add(
-      await OfflineTaskCreateService.queueTask(
-        item.task,
-        objectName: objectName,
-        assigneeIds: item.assigneeIds,
-        photos: const <TaskPhotoFile>[],
-        isDraft: item.saveAsDraft,
-        preferredId: item.sourceDraftId,
-      ),
-    );
-  }
-  return created;
-}
-
 class AddTaskScreen extends StatefulWidget {
   final DateTime initialDate;
   final String objectName;
@@ -99,6 +65,8 @@ class AddTaskScreen extends StatefulWidget {
       initialChecklistTitle;
   final String initialAxes;
   final String initialWork;
+  final double? initialPlannedQuantity;
+  final String initialWorkUnit;
   final List<String> initialAssigneeIds;
   final bool initialRequireBeforePhoto,
       allowAnyDate,
@@ -115,6 +83,8 @@ class AddTaskScreen extends StatefulWidget {
     this.initialChecklistTitle,
     this.initialAxes = '',
     this.initialWork = '',
+    this.initialPlannedQuantity,
+    this.initialWorkUnit = 'м³',
     this.initialAssigneeIds = const <String>[],
     this.initialRequireBeforePhoto = false,
     this.allowAnyDate = false,
@@ -130,8 +100,10 @@ class AddTaskScreen extends StatefulWidget {
 
 class _AddTaskScreenState extends State<AddTaskScreen> {
   final TextEditingController axesController = TextEditingController(),
-      workController = TextEditingController();
+      workController = TextEditingController(),
+      plannedQuantityController = TextEditingController();
   late DateTime selectedDate;
+  late String selectedWorkUnit;
 
   List<Employee> employees = <Employee>[];
   final Set<String> selectedAssigneeIds = <String>{};
@@ -162,6 +134,10 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
     return policy.requireBeforePhoto ? policy.minBeforePhotos : 1;
   }
 
+  double? get plannedQuantityValue => double.tryParse(
+    plannedQuantityController.text.trim().replaceAll(',', '.'),
+  );
+
   @override
   void initState() {
     super.initState();
@@ -174,6 +150,17 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
     isGoalTask = selectedMilestoneId?.trim().isNotEmpty == true;
     axesController.text = widget.initialAxes.trim();
     workController.text = widget.initialWork.trim();
+    final initialQuantity = widget.initialPlannedQuantity;
+    if (initialQuantity != null) {
+      plannedQuantityController.text = initialQuantity == initialQuantity.roundToDouble()
+          ? initialQuantity.toInt().toString()
+          : initialQuantity.toString();
+    }
+    selectedWorkUnit = WorkOrderRepository.supportedUnits.contains(
+      widget.initialWorkUnit.trim(),
+    )
+        ? widget.initialWorkUnit.trim()
+        : WorkOrderRepository.supportedUnits.first;
     selectedAssigneeIds.addAll(
       widget.initialAssigneeIds.where((id) => id.trim().isNotEmpty),
     );
@@ -185,6 +172,7 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
   void dispose() {
     axesController.dispose();
     workController.dispose();
+    plannedQuantityController.dispose();
     super.dispose();
   }
 
