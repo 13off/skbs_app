@@ -32,18 +32,12 @@ jobs:
     timeout-minutes: 30
 
     steps:
-      - name: Check publish token
-        shell: bash
-        run: |
-          if [ -z "${{ secrets.WEB_DEPLOY_TOKEN }}" ]; then
-            echo "::error::Не найден secret WEB_DEPLOY_TOKEN"
-            exit 1
-          fi
-
       - name: Checkout source
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
       - name: Checkout download repository
+        id: download_repo
+        continue-on-error: true
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           repository: 13off/appstroy-web
@@ -51,7 +45,12 @@ jobs:
           path: appstroy-web
           ref: downloads
 
+      - name: Warn when download publishing is unavailable
+        if: steps.download_repo.outcome != 'success'
+        run: echo "::warning::Публикация APK в appstroy-web недоступна; тесты и сборка APK продолжаются."
+
       - name: Publish building status
+        if: steps.download_repo.outcome == 'success'
         shell: bash
         run: |
           mkdir -p appstroy-web/downloads
@@ -139,6 +138,7 @@ jobs:
 
       - name: Upload APK artifact
         if: steps.apk_build.outputs.exit_code == '0'
+        continue-on-error: true
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: AppStroy-Android-APK
@@ -147,7 +147,7 @@ jobs:
           if-no-files-found: error
 
       - name: Publish final build result
-        if: always()
+        if: always() && steps.download_repo.outcome == 'success'
         shell: bash
         run: |
           cd appstroy-web
