@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../data/task_assignee_repository.dart';
@@ -10,16 +11,22 @@ class TaskWorkSection extends StatefulWidget {
   final DateTime initialDate;
   final bool canEdit;
   @override
-  State<TaskWorkSection> createState() => _TaskWorkSectionState();
+  State<TaskWorkSection> createState() => TaskWorkSectionState();
 }
 
-class _TaskWorkSectionState extends State<TaskWorkSection> {
+class TaskWorkSectionState extends State<TaskWorkSection> {
   final planned = TextEditingController();
   final unit = TextEditingController();
   final actual = TextEditingController();
   final Map<String, TextEditingController> ktu = {};
   final Map<String, String> names = {};
   final Set<String> selected = {};
+  final Set<String> currentAssignees = {};
+  String baseline = '';
+  String get signature => jsonEncode([planned.text, unit.text, actual.text,
+      selected.toList()..sort(), {for (final id in selected) id: ktu[id]?.text}]);
+  bool get dirty => !loading && baseline.isNotEmpty && signature != baseline;
+  Future<bool> saveIfDirty() async => !dirty || await save(notify: false);
   List<Map<String, dynamic>> days = [];
   late DateTime date;
   bool loading = true;
@@ -45,11 +52,14 @@ class _TaskWorkSectionState extends State<TaskWorkSection> {
       planned.text = plan?['planned_quantity']?.toString() ?? '';
       unit.text = plan?['unit']?.toString() ?? '';
       days = records;
+      currentAssignees.clear();
       for (final person in assignees) {
+        currentAssignees.add(person.employeeId);
         names[person.employeeId] = person.employeeName;
         ktu.putIfAbsent(person.employeeId, () => TextEditingController(text: '100'));
       }
       selectDay(date);
+      baseline = signature;
       setState(() { loading = false; error = null; });
     } catch (e) {
       if (mounted) setState(() { loading = false; error = 'Не удалось загрузить объёмы: $e'; });
@@ -61,7 +71,7 @@ class _TaskWorkSectionState extends State<TaskWorkSection> {
     selected.clear();
     for (final controller in ktu.values) { controller.text = '100'; }
     if (found.isEmpty) {
-      actual.clear(); selected.addAll(names.keys);
+      actual.clear(); selected.addAll(currentAssignees);
     } else {
       final record = found.first;
       actual.text = '${record['quantity']}';
@@ -75,12 +85,29 @@ class _TaskWorkSectionState extends State<TaskWorkSection> {
       }
     }
   }
+  Future<void> changeDay(DateTime value) async {
+    if (dirty) {
+      final discard = await showDialog<bool>(context: context, builder: (context) => AlertDialog(
+        title: const Text('Есть несохранённый объём'),
+        content: const Text('Перейти к другому дню и отменить введённые изменения?'),
+        actions: [TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Остаться')),
+          TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('Перейти'))],
+      ));
+      if (discard != true || !mounted) return;
+      final saved = jsonDecode(baseline) as List;
+      planned.text = saved[0] as String;
+      unit.text = saved[1] as String;
+    }
+    setState(() => selectDay(value));
+    baseline = signature;
+  }
   Future<void> pickDate() async {
     final picked = await showDatePicker(context: context, initialDate: date,
         firstDate: DateTime(2000), lastDate: DateTime(2100));
-    if (picked != null && mounted) setState(() => selectDay(picked));
+    if (picked != null && mounted) await changeDay(picked);
   }
-  Future<void> save() async {
+  Future<bool> save({bool notify = true}) async {
+    if (busy || loading) return false;
     final plan = planned.text.trim().isEmpty ? null : number(planned.text);
     final quantity = actual.text.trim().isEmpty ? null : number(actual.text);
     final people = <Map<String, dynamic>>[];
@@ -98,16 +125,18 @@ class _TaskWorkSectionState extends State<TaskWorkSection> {
         invalid = 'Отметьте исполнителей и укажите положительный КТУ';
       }
     }
-    if (invalid != null) { setState(() => error = invalid); return; }
+    if (invalid != null) { setState(() => error = invalid); return false; }
     setState(() { busy = true; error = null; });
     try {
       await WorkOrderRepository.save(taskId: widget.taskId, planned: plan,
           unit: unit.text.trim(), date: date, quantity: quantity, participants: people);
       await load();
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(
+      if (mounted && notify) ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Объём и наряд сохранены')));
+      return true;
     } catch (e) {
       if (mounted) setState(() => error = 'Не удалось сохранить. Проверьте интернет и синхронизацию задачи. $e');
+      return false;
     } finally { if (mounted) setState(() => busy = false); }
   }
   Future<void> deleteDay() async {
@@ -141,7 +170,7 @@ class _TaskWorkSectionState extends State<TaskWorkSection> {
         if (days.isNotEmpty) Wrap(spacing: 6, children: [
           for (final day in days) ActionChip(
             label: Text('${DateFormat('dd.MM').format(DateTime.parse(day['work_date'] as String))}: ${day['quantity']}'),
-            onPressed: busy ? null : () => setState(() => selectDay(DateTime.parse(day['work_date'] as String))),
+            onPressed: busy ? null : () => changeDay(DateTime.parse(day['work_date'] as String)),
           ),
         ]),
         OutlinedButton.icon(onPressed: busy ? null : pickDate, icon: const Icon(Icons.calendar_month),
@@ -157,7 +186,7 @@ class _TaskWorkSectionState extends State<TaskWorkSection> {
         ]),
         if (names.isEmpty) const Text('Сначала сохраните исполнителей задачи, затем откройте её снова.'),
         if (widget.canEdit) ...[
-          FilledButton(onPressed: busy ? null : save, child: Text(busy ? 'Сохранение…' : 'Сохранить объём и КТУ')),
+          FilledButton(onPressed: busy ? null : () => save(), child: Text(busy ? 'Сохранение…' : 'Сохранить объём и КТУ')),
           if (days.any((d) => d['work_date'] == WorkOrderRepository.dateKey(date)))
             TextButton(onPressed: busy ? null : deleteDay, child: const Text('Удалить факт за этот день')),
         ],

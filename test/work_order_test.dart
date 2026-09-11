@@ -42,5 +42,12 @@ void main() {
     expect(find.byType(CalendarDatePicker), findsOneWidget);
     expect(find.text('Период: 11.09.2026 — 11.09.2026'), findsOneWidget);
     expect(find.text('Скачать Excel'), findsOneWidget);
+    tester.widget<CalendarDatePicker>(find.byType(CalendarDatePicker))
+        .onDateChanged(DateTime(2026, 9, 9));
+    await tester.pump();
+    tester.widget<CalendarDatePicker>(find.byType(CalendarDatePicker))
+        .onDateChanged(DateTime(2026, 9, 12));
+    await tester.pump();
+    expect(find.text('Период: 09.09.2026 — 12.09.2026'), findsOneWidget);
   });
 }

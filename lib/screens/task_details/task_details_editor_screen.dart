@@ -45,6 +45,7 @@ class TaskDetailsScreen extends StatefulWidget {
 }
 
 class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
+  final workSectionKey = GlobalKey<TaskWorkSectionState>();
   late final TextEditingController axesController;
   late final TextEditingController workController;
   late final TextEditingController notDoneCommentController;

@@ -289,6 +289,9 @@ extension _TaskDetailsActions on _TaskDetailsScreenState {
       );
       if (!mounted) return;
 
+      final workSaved = await workSectionKey.currentState?.saveIfDirty() ?? true;
+      if (!mounted || !workSaved) return;
+
       originalAssigneeIds
         ..clear()
         ..addAll(selectedAssigneeIds);
