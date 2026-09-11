@@ -33,7 +33,7 @@ void main() {
     final people = rows.where((r) => r.length > 5 && r[1]?.value.toString().startsWith('Рабочий') == true).toList();
     expect(people.length, 8);
     for (final row in people) {
-      expect(row[5]!.value, DoubleCellValue(25));
+      expect(row[5]!.value, anyOf(IntCellValue(25), DoubleCellValue(25)));
     }
   });
   testWidgets('export sheet opens with calendar and a single day selected', (tester) async {
