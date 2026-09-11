@@ -1,10 +1,10 @@
 AppСтрой mobile release
 version: 1.3.9+23
 previous mobile release: 1.3.9+18
-release date: 2026-09-08
-release attempt: 1
-accepted application commit: db4693407fea86ab99d264954ad5c0b241d85c5f
-features: complete offline cold start and automatic background sync; current production business logic including engineer-estimator closing workflow
+release date: 2026-09-11
+release attempt: 2
+accepted application commit: d0438cd8df4d58436a4d394a772a5a922f6313ce
+features: fix XLSX timesheet and DOCX work-act downloads on Android and iOS through the native system file saver
 web: publish the same accepted main for PC/PWA
 mobile: build Android release APK and unsigned verification iOS IPA from current main
 quality gates: release workflows must run regression tests/analyzer and publish only successful artifacts
