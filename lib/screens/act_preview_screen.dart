@@ -1,3 +1,4 @@
+import 'package:file_saver/file_saver.dart';
 import 'package:flutter/material.dart';
 import 'package:skbs_app/app/app_adaptive_palette.dart';
 import 'package:intl/intl.dart';
@@ -79,10 +80,19 @@ class _ActPreviewScreenState extends State<ActPreviewScreen> {
     });
 
     try {
-      await ActGenerator.downloadAct(
+      final bytes = await ActGenerator.createDocxFromTemplate(
         tasks: completedTasks,
         date: widget.date,
         contextByTaskId: contextByTaskId,
+      );
+      final shortDate = DateFormat('dd.MM').format(widget.date);
+      await FileSaver.instance.saveFile(
+        name: 'Акт о выполненных работах $shortDate',
+        bytes: bytes,
+        fileExtension: 'docx',
+        mimeType: MimeType.custom,
+        customMimeType:
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
       );
 
       if (!mounted) return;
