@@ -35,12 +35,18 @@ jobs:
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
       - name: Checkout download repository
+        id: download_repo
+        continue-on-error: true
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           repository: 13off/appstroy-web
           token: ${{ secrets.WEB_DEPLOY_TOKEN }}
           path: appstroy-web
           ref: downloads
+
+      - name: Warn when download publishing is unavailable
+        if: steps.download_repo.outcome != 'success'
+        run: echo "::warning::Публикация IPA в appstroy-web недоступна; тесты и сборка iOS продолжаются."
 
       - name: Setup Flutter
         uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
@@ -50,6 +56,14 @@ jobs:
 
       - name: Install locked dependencies
         run: flutter pub get --enforce-lockfile
+
+      - name: Run regression tests for manual releases
+        if: github.event_name == 'workflow_dispatch'
+        run: flutter test
+
+      - name: Analyze source for manual releases
+        if: github.event_name == 'workflow_dispatch'
+        run: flutter analyze --no-fatal-infos --no-fatal-warnings
 
       - name: Prepare iOS app
         id: ios_prepare
@@ -170,6 +184,7 @@ jobs:
 
       - name: Upload IPA artifact
         if: always() && steps.ios_prepare.outcome == 'success' && steps.ios_build.outcome == 'success'
+        continue-on-error: true
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: AppStroy-iOS-IPA
@@ -177,7 +192,7 @@ jobs:
           retention-days: 30
 
       - name: Publish final iOS build result
-        if: always()
+        if: always() && steps.download_repo.outcome == 'success'
         shell: bash
         run: |
           cd appstroy-web
