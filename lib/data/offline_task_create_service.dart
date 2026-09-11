@@ -44,6 +44,8 @@ class OfflineTaskCreateService {
     required String objectName,
     required List<String> assigneeIds,
     required List<TaskPhotoFile> photos,
+    double? plannedQuantity,
+    String workUnit = '',
     bool isDraft = false,
     String? preferredId,
   }) async {
@@ -90,6 +92,8 @@ class OfflineTaskCreateService {
       'created_by_user_id': Supabase.instance.client.auth.currentUser?.id,
       'is_draft': isDraft,
       'photo_requirements_enforced': policy.requireBeforePhoto,
+      'initial_planned_quantity': plannedQuantity,
+      'initial_work_unit': workUnit.trim(),
       'updated_at': DateTime.now().toUtc().toIso8601String(),
     };
 
