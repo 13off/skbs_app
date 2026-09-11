@@ -1,3 +1,7 @@
+// State helpers below are part of the owning screen library and intentionally
+// update that exact State instance.
+// ignore_for_file: invalid_use_of_protected_member
+
 part of '../add_task_screen.dart';
 
 extension _TaskCreateSections on _AddTaskScreenState {
@@ -143,7 +147,7 @@ extension _TaskCreateSections on _AddTaskScreenState {
               SizedBox(
                 width: 118,
                 child: DropdownButtonFormField<String>(
-                  value: selectedWorkUnit,
+                  initialValue: selectedWorkUnit,
                   isExpanded: true,
                   decoration: InputDecoration(
                     labelText: 'Ед.',
