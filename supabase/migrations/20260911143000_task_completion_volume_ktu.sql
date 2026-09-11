@@ -19,6 +19,11 @@ security definer
 set search_path = ''
 as $$
 begin
+  if tg_op = 'UPDATE'
+     and new.initial_planned_quantity is not distinct from old.initial_planned_quantity
+     and new.initial_work_unit is not distinct from old.initial_work_unit then
+    return new;
+  end if;
   if new.initial_planned_quantity is null then
     return new;
   end if;
