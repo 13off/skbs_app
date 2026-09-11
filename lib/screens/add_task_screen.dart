@@ -21,6 +21,7 @@ import '../models/employee.dart';
 import '../models/task_item_data.dart';
 part 'task_create/task_create_actions.dart';
 part 'task_create/task_create_loading.dart';
+part 'task_create/task_create_persistence.dart';
 part 'task_create/task_create_sections.dart';
 part 'task_create/task_create_view.dart';
 part 'task_create/task_create_voice.dart';
@@ -54,50 +55,6 @@ class TaskCreateDraft {
   TaskBatchCreateInput toBatchInput() {
     return TaskBatchCreateInput(task: task, assigneeIds: assigneeIds);
   }
-}
-
-Future<List<TaskItemData>> persistTaskCreateDraft(
-  TaskCreateDraft draft, {
-  required String objectName,
-}) async {
-  final drafts = draft.allTasks;
-  if (drafts.length == 1) {
-    return <TaskItemData>[
-      await OfflineTaskCreateService.queueTask(
-        draft.task,
-        objectName: objectName,
-        assigneeIds: draft.assigneeIds,
-        photos: draft.photos,
-        plannedQuantity: draft.plannedQuantity,
-        workUnit: draft.workUnit,
-        isDraft: draft.saveAsDraft,
-        preferredId: draft.sourceDraftId,
-      ),
-    ];
-  }
-  if (drafts.any((item) => item.photos.isNotEmpty)) {
-    throw Exception('Пакет задач с фотографиями нужно сохранять по одной');
-  }
-
-  // A weak LTE connection must not turn batch creation into a long blocking
-  // server request. Every task is accepted locally first and replayed by the
-  // same durable queue as a single task.
-  final created = <TaskItemData>[];
-  for (final item in drafts) {
-    created.add(
-      await OfflineTaskCreateService.queueTask(
-        item.task,
-        objectName: objectName,
-        assigneeIds: item.assigneeIds,
-        photos: const <TaskPhotoFile>[],
-        plannedQuantity: item.plannedQuantity,
-        workUnit: item.workUnit,
-        isDraft: item.saveAsDraft,
-        preferredId: item.sourceDraftId,
-      ),
-    );
-  }
-  return created;
 }
 
 class AddTaskScreen extends StatefulWidget {
