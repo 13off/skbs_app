@@ -19,6 +19,7 @@ import '../../features/tasks/task_edit_policy.dart';
 import '../../models/app_user_profile.dart';
 import '../../models/employee.dart';
 import '../../models/task_item_data.dart';
+import '../../features/work_orders/task_work_section.dart';
 import '../../widgets/adaptive_detail_body.dart';
 import '../add_task_screen.dart';
 

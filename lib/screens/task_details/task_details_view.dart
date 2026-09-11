@@ -59,6 +59,13 @@ extension _TaskDetailsView on _TaskDetailsScreenState {
                   buildWorkSection(),
                   if (!isGoalTask) const SizedBox(height: 16),
                   if (!isLoading) buildAssigneesBlock(),
+                  if (!isLoading && widget.task.id != null &&
+                      (widget.profile.isAdmin || widget.profile.isForeman)) ...[
+                    const SizedBox(height: 16),
+                    TaskWorkSection(taskId: widget.task.id!,
+                      initialDate: selectedDate,
+                      canEdit: widget.profile.isAdmin || widget.profile.isForeman),
+                  ],
                 ],
               );
 

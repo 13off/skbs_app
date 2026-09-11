@@ -16,6 +16,7 @@ import '../widgets/app_page.dart';
 import '../widgets/premium_ui_v2.dart';
 import '../widgets/task_tile.dart';
 import 'act_preview_screen.dart';
+import '../features/work_orders/work_order_sheet.dart';
 import 'add_task_screen.dart';
 import 'task_details_screen.dart';
 import '../navigation/app_page_route.dart';
@@ -598,7 +599,7 @@ class _TasksScreenState extends State<TasksScreen> {
   }
 
   Widget buildActButton(List<TaskItemData> tasks) {
-    if (!widget.profile.isAdmin) {
+    if (!widget.profile.isAdmin && !widget.profile.isForeman) {
       return const SizedBox.shrink();
     }
 
@@ -718,6 +719,15 @@ class _TasksScreenState extends State<TasksScreen> {
               const SizedBox(height: 10),
             ],
             buildActButton(tasks),
+            if (widget.profile.isAdmin || widget.profile.isForeman)
+              Padding(padding: const EdgeInsets.only(top: 10),
+                child: OutlinedButton.icon(
+                  onPressed: () => showWorkOrderSheet(context,
+                    objectName: widget.selectedObjectName, initialDate: selectedDate),
+                  icon: const Icon(Icons.download_outlined),
+                  label: const Text('Скачать наряд'),
+                ),
+              ),
             const SizedBox(height: 78),
           ],
         ),

@@ -15,6 +15,7 @@ import '../widgets/app_page.dart';
 import '../widgets/premium_ui.dart';
 import '../widgets/responsibility_actor_line.dart';
 import 'act_preview_screen.dart';
+import '../features/work_orders/work_order_sheet.dart';
 import 'add_task_screen.dart';
 import 'task_details_screen.dart';
 import '../navigation/app_page_route.dart';
@@ -412,7 +413,7 @@ class _DesktopTasksScreenState extends State<DesktopTasksScreen> {
 
   void openActPreview() {
     final source = actTasks();
-    if (!widget.profile.isAdmin || source.isEmpty) return;
+    if ((!widget.profile.isAdmin && !widget.profile.isForeman) || source.isEmpty) return;
 
     Navigator.push<void>(
       context,
@@ -514,7 +515,14 @@ class _DesktopTasksScreenState extends State<DesktopTasksScreen> {
             label: const Text('Сегодня'),
           ),
           const Spacer(),
-          if (widget.profile.isAdmin) ...[
+          if (widget.profile.isAdmin || widget.profile.isForeman) ...[
+            OutlinedButton.icon(
+              onPressed: () => showWorkOrderSheet(context,
+                objectName: createObjectName, initialDate: selectedDate),
+              icon: const Icon(Icons.download_outlined),
+              label: const Text('Скачать наряд'),
+            ),
+            const SizedBox(width: 10),
             OutlinedButton.icon(
               onPressed: sourceForAct.isEmpty ? null : openActPreview,
               icon: Icon(Icons.description_outlined),
