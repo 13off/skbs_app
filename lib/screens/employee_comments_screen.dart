@@ -5,6 +5,7 @@ import '../app/app_adaptive_palette.dart';
 import '../data/employee_comments_repository.dart';
 import '../models/employee.dart';
 import '../widgets/adaptive_detail_body.dart';
+import 'package:skbs_app/widgets/app_input_formatters.dart';
 
 class EmployeeCommentsScreen extends StatefulWidget {
   final Employee employee;
@@ -147,6 +148,8 @@ class _EmployeeCommentsScreenState extends State<EmployeeCommentsScreen> {
       child: Column(
         children: [
           TextField(
+            textCapitalization: TextCapitalization.sentences,
+            inputFormatters: AppInputFormatters.sentences,
             controller: commentController,
             enabled: !isSaving,
             minLines: 4,

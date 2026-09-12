@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:skbs_app/widgets/app_input_formatters.dart';
 
 import '../../../app/app_adaptive_palette.dart';
 import '../../../data/object_repository.dart';
@@ -184,6 +185,8 @@ class _EstimatorClosingInboxScreenState extends State<EstimatorClosingInboxScree
         content: SizedBox(
           width: 520,
           child: TextField(
+            textCapitalization: TextCapitalization.sentences,
+            inputFormatters: AppInputFormatters.sentences,
             controller: controller,
             minLines: 2,
             maxLines: 5,
@@ -312,18 +315,18 @@ class _EstimatorPieceRatesScreenState extends State<EstimatorPieceRatesScreen> {
         content: SizedBox(width: 560, child: Column(mainAxisSize: MainAxisSize.min, children: [
           DropdownButtonFormField<String>(initialValue: objectId, decoration: const InputDecoration(labelText: 'Объект'), items: objects.map((object) => DropdownMenuItem(value: object.id, child: Text(object.name))).toList(), onChanged: (value) { if (value != null) setDialogState(() => objectId = value); }),
           const SizedBox(height: 12),
-          TextField(controller: work, decoration: const InputDecoration(labelText: 'Вид работ', hintText: 'Точно как в задаче/объёмах')),
+          TextField(textCapitalization: TextCapitalization.sentences, inputFormatters: AppInputFormatters.sentences, controller: work, decoration: const InputDecoration(labelText: 'Вид работ', hintText: 'Точно как в задаче/объёмах')),
           const SizedBox(height: 12),
-          Row(children: [Expanded(child: TextField(controller: unit, decoration: const InputDecoration(labelText: 'Ед. изм.'))), const SizedBox(width: 12), Expanded(child: TextField(controller: rate, keyboardType: const TextInputType.numberWithOptions(decimal: true), decoration: const InputDecoration(labelText: '₽ за единицу')))]),
+          Row(children: [Expanded(child: TextField(controller: unit, decoration: const InputDecoration(labelText: 'Ед. изм.'))), const SizedBox(width: 12), Expanded(child: TextField(controller: rate, keyboardType: const TextInputType.numberWithOptions(decimal: true), inputFormatters: AppInputFormatters.groupedNumber, decoration: const InputDecoration(labelText: '₽ за единицу')))]),
           const SizedBox(height: 8),
           ListTile(contentPadding: EdgeInsets.zero, title: const Text('Действует с'), subtitle: Text(_date(validFrom)), trailing: const Icon(Icons.calendar_month_outlined), onTap: () async { final picked = await showDatePicker(context: context, initialDate: validFrom, firstDate: DateTime(2024), lastDate: DateTime(2100)); if (picked != null) setDialogState(() => validFrom = picked); }),
           const Align(alignment: Alignment.centerLeft, child: Text('Расценка используется только для внутреннего расчёта ГПХ/выработки и не является ценой для заказчика.', style: TextStyle(fontSize: 12))),
         ])),
-        actions: [TextButton(onPressed: () => Navigator.pop(dialogContext, false), child: const Text('Отмена')), FilledButton(onPressed: () { final amount = double.tryParse(rate.text.trim().replaceAll(',', '.')) ?? 0; if (work.text.trim().isEmpty || unit.text.trim().isEmpty || amount <= 0) return; Navigator.pop(dialogContext, true); }, child: const Text('Сохранить'))],
+        actions: [TextButton(onPressed: () => Navigator.pop(dialogContext, false), child: const Text('Отмена')), FilledButton(onPressed: () { final amount = AppInputFormatters.tryParseDouble(rate.text) ?? 0; if (work.text.trim().isEmpty || unit.text.trim().isEmpty || amount <= 0) return; Navigator.pop(dialogContext, true); }, child: const Text('Сохранить'))],
       )),
     );
     if (saved == true) {
-      final amount = double.tryParse(rate.text.trim().replaceAll(',', '.')) ?? 0;
+      final amount = AppInputFormatters.tryParseDouble(rate.text) ?? 0;
       setState(() => busy = true);
       try {
         await EstimatorClosingRepository.upsertRate(objectId: objectId, work: work.text, unit: unit.text, rateAmount: amount, validFrom: validFrom);

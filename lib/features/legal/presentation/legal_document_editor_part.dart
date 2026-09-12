@@ -113,6 +113,8 @@ class _LegalDocumentEditorScreenState extends State<LegalDocumentEditorScreen> {
       builder: (context) => AlertDialog(
         title: const Text('Новый контрагент'),
         content: TextField(
+          textCapitalization: TextCapitalization.sentences,
+          inputFormatters: AppInputFormatters.sentences,
           controller: controller,
           autofocus: true,
           decoration: const InputDecoration(labelText: 'Название'),
@@ -271,6 +273,8 @@ class _LegalDocumentEditorScreenState extends State<LegalDocumentEditorScreen> {
                   child: Column(
                     children: [
                       TextField(
+                        textCapitalization: TextCapitalization.sentences,
+                        inputFormatters: AppInputFormatters.sentences,
                         controller: titleController,
                         decoration: const InputDecoration(
                           labelText: 'Название документа',
@@ -278,6 +282,8 @@ class _LegalDocumentEditorScreenState extends State<LegalDocumentEditorScreen> {
                       ),
                       const SizedBox(height: 12),
                       TextField(
+                        textCapitalization: TextCapitalization.sentences,
+                        inputFormatters: AppInputFormatters.sentences,
                         controller: typeController,
                         decoration: const InputDecoration(
                           labelText: 'Тип документа',
@@ -449,6 +455,8 @@ class _LegalDocumentEditorScreenState extends State<LegalDocumentEditorScreen> {
                   child: Column(
                     children: [
                       TextField(
+                        textCapitalization: TextCapitalization.sentences,
+                        inputFormatters: AppInputFormatters.sentences,
                         controller: nextActionController,
                         decoration: const InputDecoration(
                           labelText: 'Следующий шаг',
@@ -467,6 +475,8 @@ class _LegalDocumentEditorScreenState extends State<LegalDocumentEditorScreen> {
                         },
                       ),
                       TextField(
+                        textCapitalization: TextCapitalization.sentences,
+                        inputFormatters: AppInputFormatters.sentences,
                         controller: commentController,
                         minLines: 3,
                         maxLines: 6,

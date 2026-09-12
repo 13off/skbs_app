@@ -7,6 +7,7 @@ import '../data/document_template_repository.dart';
 import '../data/document_workflow_repository.dart';
 import '../models/document_onboarding.dart';
 import '../models/document_template.dart';
+import 'package:skbs_app/widgets/app_input_formatters.dart';
 
 class DocumentPackageManagementScreen extends StatefulWidget {
   final AppUserProfile profile;
@@ -105,6 +106,8 @@ class _DocumentPackageManagementScreenState
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   TextField(
+                    textCapitalization: TextCapitalization.sentences,
+                    inputFormatters: AppInputFormatters.sentences,
                     controller: title,
                     decoration: const InputDecoration(
                       labelText: 'Название пакета',
@@ -112,6 +115,8 @@ class _DocumentPackageManagementScreenState
                   ),
                   const SizedBox(height: 12),
                   TextField(
+                    textCapitalization: TextCapitalization.sentences,
+                    inputFormatters: AppInputFormatters.sentences,
                     controller: description,
                     maxLines: 3,
                     decoration: const InputDecoration(labelText: 'Описание'),

@@ -4,6 +4,7 @@ import '../../../app/app_adaptive_palette.dart';
 import '../../../widgets/premium_ui.dart';
 import '../data/manager_todo_repository.dart';
 import '../../../navigation/app_page_route.dart';
+import 'package:skbs_app/widgets/app_input_formatters.dart';
 
 /// Kept for the old manager shell integration. The visible block now lives
 /// inside the dashboard content via [ManagerTodoHomeSection].
@@ -954,6 +955,8 @@ Future<ManagerTodoDraft?> showManagerTodoComposer(BuildContext context) async {
                     ),
                     const SizedBox(height: 10),
                     TextField(
+                      textCapitalization: TextCapitalization.sentences,
+                      inputFormatters: AppInputFormatters.sentences,
                       controller: controller,
                       autofocus: true,
                       minLines: 1,

@@ -6,6 +6,7 @@ import '../features/documents/data/document_template_repository.dart';
 import '../features/documents/models/document_template.dart';
 import '../models/app_user_profile.dart';
 import '../widgets/premium_ui.dart';
+import 'package:skbs_app/widgets/app_input_formatters.dart';
 
 class TemplateDocumentsScreen extends StatefulWidget {
   final AppUserProfile profile;
@@ -149,6 +150,8 @@ class _TemplateDocumentsScreenState extends State<TemplateDocumentsScreen> {
                     Text(template.title),
                     const SizedBox(height: 16),
                     TextField(
+                      textCapitalization: TextCapitalization.sentences,
+                      inputFormatters: AppInputFormatters.sentences,
                       controller: notesController,
                       minLines: 2,
                       maxLines: 4,

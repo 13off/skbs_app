@@ -4,6 +4,7 @@ import '../../../data/object_repository.dart';
 import '../../../models/app_user_profile.dart';
 import '../data/milestone_repository.dart';
 import '../models/milestone_models.dart';
+import 'package:skbs_app/widgets/app_input_formatters.dart';
 
 class MilestoneCreateDraft {
   final String objectName;
@@ -187,6 +188,8 @@ class _MilestoneEditorDialogState extends State<MilestoneEditorDialog> {
               ),
             const SizedBox(height: 12),
             TextField(
+              textCapitalization: TextCapitalization.sentences,
+              inputFormatters: AppInputFormatters.sentences,
               controller: titleController,
               decoration: const InputDecoration(
                 labelText: 'Название этапа',
@@ -196,6 +199,8 @@ class _MilestoneEditorDialogState extends State<MilestoneEditorDialog> {
             ),
             const SizedBox(height: 12),
             TextField(
+              textCapitalization: TextCapitalization.sentences,
+              inputFormatters: AppInputFormatters.sentences,
               controller: locationController,
               decoration: const InputDecoration(
                 labelText: 'Строительная привязка',
@@ -235,6 +240,8 @@ class _MilestoneEditorDialogState extends State<MilestoneEditorDialog> {
             ),
             const SizedBox(height: 12),
             TextField(
+              textCapitalization: TextCapitalization.sentences,
+              inputFormatters: AppInputFormatters.sentences,
               controller: notesController,
               minLines: 2,
               maxLines: 5,

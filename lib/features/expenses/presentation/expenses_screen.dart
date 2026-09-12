@@ -1,5 +1,6 @@
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
+import 'package:skbs_app/widgets/app_input_formatters.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../widgets/app_page.dart';
@@ -317,10 +318,7 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
   }
 
   double parseAmount(String raw) {
-    return double.tryParse(
-          raw.trim().replaceAll(' ', '').replaceAll(',', '.'),
-        ) ??
-        0;
+    return AppInputFormatters.tryParseDouble(raw) ?? 0;
   }
 
   Future<List<XFile>> pickReceipts() async {
@@ -430,9 +428,11 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
     final amountController = TextEditingController(
       text: initial == null
           ? ''
-          : (initial.amount % 1 == 0
-              ? initial.amount.toInt().toString()
-              : initial.amount.toStringAsFixed(2)),
+          : AppInputFormatters.formatNumber(
+              initial.amount % 1 == 0
+                  ? initial.amount.toInt().toString()
+                  : initial.amount.toStringAsFixed(2),
+            ),
     );
     final counterpartyController = TextEditingController(
       text: initial?.counterpartyName ?? '',
@@ -479,6 +479,8 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     TextField(
+                      textCapitalization: TextCapitalization.sentences,
+                      inputFormatters: AppInputFormatters.sentences,
                       controller: nameController,
                       autofocus: true,
                       decoration: const InputDecoration(
@@ -492,6 +494,7 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                       keyboardType: const TextInputType.numberWithOptions(
                         decimal: true,
                       ),
+                      inputFormatters: AppInputFormatters.groupedNumber,
                       decoration: const InputDecoration(labelText: 'Сумма, ₽'),
                     ),
                     const SizedBox(height: 12),
@@ -538,6 +541,8 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                     ),
                     const SizedBox(height: 12),
                     TextField(
+                      textCapitalization: TextCapitalization.sentences,
+                      inputFormatters: AppInputFormatters.sentences,
                       controller: counterpartyController,
                       decoration: const InputDecoration(
                         labelText: 'Кто оплатил / контрагент',
@@ -554,6 +559,8 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                     ),
                     const SizedBox(height: 4),
                     TextField(
+                      textCapitalization: TextCapitalization.sentences,
+                      inputFormatters: AppInputFormatters.sentences,
                       controller: commentController,
                       minLines: 2,
                       maxLines: 4,
@@ -702,9 +709,11 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
 
     final source = payment!;
     final amountController = TextEditingController(
-      text: source.amount % 1 == 0
-          ? source.amount.toInt().toString()
-          : source.amount.toStringAsFixed(2),
+      text: AppInputFormatters.formatNumber(
+        source.amount % 1 == 0
+            ? source.amount.toInt().toString()
+            : source.amount.toStringAsFixed(2),
+      ),
     );
     final commentController = TextEditingController(text: source.comment);
     var paymentDate = source.paymentDate;
@@ -796,6 +805,7 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                       keyboardType: const TextInputType.numberWithOptions(
                         decimal: true,
                       ),
+                      inputFormatters: AppInputFormatters.groupedNumber,
                       decoration: const InputDecoration(labelText: 'Сумма, ₽'),
                     ),
                     const SizedBox(height: 12),
@@ -844,6 +854,8 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                     ),
                     const SizedBox(height: 4),
                     TextField(
+                      textCapitalization: TextCapitalization.sentences,
+                      inputFormatters: AppInputFormatters.sentences,
                       controller: commentController,
                       minLines: 2,
                       maxLines: 4,

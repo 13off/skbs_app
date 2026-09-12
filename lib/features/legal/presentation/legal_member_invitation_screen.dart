@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import '../../../features/company/data/company_repository.dart';
 import '../../../widgets/app_page.dart';
 import '../../../widgets/premium_ui.dart';
+import 'package:skbs_app/widgets/app_input_formatters.dart';
 
 class LegalMemberInvitationScreen extends StatefulWidget {
   final String companyId;
@@ -121,6 +122,8 @@ class _LegalMemberInvitationScreenState
           child: Column(
             children: [
               TextField(
+                textCapitalization: TextCapitalization.sentences,
+                inputFormatters: AppInputFormatters.sentences,
                 controller: nameController,
                 enabled: !saving,
                 decoration: const InputDecoration(

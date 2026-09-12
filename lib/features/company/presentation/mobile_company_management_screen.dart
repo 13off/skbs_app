@@ -7,6 +7,7 @@ import '../../../widgets/premium_ui.dart';
 import '../data/company_repository.dart';
 import 'company_plans_screen.dart';
 import '../../../navigation/app_page_route.dart';
+import 'package:skbs_app/widgets/app_input_formatters.dart';
 
 class CompanyManagementScreen extends StatefulWidget {
   final String companyId;
@@ -576,6 +577,8 @@ class _CompanyMemberEditorScreenState extends State<CompanyMemberEditorScreen> {
           children: [
             if (!isEditing) ...[
               TextField(
+                textCapitalization: TextCapitalization.sentences,
+                inputFormatters: AppInputFormatters.sentences,
                 controller: fullNameController,
                 enabled: !isSaving,
                 textInputAction: TextInputAction.next,
@@ -597,6 +600,8 @@ class _CompanyMemberEditorScreenState extends State<CompanyMemberEditorScreen> {
               ),
               const SizedBox(height: 12),
               TextField(
+                textCapitalization: TextCapitalization.sentences,
+                inputFormatters: AppInputFormatters.sentences,
                 controller: professionController,
                 enabled: !isSaving,
                 textInputAction: TextInputAction.next,
@@ -615,6 +620,8 @@ class _CompanyMemberEditorScreenState extends State<CompanyMemberEditorScreen> {
               ),
               const SizedBox(height: 8),
               TextField(
+                textCapitalization: TextCapitalization.sentences,
+                inputFormatters: AppInputFormatters.sentences,
                 controller: professionController,
                 enabled: !isSaving,
                 decoration: const InputDecoration(

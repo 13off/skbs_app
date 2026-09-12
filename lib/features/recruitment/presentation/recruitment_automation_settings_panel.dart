@@ -8,6 +8,7 @@ import '../data/recruitment_crm_workspace_repository.dart';
 import '../data/recruitment_repository.dart';
 import '../models/recruitment_crm_workspace_models.dart';
 import '../models/recruitment_models.dart';
+import 'package:skbs_app/widgets/app_input_formatters.dart';
 
 class RecruitmentAutomationSettingsPanel extends StatefulWidget {
   final AppUserProfile profile;
@@ -520,6 +521,8 @@ class _AutomationEditorState extends State<_AutomationEditor> {
             ),
             const SizedBox(height: AppUi.gap12),
             TextField(
+              textCapitalization: TextCapitalization.sentences,
+              inputFormatters: AppInputFormatters.sentences,
               controller: titleController,
               decoration: const InputDecoration(
                 labelText: 'Название правила',
@@ -564,6 +567,8 @@ class _AutomationEditorState extends State<_AutomationEditor> {
             if (includesTask) ...[
               const SizedBox(height: AppUi.gap12),
               TextField(
+                textCapitalization: TextCapitalization.sentences,
+                inputFormatters: AppInputFormatters.sentences,
                 controller: taskTitleController,
                 decoration: const InputDecoration(
                   labelText: 'Название дела',
@@ -645,6 +650,8 @@ class _AutomationEditorState extends State<_AutomationEditor> {
             if (includesMessage) ...[
               const SizedBox(height: AppUi.gap12),
               TextField(
+                textCapitalization: TextCapitalization.sentences,
+                inputFormatters: AppInputFormatters.sentences,
                 controller: messageController,
                 minLines: 3,
                 maxLines: 7,

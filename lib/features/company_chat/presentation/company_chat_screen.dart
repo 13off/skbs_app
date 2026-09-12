@@ -10,6 +10,7 @@ import '../../../features/ai/models/ai_assistant_result.dart';
 import '../../../models/app_user_profile.dart';
 import '../data/company_chat_repository.dart';
 import '../models/company_chat_models.dart';
+import 'package:skbs_app/widgets/app_input_formatters.dart';
 
 class CompanyChatScreen extends StatefulWidget {
   final AppUserProfile profile;
@@ -902,6 +903,7 @@ class _CompanyChatScreenState extends State<CompanyChatScreen> {
                 const SizedBox(width: 6),
                 Expanded(
                   child: TextField(
+                    inputFormatters: AppInputFormatters.sentences,
                     controller: messageController,
                     enabled: !sending,
                     minLines: 1,

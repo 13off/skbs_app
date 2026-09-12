@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:skbs_app/widgets/app_input_formatters.dart';
 
 import '../app/app_adaptive_palette.dart';
 import '../data/employee_repository.dart';
@@ -180,7 +181,7 @@ class _AddPaymentScreenState extends State<AddPaymentScreen> {
   }
 
   double? parseAmount() {
-    final text = amountController.text.trim().replaceAll(',', '.');
+    final text = AppInputFormatters.normalizeNumber(amountController.text);
 
     if (text.isEmpty) return null;
 
@@ -681,6 +682,7 @@ class _AddPaymentScreenState extends State<AddPaymentScreen> {
           TextField(
             controller: amountController,
             keyboardType: TextInputType.number,
+            inputFormatters: AppInputFormatters.groupedNumber,
             decoration: const InputDecoration(
               labelText: 'Сумма выплаты',
               hintText: 'Например: 10000',
@@ -691,6 +693,8 @@ class _AddPaymentScreenState extends State<AddPaymentScreen> {
           const SizedBox(height: 14),
 
           TextField(
+            textCapitalization: TextCapitalization.sentences,
+            inputFormatters: AppInputFormatters.sentences,
             controller: commentController,
             minLines: 2,
             maxLines: 4,

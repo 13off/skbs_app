@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../../../app/app_adaptive_palette.dart';
 import '../../../widgets/premium_ui_v2.dart';
 import '../data/company_branding_repository.dart';
+import 'package:skbs_app/widgets/app_input_formatters.dart';
 
 class CompanyBrandingEditorCard extends StatefulWidget {
   final String companyId;
@@ -104,6 +105,7 @@ class _CompanyBrandingEditorCardState extends State<CompanyBrandingEditorCard> {
       builder: (dialogContext) => AlertDialog(
         title: const Text('Название компании'),
         content: TextField(
+          inputFormatters: AppInputFormatters.sentences,
           controller: controller,
           autofocus: true,
           maxLength: 120,

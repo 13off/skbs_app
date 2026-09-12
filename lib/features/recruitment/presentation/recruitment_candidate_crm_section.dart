@@ -7,6 +7,7 @@ import '../../../widgets/premium_ui_v2.dart';
 import '../data/recruitment_crm_workspace_repository.dart';
 import '../models/recruitment_crm_workspace_models.dart';
 import '../models/recruitment_models.dart';
+import 'package:skbs_app/widgets/app_input_formatters.dart';
 
 enum _CandidateCrmView { tasks, comments, activity }
 
@@ -98,6 +99,8 @@ class _RecruitmentCandidateCrmSectionState
       builder: (context) => AlertDialog(
         title: const Text('Новый комментарий'),
         content: TextField(
+          textCapitalization: TextCapitalization.sentences,
+          inputFormatters: AppInputFormatters.sentences,
           controller: controller,
           autofocus: true,
           minLines: 3,
@@ -953,6 +956,8 @@ class _TaskEditorState extends State<_TaskEditor> {
             ),
             const SizedBox(height: AppUi.gap12),
             TextField(
+              textCapitalization: TextCapitalization.sentences,
+              inputFormatters: AppInputFormatters.sentences,
               controller: titleController,
               autofocus: widget.task == null,
               decoration: const InputDecoration(
@@ -962,6 +967,8 @@ class _TaskEditorState extends State<_TaskEditor> {
             ),
             const SizedBox(height: AppUi.gap12),
             TextField(
+              textCapitalization: TextCapitalization.sentences,
+              inputFormatters: AppInputFormatters.sentences,
               controller: descriptionController,
               minLines: 2,
               maxLines: 5,

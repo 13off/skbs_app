@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:skbs_app/widgets/app_input_formatters.dart';
 
 import '../../../app/app_adaptive_palette.dart';
 import '../../../data/app_data_sync.dart';
@@ -307,7 +308,9 @@ class _SupplierEditorState extends State<_SupplierEditor> {
     name = TextEditingController(text: supplier?.name ?? '');
     inn = TextEditingController(text: supplier?.inn ?? '');
     contact = TextEditingController(text: supplier?.contactName ?? '');
-    phone = TextEditingController(text: supplier?.phone ?? '');
+    phone = TextEditingController(
+      text: AppInputFormatters.formatRussianPhone(supplier?.phone ?? ''),
+    );
     email = TextEditingController(text: supplier?.email ?? '');
     comment = TextEditingController(text: supplier?.comment ?? '');
   }
@@ -376,6 +379,8 @@ class _SupplierEditorState extends State<_SupplierEditor> {
           ),
           const SizedBox(height: 16),
           TextField(
+            textCapitalization: TextCapitalization.sentences,
+            inputFormatters: AppInputFormatters.sentences,
             controller: name,
             enabled: !saving,
             decoration: const InputDecoration(labelText: 'Название'),
@@ -389,6 +394,8 @@ class _SupplierEditorState extends State<_SupplierEditor> {
           ),
           const SizedBox(height: 10),
           TextField(
+            textCapitalization: TextCapitalization.sentences,
+            inputFormatters: AppInputFormatters.sentences,
             controller: contact,
             enabled: !saving,
             decoration: const InputDecoration(labelText: 'Контактное лицо'),
@@ -398,6 +405,7 @@ class _SupplierEditorState extends State<_SupplierEditor> {
             controller: phone,
             enabled: !saving,
             keyboardType: TextInputType.phone,
+            inputFormatters: AppInputFormatters.russianPhone,
             decoration: const InputDecoration(labelText: 'Телефон'),
           ),
           const SizedBox(height: 10),
@@ -409,6 +417,8 @@ class _SupplierEditorState extends State<_SupplierEditor> {
           ),
           const SizedBox(height: 10),
           TextField(
+            textCapitalization: TextCapitalization.sentences,
+            inputFormatters: AppInputFormatters.sentences,
             controller: comment,
             enabled: !saving,
             maxLines: 3,

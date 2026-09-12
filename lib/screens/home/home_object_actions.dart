@@ -107,6 +107,7 @@ extension _HomeObjectActions on _HomeScreenState {
                         ),
                         const SizedBox(height: 14),
                         TextFormField(
+                          inputFormatters: AppInputFormatters.sentences,
                           controller: controller,
                           enabled: !isSaving,
                           autofocus: true,

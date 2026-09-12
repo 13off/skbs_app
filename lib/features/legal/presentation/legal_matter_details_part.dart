@@ -169,6 +169,8 @@ class _LegalMatterDetailsScreenState extends State<LegalMatterDetailsScreen> {
         content: SizedBox(
           width: 560,
           child: TextField(
+            textCapitalization: TextCapitalization.sentences,
+            inputFormatters: AppInputFormatters.sentences,
             controller: controller,
             autofocus: true,
             minLines: 3,
@@ -209,6 +211,8 @@ class _LegalMatterDetailsScreenState extends State<LegalMatterDetailsScreen> {
         content: SizedBox(
           width: 560,
           child: TextField(
+            textCapitalization: TextCapitalization.sentences,
+            inputFormatters: AppInputFormatters.sentences,
             controller: controller,
             autofocus: true,
             minLines: 3,
@@ -287,6 +291,8 @@ class _LegalMatterDetailsScreenState extends State<LegalMatterDetailsScreen> {
       builder: (context) => AlertDialog(
         title: Text(approved ? 'Согласовать решение' : 'Отклонить решение'),
         content: TextField(
+          textCapitalization: TextCapitalization.sentences,
+          inputFormatters: AppInputFormatters.sentences,
           controller: controller,
           minLines: 2,
           maxLines: 5,

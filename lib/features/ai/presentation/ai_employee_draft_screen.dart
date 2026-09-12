@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:skbs_app/widgets/app_input_formatters.dart';
 
 import '../../../data/employee_repository.dart';
 import '../../../screens/add_employee_screen.dart';
@@ -42,7 +43,9 @@ class _AiEmployeeDraftScreenState extends State<AiEmployeeDraftScreen> {
     final legacyRate = widget.action.number('daily_rate').round();
     final initialSalary = salary > 0 ? salary : legacyRate;
     monthlySalaryController = TextEditingController(
-      text: initialSalary > 0 ? initialSalary.toString() : '',
+      text: initialSalary > 0
+          ? AppInputFormatters.formatNumber(initialSalary.toString())
+          : '',
     );
     commentController = TextEditingController(
       text: widget.action.text('comment'),
@@ -98,9 +101,7 @@ class _AiEmployeeDraftScreenState extends State<AiEmployeeDraftScreen> {
       setState(() => errorText = 'Выберите объект');
       return;
     }
-    final salary = int.tryParse(
-      monthlySalaryController.text.replaceAll(' ', '').trim(),
-    );
+    final salary = AppInputFormatters.tryParseInt(monthlySalaryController.text);
     if (salary == null || salary <= 0) {
       setState(() => errorText = 'Введите корректную зарплату за месяц');
       return;
@@ -177,6 +178,7 @@ class _AiEmployeeDraftScreenState extends State<AiEmployeeDraftScreen> {
               ),
             const SizedBox(height: 14),
             TextFormField(
+              inputFormatters: AppInputFormatters.sentences,
               controller: fioController,
               enabled: !saving,
               textCapitalization: TextCapitalization.words,
@@ -189,6 +191,8 @@ class _AiEmployeeDraftScreenState extends State<AiEmployeeDraftScreen> {
             ),
             const SizedBox(height: 14),
             TextFormField(
+              textCapitalization: TextCapitalization.sentences,
+              inputFormatters: AppInputFormatters.sentences,
               controller: positionController,
               enabled: !saving,
               decoration: const InputDecoration(
@@ -203,7 +207,7 @@ class _AiEmployeeDraftScreenState extends State<AiEmployeeDraftScreen> {
               controller: phoneController,
               enabled: !saving,
               keyboardType: TextInputType.phone,
-              inputFormatters: [RussianPhoneTextInputFormatter()],
+              inputFormatters: AppInputFormatters.russianPhone,
               decoration: const InputDecoration(
                 labelText: 'Телефон',
                 prefixIcon: Icon(Icons.phone_outlined),
@@ -215,6 +219,7 @@ class _AiEmployeeDraftScreenState extends State<AiEmployeeDraftScreen> {
               controller: monthlySalaryController,
               enabled: !saving,
               keyboardType: TextInputType.number,
+              inputFormatters: AppInputFormatters.groupedNumber,
               decoration: InputDecoration(
                 labelText: 'Зарплата в месяц, ₽',
                 helperText: ignoreTimesheet
@@ -247,6 +252,8 @@ class _AiEmployeeDraftScreenState extends State<AiEmployeeDraftScreen> {
             ),
             const SizedBox(height: 14),
             TextFormField(
+              textCapitalization: TextCapitalization.sentences,
+              inputFormatters: AppInputFormatters.sentences,
               controller: commentController,
               enabled: !saving,
               minLines: 2,

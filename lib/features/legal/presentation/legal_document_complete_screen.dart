@@ -7,6 +7,7 @@ import '../data/legal_repository.dart';
 import '../models/legal_models.dart';
 import 'legal_documents_screen.dart';
 import '../../../navigation/app_page_route.dart';
+import 'package:skbs_app/widgets/app_input_formatters.dart';
 
 const legalDocumentLifecycleStatuses = <String>[
   'draft',
@@ -166,6 +167,8 @@ class _LegalDocumentCompleteScreenState
       builder: (context) => AlertDialog(
         title: const Text('Новая версия файла'),
         content: TextField(
+          textCapitalization: TextCapitalization.sentences,
+          inputFormatters: AppInputFormatters.sentences,
           controller: controller,
           autofocus: true,
           decoration: const InputDecoration(

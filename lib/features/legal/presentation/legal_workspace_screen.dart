@@ -12,6 +12,7 @@ import 'legal_documents_screen.dart';
 import 'legal_employee_dossier_screen.dart';
 import 'legal_matters_screen.dart';
 import '../../../navigation/app_page_route.dart';
+import 'package:skbs_app/widgets/app_input_formatters.dart';
 
 /// Единая база юриста.
 ///
@@ -299,6 +300,8 @@ class _LegalWorkspaceScreenState extends State<LegalWorkspaceScreen> {
             mainAxisSize: MainAxisSize.min,
             children: [
               TextField(
+                textCapitalization: TextCapitalization.sentences,
+                inputFormatters: AppInputFormatters.sentences,
                 controller: name,
                 autofocus: true,
                 decoration: const InputDecoration(labelText: 'Название *'),
@@ -310,12 +313,16 @@ class _LegalWorkspaceScreenState extends State<LegalWorkspaceScreen> {
               ),
               const SizedBox(height: 10),
               TextField(
+                textCapitalization: TextCapitalization.sentences,
+                inputFormatters: AppInputFormatters.sentences,
                 controller: contact,
                 decoration: const InputDecoration(labelText: 'Контактное лицо'),
               ),
               const SizedBox(height: 10),
               TextField(
                 controller: phone,
+                keyboardType: TextInputType.phone,
+                inputFormatters: AppInputFormatters.russianPhone,
                 decoration: const InputDecoration(labelText: 'Телефон'),
               ),
               const SizedBox(height: 10),

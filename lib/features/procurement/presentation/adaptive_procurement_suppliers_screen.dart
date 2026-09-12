@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:skbs_app/widgets/app_input_formatters.dart';
 
 import '../../../app/app_adaptive_palette.dart';
 import '../../../app/app_ui_tokens.dart';
@@ -407,7 +408,9 @@ class _DesktopSupplierEditorDialogState
     name = TextEditingController(text: supplier?.name ?? '');
     inn = TextEditingController(text: supplier?.inn ?? '');
     contact = TextEditingController(text: supplier?.contactName ?? '');
-    phone = TextEditingController(text: supplier?.phone ?? '');
+    phone = TextEditingController(
+      text: AppInputFormatters.formatRussianPhone(supplier?.phone ?? ''),
+    );
     email = TextEditingController(text: supplier?.email ?? '');
     comment = TextEditingController(text: supplier?.comment ?? '');
   }
@@ -464,6 +467,9 @@ class _DesktopSupplierEditorDialogState
       controller: controller,
       enabled: !saving,
       keyboardType: keyboardType,
+      inputFormatters: keyboardType == TextInputType.phone
+          ? AppInputFormatters.russianPhone
+          : null,
       maxLines: maxLines,
       decoration: InputDecoration(labelText: label),
     );

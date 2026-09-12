@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:skbs_app/widgets/app_input_formatters.dart';
 
 import '../../../app/app_adaptive_palette.dart';
 import '../../../models/task_item_data.dart';
@@ -64,7 +65,9 @@ class _TaskCompletionReportDialogState
     quantityController = TextEditingController(
       text: existing?.reportedQuantity == null
           ? ''
-          : TaskCompletionReport.formatQuantity(existing!.reportedQuantity!),
+          : AppInputFormatters.formatNumber(
+              TaskCompletionReport.formatQuantity(existing!.reportedQuantity!),
+            ),
     );
 
     final existingUnit = existing?.unit.trim() ?? '';
@@ -99,9 +102,9 @@ class _TaskCompletionReportDialogState
   }
 
   double? parseQuantity() {
-    final raw = quantityController.text.trim();
+    final raw = AppInputFormatters.normalizeNumber(quantityController.text);
     if (raw.isEmpty) return null;
-    return double.tryParse(raw.replaceAll(',', '.'));
+    return double.tryParse(raw);
   }
 
   String get effectiveUnit {
@@ -113,7 +116,9 @@ class _TaskCompletionReportDialogState
 
   Future<void> submit() async {
     if (saving) return;
-    final quantityText = quantityController.text.trim();
+    final quantityText = AppInputFormatters.normalizeNumber(
+      quantityController.text,
+    );
     final quantity = parseQuantity();
     final unit = effectiveUnit;
 
@@ -239,6 +244,7 @@ class _TaskCompletionReportDialogState
                       keyboardType: const TextInputType.numberWithOptions(
                         decimal: true,
                       ),
+                      inputFormatters: AppInputFormatters.groupedNumber,
                       decoration: const InputDecoration(
                         labelText: 'Фактический объём',
                         hintText: 'Можно оставить пустым',
@@ -287,6 +293,8 @@ class _TaskCompletionReportDialogState
               ],
               const SizedBox(height: 12),
               TextField(
+                textCapitalization: TextCapitalization.sentences,
+                inputFormatters: AppInputFormatters.sentences,
                 controller: locationController,
                 enabled: !saving,
                 decoration: const InputDecoration(
@@ -296,6 +304,8 @@ class _TaskCompletionReportDialogState
               ),
               const SizedBox(height: 12),
               TextField(
+                textCapitalization: TextCapitalization.sentences,
+                inputFormatters: AppInputFormatters.sentences,
                 controller: commentController,
                 enabled: !saving,
                 minLines: 2,

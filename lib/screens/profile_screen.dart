@@ -1,5 +1,6 @@
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
+import 'package:skbs_app/widgets/app_input_formatters.dart';
 
 import '../data/user_repository.dart';
 import '../features/company/data/company_repository.dart';
@@ -372,7 +373,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Future<void> editPersonalData() async {
     final nameController = TextEditingController(text: fullName);
-    final phoneController = TextEditingController(text: phone);
+    final phoneController = TextEditingController(
+      text: AppInputFormatters.formatRussianPhone(phone),
+    );
     final draft = await showDialog<_PersonalProfileDraft>(
       context: context,
       builder: (context) => AlertDialog(
@@ -383,6 +386,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             mainAxisSize: MainAxisSize.min,
             children: [
               TextField(
+                inputFormatters: AppInputFormatters.sentences,
                 controller: nameController,
                 autofocus: true,
                 textCapitalization: TextCapitalization.words,
@@ -395,6 +399,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               TextField(
                 controller: phoneController,
                 keyboardType: TextInputType.phone,
+                inputFormatters: AppInputFormatters.russianPhone,
                 decoration: const InputDecoration(
                   labelText: 'Номер телефона',
                   prefixIcon: Icon(Icons.phone_outlined),

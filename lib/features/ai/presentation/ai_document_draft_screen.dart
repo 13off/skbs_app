@@ -11,6 +11,7 @@ import '../../../widgets/premium_ui.dart';
 import '../documents/ai_document_download_service.dart';
 import '../documents/ai_document_draft.dart';
 import '../models/ai_assistant_result.dart';
+import 'package:skbs_app/widgets/app_input_formatters.dart';
 
 class AiDocumentDraftScreen extends StatefulWidget {
   final AppUserProfile profile;
@@ -247,6 +248,8 @@ class _AiDocumentDraftScreenState extends State<AiDocumentDraftScreen> {
                         if (missingFields.isNotEmpty)
                           const SizedBox(height: 16),
                         TextField(
+                          textCapitalization: TextCapitalization.sentences,
+                          inputFormatters: AppInputFormatters.sentences,
                           controller: titleController,
                           decoration: InputDecoration(
                             labelText: 'Название документа',
@@ -257,6 +260,8 @@ class _AiDocumentDraftScreenState extends State<AiDocumentDraftScreen> {
                         ),
                         const SizedBox(height: 14),
                         TextField(
+                          textCapitalization: TextCapitalization.sentences,
+                          inputFormatters: AppInputFormatters.sentences,
                           controller: bodyController,
                           minLines: 18,
                           maxLines: null,

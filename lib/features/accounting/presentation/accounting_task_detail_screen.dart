@@ -5,6 +5,7 @@ import '../../../widgets/premium_ui.dart';
 import '../data/accounting_detail_repository.dart';
 import '../data/accounting_workbench_repository.dart';
 import 'accounting_widgets.dart';
+import 'package:skbs_app/widgets/app_input_formatters.dart';
 
 class AccountingTaskDetailScreen extends StatefulWidget {
   final String taskId;
@@ -327,6 +328,8 @@ class _TaskEditDialogState extends State<_TaskEditDialog> {
           mainAxisSize: MainAxisSize.min,
           children: [
             TextField(
+              textCapitalization: TextCapitalization.sentences,
+              inputFormatters: AppInputFormatters.sentences,
               controller: title,
               decoration: const InputDecoration(labelText: 'Что нужно сделать'),
             ),

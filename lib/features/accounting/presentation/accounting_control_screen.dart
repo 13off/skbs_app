@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:skbs_app/widgets/app_input_formatters.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../navigation/app_page_route.dart';
@@ -692,6 +693,8 @@ class _AddTaskDialogState extends State<_AddTaskDialog> {
           mainAxisSize: MainAxisSize.min,
           children: [
             TextField(
+              textCapitalization: TextCapitalization.sentences,
+              inputFormatters: AppInputFormatters.sentences,
               controller: title,
               decoration: const InputDecoration(labelText: 'Что нужно сделать'),
             ),
@@ -820,10 +823,15 @@ class _AddManualOperationDialogState
             const SizedBox(height: 10),
             TextField(
               controller: amount,
+              keyboardType:
+                  const TextInputType.numberWithOptions(decimal: true),
+              inputFormatters: AppInputFormatters.groupedNumber,
               decoration: const InputDecoration(labelText: 'Сумма'),
             ),
             const SizedBox(height: 10),
             TextField(
+              textCapitalization: TextCapitalization.sentences,
+              inputFormatters: AppInputFormatters.sentences,
               controller: description,
               decoration: const InputDecoration(
                 labelText: 'Содержание операции',
@@ -846,7 +854,7 @@ class _AddManualOperationDialogState
         ),
         FilledButton(
           onPressed: () {
-            final parsed = double.tryParse(amount.text.replaceAll(',', '.'));
+            final parsed = AppInputFormatters.tryParseDouble(amount.text);
             if (parsed == null ||
                 parsed <= 0 ||
                 debit.text.trim().isEmpty ||

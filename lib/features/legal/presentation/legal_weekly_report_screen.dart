@@ -5,6 +5,7 @@ import '../../../widgets/app_page.dart';
 import '../../../widgets/premium_ui.dart';
 import '../data/legal_repository.dart';
 import '../models/legal_models.dart';
+import 'package:skbs_app/widgets/app_input_formatters.dart';
 
 class LegalWeeklyReportScreen extends StatefulWidget {
   const LegalWeeklyReportScreen({super.key});
@@ -176,6 +177,8 @@ class _LegalWeeklyReportScreenState extends State<LegalWeeklyReportScreen> {
                   child: Column(
                     children: [
                       TextField(
+                        textCapitalization: TextCapitalization.sentences,
+                        inputFormatters: AppInputFormatters.sentences,
                         controller: commentController,
                         minLines: 3,
                         maxLines: 6,
@@ -186,6 +189,8 @@ class _LegalWeeklyReportScreenState extends State<LegalWeeklyReportScreen> {
                       ),
                       const SizedBox(height: 12),
                       TextField(
+                        textCapitalization: TextCapitalization.sentences,
+                        inputFormatters: AppInputFormatters.sentences,
                         controller: planController,
                         minLines: 3,
                         maxLines: 6,
@@ -196,6 +201,8 @@ class _LegalWeeklyReportScreenState extends State<LegalWeeklyReportScreen> {
                       ),
                       const SizedBox(height: 12),
                       TextField(
+                        textCapitalization: TextCapitalization.sentences,
+                        inputFormatters: AppInputFormatters.sentences,
                         controller: decisionsController,
                         minLines: 2,
                         maxLines: 5,

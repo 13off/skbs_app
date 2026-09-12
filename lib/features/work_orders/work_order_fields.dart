@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:skbs_app/widgets/app_input_formatters.dart';
 
 const List<String> workOrderUnits = <String>[
   'м³',
@@ -10,7 +11,7 @@ const List<String> workOrderUnits = <String>[
 ];
 
 double? parseWorkQuantity(String value) =>
-    double.tryParse(value.trim().replaceAll(',', '.'));
+    AppInputFormatters.tryParseDouble(value);
 
 bool isValidWorkQuantity(double? value) =>
     value != null && value.isFinite && value > 0 && value <= 1000000000000;
@@ -39,6 +40,7 @@ class WorkOrderPlanFields extends StatelessWidget {
       controller: quantityController,
       enabled: enabled && !withoutVolume,
       keyboardType: const TextInputType.numberWithOptions(decimal: true),
+      inputFormatters: AppInputFormatters.groupedNumber,
       decoration: InputDecoration(
         labelText: 'Плановый объём',
         hintText: '0',

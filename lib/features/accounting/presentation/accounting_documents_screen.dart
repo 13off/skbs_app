@@ -1,5 +1,6 @@
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
+import 'package:skbs_app/widgets/app_input_formatters.dart';
 
 import '../../../navigation/app_page_route.dart';
 import '../../shared/presentation/specialist_desktop_table.dart';
@@ -637,11 +638,15 @@ class _AddDocumentDialogState extends State<_AddDocumentDialog> {
               ),
               const SizedBox(height: 10),
               TextField(
+                textCapitalization: TextCapitalization.sentences,
+                inputFormatters: AppInputFormatters.sentences,
                 controller: counterparty,
                 decoration: const InputDecoration(labelText: 'Контрагент'),
               ),
               const SizedBox(height: 10),
               TextField(
+                textCapitalization: TextCapitalization.sentences,
+                inputFormatters: AppInputFormatters.sentences,
                 controller: objectName,
                 decoration: const InputDecoration(labelText: 'Объект'),
               ),
@@ -653,6 +658,7 @@ class _AddDocumentDialogState extends State<_AddDocumentDialog> {
                       controller: amount,
                       keyboardType:
                           const TextInputType.numberWithOptions(decimal: true),
+                      inputFormatters: AppInputFormatters.groupedNumber,
                       decoration: const InputDecoration(
                         labelText: 'Сумма документа',
                       ),
@@ -694,6 +700,8 @@ class _AddDocumentDialogState extends State<_AddDocumentDialog> {
               ),
               const SizedBox(height: 10),
               TextField(
+                textCapitalization: TextCapitalization.sentences,
+                inputFormatters: AppInputFormatters.sentences,
                 controller: comment,
                 decoration: const InputDecoration(labelText: 'Комментарий'),
               ),
@@ -726,9 +734,7 @@ class _AddDocumentDialogState extends State<_AddDocumentDialog> {
         ),
         FilledButton(
           onPressed: () {
-            final parsedAmount = double.tryParse(
-              amount.text.replaceAll(',', '.'),
-            );
+            final parsedAmount = AppInputFormatters.tryParseDouble(amount.text);
             final parsedVat =
                 double.tryParse(vat.text.replaceAll(',', '.')) ?? 0;
             if (parsedAmount == null ||
@@ -805,6 +811,8 @@ class _AddCounterpartyDialogState extends State<_AddCounterpartyDialog> {
           mainAxisSize: MainAxisSize.min,
           children: [
             TextField(
+              textCapitalization: TextCapitalization.sentences,
+              inputFormatters: AppInputFormatters.sentences,
               controller: name,
               decoration: const InputDecoration(labelText: 'Наименование'),
             ),
@@ -900,6 +908,8 @@ class _AddNomenclatureDialogState extends State<_AddNomenclatureDialog> {
           mainAxisSize: MainAxisSize.min,
           children: [
             TextField(
+              textCapitalization: TextCapitalization.sentences,
+              inputFormatters: AppInputFormatters.sentences,
               controller: name,
               decoration: const InputDecoration(labelText: 'Наименование'),
             ),
@@ -940,6 +950,8 @@ class _AddNomenclatureDialogState extends State<_AddNomenclatureDialog> {
             ),
             const SizedBox(height: 10),
             TextField(
+              textCapitalization: TextCapitalization.sentences,
+              inputFormatters: AppInputFormatters.sentences,
               controller: comment,
               decoration: const InputDecoration(labelText: 'Комментарий'),
             ),
@@ -1030,11 +1042,15 @@ class _AddMaterialWriteOffDialogState
           mainAxisSize: MainAxisSize.min,
           children: [
             TextField(
+              textCapitalization: TextCapitalization.sentences,
+              inputFormatters: AppInputFormatters.sentences,
               controller: objectName,
               decoration: const InputDecoration(labelText: 'Объект'),
             ),
             const SizedBox(height: 10),
             TextField(
+              textCapitalization: TextCapitalization.sentences,
+              inputFormatters: AppInputFormatters.sentences,
               controller: materialName,
               decoration: const InputDecoration(labelText: 'Материал'),
             ),
@@ -1044,6 +1060,10 @@ class _AddMaterialWriteOffDialogState
                 Expanded(
                   child: TextField(
                     controller: quantity,
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
+                    inputFormatters: AppInputFormatters.groupedNumber,
                     decoration: const InputDecoration(labelText: 'Количество'),
                   ),
                 ),
@@ -1059,6 +1079,8 @@ class _AddMaterialWriteOffDialogState
             const SizedBox(height: 10),
             TextField(
               controller: amount,
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              inputFormatters: AppInputFormatters.groupedNumber,
               decoration: const InputDecoration(labelText: 'Сумма'),
             ),
             const SizedBox(height: 10),
@@ -1078,8 +1100,8 @@ class _AddMaterialWriteOffDialogState
         ),
         FilledButton(
           onPressed: () {
-            final q = double.tryParse(quantity.text.replaceAll(',', '.'));
-            final a = double.tryParse(amount.text.replaceAll(',', '.')) ?? 0;
+            final q = AppInputFormatters.tryParseDouble(quantity.text);
+            final a = AppInputFormatters.tryParseDouble(amount.text) ?? 0;
             if (q == null || q <= 0 || materialName.text.trim().isEmpty) {
               return;
             }

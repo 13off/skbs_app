@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:skbs_app/widgets/app_input_formatters.dart';
 
 import '../../../app/app_adaptive_palette.dart';
 import '../../../features/company/data/company_repository.dart';
@@ -89,7 +90,7 @@ class _ProcurementRequestEditorScreenState
   }
 
   double number(String value) {
-    return double.tryParse(value.trim().replaceAll(',', '.')) ?? 0;
+    return AppInputFormatters.tryParseDouble(value) ?? 0;
   }
 
   Future<void> pickNeededBy() async {
@@ -200,6 +201,8 @@ class _ProcurementRequestEditorScreenState
               ],
             ),
             TextField(
+              textCapitalization: TextCapitalization.sentences,
+              inputFormatters: AppInputFormatters.sentences,
               controller: item.name,
               enabled: !saving,
               decoration: const InputDecoration(
@@ -216,6 +219,7 @@ class _ProcurementRequestEditorScreenState
                     keyboardType: const TextInputType.numberWithOptions(
                       decimal: true,
                     ),
+                    inputFormatters: AppInputFormatters.groupedNumber,
                     decoration: const InputDecoration(labelText: 'Количество'),
                   ),
                 ),
@@ -236,12 +240,15 @@ class _ProcurementRequestEditorScreenState
               keyboardType: const TextInputType.numberWithOptions(
                 decimal: true,
               ),
+              inputFormatters: AppInputFormatters.groupedNumber,
               decoration: const InputDecoration(
                 labelText: 'Цена за единицу, ₽',
               ),
             ),
             const SizedBox(height: 10),
             TextField(
+              textCapitalization: TextCapitalization.sentences,
+              inputFormatters: AppInputFormatters.sentences,
               controller: item.note,
               enabled: !saving,
               maxLines: 2,
@@ -283,6 +290,8 @@ class _ProcurementRequestEditorScreenState
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 36),
               children: [
                 TextField(
+                  textCapitalization: TextCapitalization.sentences,
+                  inputFormatters: AppInputFormatters.sentences,
                   controller: titleController,
                   enabled: !saving,
                   decoration: const InputDecoration(
@@ -382,6 +391,8 @@ class _ProcurementRequestEditorScreenState
                 ),
                 const SizedBox(height: 12),
                 TextField(
+                  textCapitalization: TextCapitalization.sentences,
+                  inputFormatters: AppInputFormatters.sentences,
                   controller: commentController,
                   enabled: !saving,
                   maxLines: 3,

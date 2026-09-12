@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:skbs_app/widgets/app_input_formatters.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -264,15 +265,10 @@ class _EmployeeMaxLoginScreenState extends State<EmployeeMaxLoginScreen>
                         enabled: !isLoading && !isWaiting,
                         keyboardType: TextInputType.phone,
                         autofillHints: const [AutofillHints.telephoneNumber],
-                        inputFormatters: [
-                          FilteringTextInputFormatter.allow(
-                            RegExp(r'[0-9+ ()-]'),
-                          ),
-                          LengthLimitingTextInputFormatter(20),
-                        ],
+                        inputFormatters: AppInputFormatters.russianPhone,
                         decoration: const InputDecoration(
                           labelText: 'Номер телефона',
-                          hintText: '+7 999 123-45-67',
+                          hintText: '+7 (999) 123-45-67',
                           prefixIcon: Icon(Icons.phone_iphone_rounded),
                         ),
                         onSubmitted: (_) {

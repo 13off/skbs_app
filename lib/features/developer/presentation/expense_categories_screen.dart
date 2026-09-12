@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../widgets/app_page.dart';
 import '../../../widgets/premium_ui_v2.dart';
 import '../../expenses/data/expense_repository.dart';
+import 'package:skbs_app/widgets/app_input_formatters.dart';
 
 class ExpenseCategoriesScreen extends StatefulWidget {
   const ExpenseCategoriesScreen({super.key});
@@ -85,6 +86,7 @@ class _ExpenseCategoriesScreenState extends State<ExpenseCategoriesScreen> {
           initial == null ? 'Добавить статью расходов' : 'Переименовать статью',
         ),
         content: TextField(
+          inputFormatters: AppInputFormatters.sentences,
           controller: controller,
           autofocus: true,
           textCapitalization: TextCapitalization.sentences,

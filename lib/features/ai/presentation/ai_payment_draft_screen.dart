@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:skbs_app/widgets/app_input_formatters.dart';
 
 import '../../../data/payment_receipt_repository.dart';
 import '../../../data/payment_repository.dart';
@@ -29,7 +30,9 @@ class _AiPaymentDraftScreenState extends State<AiPaymentDraftScreen> {
     super.initState();
     final amount = widget.action.number('amount');
     amountController = TextEditingController(
-      text: amount > 0 ? amount.toStringAsFixed(0) : '',
+      text: amount > 0
+          ? AppInputFormatters.formatNumber(amount.toStringAsFixed(0))
+          : '',
     );
     commentController = TextEditingController(
       text: widget.action.text('comment'),
@@ -81,9 +84,7 @@ class _AiPaymentDraftScreenState extends State<AiPaymentDraftScreen> {
   Future<void> save() async {
     if (saving) return;
     final employeeId = widget.action.text('employee_id');
-    final amount = double.tryParse(
-      amountController.text.trim().replaceAll(' ', '').replaceAll(',', '.'),
-    );
+    final amount = AppInputFormatters.tryParseDouble(amountController.text);
     if (employeeId.isEmpty) {
       setState(() => errorText = 'Не найден сотрудник');
       return;
@@ -156,7 +157,8 @@ class _AiPaymentDraftScreenState extends State<AiPaymentDraftScreen> {
           TextFormField(
             controller: amountController,
             enabled: !saving,
-            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              inputFormatters: AppInputFormatters.groupedNumber,
             decoration: const InputDecoration(
               labelText: 'Сумма',
               prefixIcon: Icon(Icons.payments_outlined),
@@ -196,6 +198,8 @@ class _AiPaymentDraftScreenState extends State<AiPaymentDraftScreen> {
           ),
           const SizedBox(height: 8),
           TextFormField(
+            textCapitalization: TextCapitalization.sentences,
+            inputFormatters: AppInputFormatters.sentences,
             controller: commentController,
             enabled: !saving,
             minLines: 2,

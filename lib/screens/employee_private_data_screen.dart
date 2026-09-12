@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:skbs_app/widgets/app_input_formatters.dart';
 
 import '../app/app_ui_tokens.dart';
 import '../data/employee_private_data_repository.dart';
@@ -609,7 +610,7 @@ class _EmployeePrivateDataScreenState extends State<EmployeePrivateDataScreen> {
             phoneController,
             hint: '+7 (999) 999-99-99',
             keyboardType: TextInputType.phone,
-            inputFormatters: [RussianPhoneTextInputFormatter()],
+            inputFormatters: AppInputFormatters.russianPhone,
           ),
 
           buildSectionTitle('Паспорт'),

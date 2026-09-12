@@ -9,6 +9,7 @@ import '../models/document_onboarding.dart';
 import 'document_onboarding_screen.dart';
 import 'document_package_management_screen.dart';
 import '../../../navigation/app_page_route.dart';
+import 'package:skbs_app/widgets/app_input_formatters.dart';
 
 class DocumentWorkflowScreen extends StatefulWidget {
   final AppUserProfile profile;
@@ -618,11 +619,15 @@ class _CreateOnboardingDialogState extends State<_CreateOnboardingDialog> {
               ),
               const SizedBox(height: 12),
               TextField(
+                textCapitalization: TextCapitalization.sentences,
+                inputFormatters: AppInputFormatters.sentences,
                 controller: position,
                 decoration: const InputDecoration(labelText: 'Должность'),
               ),
               const SizedBox(height: 12),
               TextField(
+                textCapitalization: TextCapitalization.sentences,
+                inputFormatters: AppInputFormatters.sentences,
                 controller: compensation,
                 decoration: InputDecoration(
                   labelText: onboardingType == 'gph'
@@ -653,6 +658,8 @@ class _CreateOnboardingDialogState extends State<_CreateOnboardingDialog> {
                 ),
               ),
               TextField(
+                textCapitalization: TextCapitalization.sentences,
+                inputFormatters: AppInputFormatters.sentences,
                 controller: notes,
                 maxLines: 3,
                 decoration: const InputDecoration(

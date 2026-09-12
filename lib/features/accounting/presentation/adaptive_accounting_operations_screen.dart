@@ -1,5 +1,6 @@
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
+import 'package:skbs_app/widgets/app_input_formatters.dart';
 
 import '../../expenses/data/expense_repository.dart';
 import '../../shared/presentation/specialist_desktop_table.dart';
@@ -87,7 +88,9 @@ class _AdaptiveAccountingOperationsScreenState
         ) ??
         0;
     final controller = TextEditingController(
-      text: current == 0 ? '' : current.toStringAsFixed(2),
+      text: current == 0
+          ? ''
+          : AppInputFormatters.formatNumber(current.toStringAsFixed(2)),
     );
     final balance = await showDialog<double>(
       context: context,
@@ -99,6 +102,7 @@ class _AdaptiveAccountingOperationsScreenState
             controller: controller,
             autofocus: true,
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            inputFormatters: AppInputFormatters.groupedNumber,
             decoration: const InputDecoration(
               labelText: 'Текущий остаток',
               prefixIcon: Icon(Icons.account_balance_outlined),
@@ -113,9 +117,7 @@ class _AdaptiveAccountingOperationsScreenState
           ),
           FilledButton(
             onPressed: () {
-              final parsed = double.tryParse(
-                controller.text.replaceAll(' ', '').replaceAll(',', '.'),
-              );
+              final parsed = AppInputFormatters.tryParseDouble(controller.text);
               if (parsed == null || parsed < 0) return;
               Navigator.pop(context, parsed);
             },
@@ -643,15 +645,20 @@ class _AddBankTransactionDialogState extends State<_AddBankTransactionDialog> {
             TextField(
               controller: amount,
               keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              inputFormatters: AppInputFormatters.groupedNumber,
               decoration: const InputDecoration(labelText: 'Сумма'),
             ),
             const SizedBox(height: 12),
             TextField(
+              textCapitalization: TextCapitalization.sentences,
+              inputFormatters: AppInputFormatters.sentences,
               controller: counterparty,
               decoration: const InputDecoration(labelText: 'Контрагент'),
             ),
             const SizedBox(height: 12),
             TextField(
+              textCapitalization: TextCapitalization.sentences,
+              inputFormatters: AppInputFormatters.sentences,
               controller: purpose,
               decoration: const InputDecoration(
                 labelText: 'Назначение платежа',
@@ -667,7 +674,7 @@ class _AddBankTransactionDialogState extends State<_AddBankTransactionDialog> {
         ),
         FilledButton(
           onPressed: () {
-            final parsed = double.tryParse(amount.text.replaceAll(',', '.'));
+            final parsed = AppInputFormatters.tryParseDouble(amount.text);
             if (parsed == null || parsed <= 0) return;
             Navigator.pop(
               context,
@@ -735,6 +742,8 @@ class _AddExpenseDialogState extends State<_AddExpenseDialog> {
           mainAxisSize: MainAxisSize.min,
           children: [
             TextField(
+              textCapitalization: TextCapitalization.sentences,
+              inputFormatters: AppInputFormatters.sentences,
               controller: name,
               decoration: const InputDecoration(labelText: 'Наименование'),
             ),
@@ -742,15 +751,20 @@ class _AddExpenseDialogState extends State<_AddExpenseDialog> {
             TextField(
               controller: amount,
               keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              inputFormatters: AppInputFormatters.groupedNumber,
               decoration: const InputDecoration(labelText: 'Сумма'),
             ),
             const SizedBox(height: 12),
             TextField(
+              textCapitalization: TextCapitalization.sentences,
+              inputFormatters: AppInputFormatters.sentences,
               controller: counterparty,
               decoration: const InputDecoration(labelText: 'Контрагент'),
             ),
             const SizedBox(height: 12),
             TextField(
+              textCapitalization: TextCapitalization.sentences,
+              inputFormatters: AppInputFormatters.sentences,
               controller: comment,
               decoration: const InputDecoration(labelText: 'Комментарий'),
             ),
@@ -764,7 +778,7 @@ class _AddExpenseDialogState extends State<_AddExpenseDialog> {
         ),
         FilledButton(
           onPressed: () {
-            final parsed = double.tryParse(amount.text.replaceAll(',', '.'));
+            final parsed = AppInputFormatters.tryParseDouble(amount.text);
             if (parsed == null || parsed <= 0 || name.text.trim().isEmpty) {
               return;
             }

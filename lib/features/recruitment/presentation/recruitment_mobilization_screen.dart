@@ -7,6 +7,7 @@ import '../../../widgets/premium_ui_v2.dart';
 import '../data/employee_mobilization_repository.dart';
 import '../models/employee_mobilization_models.dart';
 import '../../../navigation/app_page_route.dart';
+import 'package:skbs_app/widgets/app_input_formatters.dart';
 
 class RecruitmentMobilizationScreen extends StatefulWidget {
   final AppUserProfile profile;
@@ -414,6 +415,8 @@ class _EmployeeMobilizationDetailScreenState
           ),
           const SizedBox(height: 12),
           TextField(
+            textCapitalization: TextCapitalization.sentences,
+            inputFormatters: AppInputFormatters.sentences,
             controller: notesController,
             minLines: 3,
             maxLines: 6,

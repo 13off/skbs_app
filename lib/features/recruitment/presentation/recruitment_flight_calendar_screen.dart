@@ -10,6 +10,7 @@ import '../data/recruitment_flight_repository.dart';
 import '../models/recruitment_flight_models.dart';
 import 'recruitment_mobilization_screen.dart';
 import '../../../navigation/app_page_route.dart';
+import 'package:skbs_app/widgets/app_input_formatters.dart';
 
 class RecruitmentFlightCalendarScreen extends StatefulWidget {
   final AppUserProfile profile;
@@ -876,6 +877,8 @@ class _RecruitmentFlightEditorScreenState
           LayoutBuilder(
             builder: (context, constraints) {
               final originField = TextField(
+                textCapitalization: TextCapitalization.sentences,
+                inputFormatters: AppInputFormatters.sentences,
                 controller: segment.originController,
                 enabled: !saving,
                 decoration: const InputDecoration(
@@ -885,6 +888,8 @@ class _RecruitmentFlightEditorScreenState
                 ),
               );
               final destinationField = TextField(
+                textCapitalization: TextCapitalization.sentences,
+                inputFormatters: AppInputFormatters.sentences,
                 controller: segment.destinationController,
                 enabled: !saving,
                 decoration: const InputDecoration(
@@ -1001,6 +1006,7 @@ class _RecruitmentFlightEditorScreenState
                 ),
                 const SizedBox(height: 14),
                 TextField(
+                  inputFormatters: AppInputFormatters.sentences,
                   controller: titleController,
                   autofocus: true,
                   maxLength: 120,
@@ -1430,6 +1436,8 @@ class _RecruitmentFlightEditorScreenState
           buildRemindersCard(),
           const SizedBox(height: 12),
           TextField(
+            textCapitalization: TextCapitalization.sentences,
+            inputFormatters: AppInputFormatters.sentences,
             controller: notesController,
             enabled: !saving,
             minLines: 2,

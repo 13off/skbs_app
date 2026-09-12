@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:skbs_app/widgets/app_input_formatters.dart';
 
 import '../data/employee_repository.dart';
 import '../models/employee.dart';
@@ -36,7 +37,9 @@ class _EditEmployeeScreenState extends State<EditEmployeeScreen> {
     positionController.text = widget.employee.position;
     phoneController.text = formatRussianPhone(widget.employee.phone);
     monthlySalaryController.text = widget.employee.monthlySalary > 0
-        ? widget.employee.monthlySalary.toString()
+        ? AppInputFormatters.formatNumber(
+            widget.employee.monthlySalary.toString(),
+          )
         : '';
     commentController.text = widget.employee.comment;
     ignoreTimesheet = widget.employee.ignoreTimesheet;
@@ -218,6 +221,7 @@ class _EditEmployeeScreenState extends State<EditEmployeeScreen> {
               title: 'Основные данные',
               children: [
                 TextFormField(
+                  inputFormatters: AppInputFormatters.sentences,
                   controller: fioController,
                   enabled: !isSaving,
                   textCapitalization: TextCapitalization.words,
@@ -238,6 +242,7 @@ class _EditEmployeeScreenState extends State<EditEmployeeScreen> {
                 ),
                 const SizedBox(height: 14),
                 TextFormField(
+                  inputFormatters: AppInputFormatters.sentences,
                   controller: positionController,
                   enabled: !isSaving,
                   textCapitalization: TextCapitalization.sentences,
@@ -267,7 +272,7 @@ class _EditEmployeeScreenState extends State<EditEmployeeScreen> {
                     prefixIcon: Icon(Icons.phone_outlined),
                     hintText: '+7 (999) 999-99-99',
                   ),
-                  inputFormatters: [RussianPhoneTextInputFormatter()],
+                  inputFormatters: AppInputFormatters.russianPhone,
                   validator: validateRussianPhone,
                 ),
               ],
@@ -282,6 +287,7 @@ class _EditEmployeeScreenState extends State<EditEmployeeScreen> {
                   controller: monthlySalaryController,
                   enabled: !isSaving,
                   keyboardType: TextInputType.number,
+                  inputFormatters: AppInputFormatters.groupedNumber,
                   decoration: InputDecoration(
                     labelText: 'Зарплата в месяц, ₽',
                     hintText: 'Например: 180000',
@@ -325,6 +331,8 @@ class _EditEmployeeScreenState extends State<EditEmployeeScreen> {
                 ),
                 const SizedBox(height: 14),
                 TextFormField(
+                  textCapitalization: TextCapitalization.sentences,
+                  inputFormatters: AppInputFormatters.sentences,
                   controller: commentController,
                   enabled: !isSaving,
                   minLines: 2,

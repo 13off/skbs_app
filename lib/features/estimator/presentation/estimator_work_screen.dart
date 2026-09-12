@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:skbs_app/widgets/app_input_formatters.dart';
 
 import '../../../app/app_adaptive_palette.dart';
 import '../../../widgets/app_page.dart';
@@ -406,7 +407,11 @@ class _ReviewDialogState extends State<_ReviewDialog> {
     super.initState();
     final quantity = widget.report.reportedQuantity;
     quantityController = TextEditingController(
-      text: quantity == null ? '' : TaskCompletionReport.formatQuantity(quantity),
+      text: quantity == null
+          ? ''
+          : AppInputFormatters.formatNumber(
+              TaskCompletionReport.formatQuantity(quantity),
+            ),
     );
   }
 
@@ -418,9 +423,9 @@ class _ReviewDialogState extends State<_ReviewDialog> {
   }
 
   double? quantity() {
-    final text = quantityController.text.trim();
+    final text = AppInputFormatters.normalizeNumber(quantityController.text);
     if (text.isEmpty) return null;
-    return double.tryParse(text.replaceAll(',', '.'));
+    return double.tryParse(text);
   }
 
   Future<void> run(Future<void> Function() action) async {
@@ -439,7 +444,7 @@ class _ReviewDialogState extends State<_ReviewDialog> {
   }
 
   Future<void> approve() async {
-    final raw = quantityController.text.trim();
+    final raw = AppInputFormatters.normalizeNumber(quantityController.text);
     final value = quantity();
     if (raw.isNotEmpty && (value == null || value <= 0)) {
       setState(() => errorText = 'Укажите корректный подтверждённый объём');
@@ -522,6 +527,7 @@ class _ReviewDialogState extends State<_ReviewDialog> {
                 controller: quantityController,
                 enabled: !saving,
                 keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                inputFormatters: AppInputFormatters.groupedNumber,
                 decoration: InputDecoration(
                   labelText: 'Подтверждённый объём',
                   suffixText: report.unit.trim().isEmpty ? null : report.unit,
@@ -530,6 +536,8 @@ class _ReviewDialogState extends State<_ReviewDialog> {
               ),
               const SizedBox(height: 12),
               TextField(
+                textCapitalization: TextCapitalization.sentences,
+                inputFormatters: AppInputFormatters.sentences,
                 controller: commentController,
                 enabled: !saving,
                 minLines: 2,

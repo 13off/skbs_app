@@ -37,6 +37,8 @@ extension _TaskCreateSections on _AddTaskScreenState {
     return Column(
       children: [
         TextField(
+          textCapitalization: TextCapitalization.sentences,
+          inputFormatters: AppInputFormatters.sentences,
           controller: axesController,
           decoration: InputDecoration(
             labelText: 'Оси',
@@ -63,6 +65,8 @@ extension _TaskCreateSections on _AddTaskScreenState {
         if (!isGoalTask) ...[
           const SizedBox(height: 16),
           TextField(
+            textCapitalization: TextCapitalization.sentences,
+            inputFormatters: AppInputFormatters.sentences,
             controller: workController,
             minLines: 2,
             maxLines: 5,

@@ -6,6 +6,7 @@ import 'package:skbs_app/app/app_adaptive_palette.dart';
 import '../../../widgets/app_page.dart';
 import '../../../widgets/premium_ui_v2.dart';
 import '../data/developer_constructor_repository.dart';
+import 'package:skbs_app/widgets/app_input_formatters.dart';
 
 class DeveloperConstructorScreen extends StatefulWidget {
   const DeveloperConstructorScreen({super.key});
@@ -306,11 +307,15 @@ class _DeveloperConstructorScreenState
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     TextField(
+                      textCapitalization: TextCapitalization.sentences,
+                      inputFormatters: AppInputFormatters.sentences,
                       controller: nameController,
                       decoration: const InputDecoration(labelText: 'Название'),
                     ),
                     const SizedBox(height: 10),
                     TextField(
+                      textCapitalization: TextCapitalization.sentences,
+                      inputFormatters: AppInputFormatters.sentences,
                       controller: bodyController,
                       minLines: 2,
                       maxLines: 4,
@@ -421,6 +426,8 @@ class _DeveloperConstructorScreenState
                     ),
                     const SizedBox(height: 10),
                     TextField(
+                      textCapitalization: TextCapitalization.sentences,
+                      inputFormatters: AppInputFormatters.sentences,
                       controller: objectController,
                       decoration: const InputDecoration(
                         labelText: 'Объект — необязательно',
@@ -548,6 +555,8 @@ class _DeveloperConstructorScreenState
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   TextField(
+                    textCapitalization: TextCapitalization.sentences,
+                    inputFormatters: AppInputFormatters.sentences,
                     controller: nameController,
                     decoration: const InputDecoration(labelText: 'Название'),
                   ),
@@ -562,11 +571,15 @@ class _DeveloperConstructorScreenState
                   ),
                   const SizedBox(height: 10),
                   TextField(
+                    textCapitalization: TextCapitalization.sentences,
+                    inputFormatters: AppInputFormatters.sentences,
                     controller: categoryController,
                     decoration: const InputDecoration(labelText: 'Раздел'),
                   ),
                   const SizedBox(height: 10),
                   TextField(
+                    textCapitalization: TextCapitalization.sentences,
+                    inputFormatters: AppInputFormatters.sentences,
                     controller: descriptionController,
                     decoration: const InputDecoration(labelText: 'Описание'),
                   ),

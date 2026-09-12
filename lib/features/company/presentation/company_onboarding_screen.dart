@@ -4,6 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../app/app_adaptive_palette.dart';
 import '../../../data/user_repository.dart';
 import '../../../widgets/premium_ui.dart';
+import 'package:skbs_app/widgets/app_input_formatters.dart';
 
 class CompanyOnboardingScreen extends StatefulWidget {
   final Future<void> Function() onCompleted;
@@ -149,6 +150,8 @@ class _CompanyOnboardingScreenState extends State<CompanyOnboardingScreen> {
                       ),
                       const SizedBox(height: 22),
                       TextField(
+                        textCapitalization: TextCapitalization.sentences,
+                        inputFormatters: AppInputFormatters.sentences,
                         controller: companyController,
                         enabled: !isLoading,
                         textInputAction: TextInputAction.next,
@@ -159,6 +162,8 @@ class _CompanyOnboardingScreenState extends State<CompanyOnboardingScreen> {
                       ),
                       const SizedBox(height: 12),
                       TextField(
+                        textCapitalization: TextCapitalization.sentences,
+                        inputFormatters: AppInputFormatters.sentences,
                         controller: fullNameController,
                         enabled: !isLoading,
                         textInputAction: TextInputAction.done,

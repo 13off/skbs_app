@@ -5,6 +5,7 @@ import '../features/timesheet/data/timesheet_group_repository.dart';
 import '../features/timesheet/models/timesheet_group.dart';
 import '../models/employee.dart';
 import '../widgets/premium_ui.dart';
+import 'package:skbs_app/widgets/app_input_formatters.dart';
 
 class TimesheetGroupManagerSheet extends StatefulWidget {
   final String? selectedObjectName;
@@ -509,6 +510,7 @@ class _TimesheetGroupEditorDialogState
               const SizedBox(height: 8),
             ],
             TextField(
+              inputFormatters: AppInputFormatters.sentences,
               controller: nameController,
               autofocus: widget.group == null,
               maxLength: 80,

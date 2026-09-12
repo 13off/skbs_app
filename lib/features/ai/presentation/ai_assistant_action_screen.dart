@@ -11,6 +11,7 @@ import '../data/ai_assistant_repository.dart';
 import '../models/ai_assistant_result.dart';
 import 'ai_document_draft_screen.dart';
 import '../../../navigation/app_page_route.dart';
+import 'package:skbs_app/widgets/app_input_formatters.dart';
 
 class AiAssistantScreen extends StatefulWidget {
   final AppUserProfile profile;
@@ -503,6 +504,8 @@ class _AiAssistantScreenState extends State<AiAssistantScreen> {
         children: [
           Expanded(
             child: TextField(
+              textCapitalization: TextCapitalization.sentences,
+              inputFormatters: AppInputFormatters.sentences,
               controller: promptController,
               enabled: !isSending,
               minLines: 1,

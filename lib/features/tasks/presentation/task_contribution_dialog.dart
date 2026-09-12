@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:skbs_app/widgets/app_input_formatters.dart';
 
 import '../../../data/task_contribution_repository.dart';
 import '../../work_orders/work_order_fields.dart';
@@ -111,7 +112,9 @@ class _TaskContributionDialogState extends State<_TaskContributionDialog> {
         ),
     ];
     actualController = TextEditingController(
-      text: widget.initialActualQuantity?.toString() ?? '',
+      text: AppInputFormatters.formatNumber(
+        widget.initialActualQuantity?.toString() ?? '',
+      ),
     );
   }
 
@@ -188,6 +191,7 @@ class _TaskContributionDialogState extends State<_TaskContributionDialog> {
                   autofocus: true,
                   keyboardType:
                       const TextInputType.numberWithOptions(decimal: true),
+                  inputFormatters: AppInputFormatters.groupedNumber,
                   decoration: InputDecoration(
                     labelText: 'Фактически выполненный объём',
                     suffixText: widget.unit,

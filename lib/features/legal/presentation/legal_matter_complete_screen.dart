@@ -7,6 +7,7 @@ import '../data/legal_process_repository.dart';
 import '../models/legal_models.dart';
 import 'legal_matters_screen.dart';
 import '../../../navigation/app_page_route.dart';
+import 'package:skbs_app/widgets/app_input_formatters.dart';
 
 class LegalMatterCompleteScreen extends StatefulWidget {
   final LegalMatter matter;
@@ -176,6 +177,8 @@ class _LegalMatterCompleteScreenState extends State<LegalMatterCompleteScreen> {
                 ),
                 const SizedBox(height: 12),
                 TextField(
+                  textCapitalization: TextCapitalization.sentences,
+                  inputFormatters: AppInputFormatters.sentences,
                   controller: titleController,
                   autofocus: true,
                   decoration: const InputDecoration(labelText: 'Название'),

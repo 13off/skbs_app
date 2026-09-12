@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:skbs_app/widgets/app_input_formatters.dart';
 
 import '../../../widgets/app_page.dart';
 import '../../../widgets/premium_ui.dart';
@@ -403,7 +404,9 @@ class _LegalObjectCompleteScreenState extends State<LegalObjectCompleteScreen> {
     String contractId = data.profile.mainContractDocumentId;
     String responsibleId = data.profile.responsibleUserId;
     final valueController = TextEditingController(
-      text: data.profile.contractValue?.toStringAsFixed(0) ?? '',
+      text: AppInputFormatters.formatNumber(
+        data.profile.contractValue?.toStringAsFixed(0) ?? '',
+      ),
     );
     final notesController = TextEditingController(text: data.profile.notes);
     DateTime? start = data.profile.contractStart;
@@ -479,6 +482,7 @@ class _LegalObjectCompleteScreenState extends State<LegalObjectCompleteScreen> {
                   TextField(
                     controller: valueController,
                     keyboardType: TextInputType.number,
+                    inputFormatters: AppInputFormatters.groupedNumber,
                     decoration: const InputDecoration(
                       labelText: 'Стоимость договора',
                     ),
@@ -513,6 +517,8 @@ class _LegalObjectCompleteScreenState extends State<LegalObjectCompleteScreen> {
                     },
                   ),
                   TextField(
+                    textCapitalization: TextCapitalization.sentences,
+                    inputFormatters: AppInputFormatters.sentences,
                     controller: notesController,
                     minLines: 2,
                     maxLines: 5,
@@ -541,9 +547,7 @@ class _LegalObjectCompleteScreenState extends State<LegalObjectCompleteScreen> {
         customerCounterpartyId: customerId,
         mainContractDocumentId: contractId,
         responsibleUserId: responsibleId,
-        contractValue: double.tryParse(
-          valueController.text.replaceAll(',', '.'),
-        ),
+        contractValue: AppInputFormatters.tryParseDouble(valueController.text),
         contractStart: start,
         contractEnd: end,
         notes: notesController.text,

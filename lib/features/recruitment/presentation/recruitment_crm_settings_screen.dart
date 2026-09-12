@@ -8,6 +8,7 @@ import '../../../widgets/premium_ui_v2.dart';
 import '../data/recruitment_repository.dart';
 import '../models/recruitment_models.dart';
 import 'recruitment_automation_settings_panel.dart';
+import 'package:skbs_app/widgets/app_input_formatters.dart';
 
 class RecruitmentCrmSettingsScreen extends StatefulWidget {
   final AppUserProfile profile;
@@ -909,6 +910,8 @@ class _StageEditorState extends State<_StageEditor> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           TextField(
+            textCapitalization: TextCapitalization.sentences,
+            inputFormatters: AppInputFormatters.sentences,
             controller: titleController,
             autofocus: widget.stage == null,
             decoration: const InputDecoration(
@@ -918,6 +921,8 @@ class _StageEditorState extends State<_StageEditor> {
           ),
           const SizedBox(height: AppUi.gap12),
           TextField(
+            textCapitalization: TextCapitalization.sentences,
+            inputFormatters: AppInputFormatters.sentences,
             controller: descriptionController,
             minLines: 2,
             maxLines: 4,
@@ -1061,6 +1066,8 @@ class _FieldEditorState extends State<_FieldEditor> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           TextField(
+            textCapitalization: TextCapitalization.sentences,
+            inputFormatters: AppInputFormatters.sentences,
             controller: titleController,
             autofocus: widget.field == null,
             decoration: const InputDecoration(
@@ -1070,6 +1077,8 @@ class _FieldEditorState extends State<_FieldEditor> {
           ),
           const SizedBox(height: AppUi.gap12),
           TextField(
+            textCapitalization: TextCapitalization.sentences,
+            inputFormatters: AppInputFormatters.sentences,
             controller: descriptionController,
             minLines: 2,
             maxLines: 4,
@@ -1099,6 +1108,8 @@ class _FieldEditorState extends State<_FieldEditor> {
           if (supportsOptions) ...[
             const SizedBox(height: AppUi.gap12),
             TextField(
+              textCapitalization: TextCapitalization.sentences,
+              inputFormatters: AppInputFormatters.sentences,
               controller: optionsController,
               minLines: 3,
               maxLines: 7,

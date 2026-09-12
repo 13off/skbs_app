@@ -12,6 +12,7 @@ import '../../../widgets/premium_ui.dart';
 import '../data/milestone_repository.dart';
 import '../models/milestone_models.dart';
 import '../../../navigation/app_page_route.dart';
+import 'package:skbs_app/widgets/app_input_formatters.dart';
 
 class MilestoneDetailScreen extends StatefulWidget {
   final AppUserProfile profile;
@@ -95,6 +96,8 @@ class _MilestoneDetailScreenState extends State<MilestoneDetailScreen> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 TextField(
+                  textCapitalization: TextCapitalization.sentences,
+                  inputFormatters: AppInputFormatters.sentences,
                   controller: titleController,
                   decoration: const InputDecoration(
                     labelText: 'Что должно быть готово',
@@ -147,6 +150,8 @@ class _MilestoneDetailScreenState extends State<MilestoneDetailScreen> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 TextField(
+                  textCapitalization: TextCapitalization.sentences,
+                  inputFormatters: AppInputFormatters.sentences,
                   controller: titleController,
                   autofocus: true,
                   decoration: const InputDecoration(

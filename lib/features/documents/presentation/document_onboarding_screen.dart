@@ -1,5 +1,6 @@
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
+import 'package:skbs_app/widgets/app_input_formatters.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../data/employee_repository.dart';
@@ -307,7 +308,11 @@ class _DocumentOnboardingScreenState extends State<DocumentOnboardingScreen> {
     final controllers = <String, TextEditingController>{
       for (final field in fields)
         field.$1: TextEditingController(
-          text: initial[field.$1]?.toString() ?? '',
+          text: field.$1 == 'phone'
+              ? AppInputFormatters.formatRussianPhone(
+                  initial[field.$1]?.toString() ?? '',
+                )
+              : initial[field.$1]?.toString() ?? '',
         ),
     };
     final result = await showDialog<Map<String, dynamic>>(
@@ -329,6 +334,23 @@ class _DocumentOnboardingScreenState extends State<DocumentOnboardingScreen> {
                 for (final field in fields) ...[
                   TextField(
                     controller: controllers[field.$1],
+                    keyboardType: field.$1 == 'phone'
+                        ? TextInputType.phone
+                        : TextInputType.text,
+                    textCapitalization: const {
+                      'full_name',
+                      'passport_issued_by',
+                      'registration_address',
+                    }.contains(field.$1)
+                        ? TextCapitalization.sentences
+                        : TextCapitalization.none,
+                    inputFormatters: switch (field.$1) {
+                      'phone' => AppInputFormatters.russianPhone,
+                      'full_name' ||
+                      'passport_issued_by' ||
+                      'registration_address' => AppInputFormatters.sentences,
+                      _ => null,
+                    },
                     decoration: InputDecoration(labelText: field.$2),
                   ),
                   const SizedBox(height: 10),
@@ -525,7 +547,9 @@ class _DocumentOnboardingScreenState extends State<DocumentOnboardingScreen> {
     DocumentCandidateOption candidate,
     String objectName,
   ) async {
-    final phone = TextEditingController(text: candidate.phone);
+    final phone = TextEditingController(
+      text: AppInputFormatters.formatRussianPhone(candidate.phone),
+    );
     final position = TextEditingController(text: candidate.position);
     final object = TextEditingController(text: objectName);
     final rate = TextEditingController();
@@ -540,15 +564,21 @@ class _DocumentOnboardingScreenState extends State<DocumentOnboardingScreen> {
             children: [
               TextField(
                 controller: phone,
+                keyboardType: TextInputType.phone,
+                inputFormatters: AppInputFormatters.russianPhone,
                 decoration: const InputDecoration(labelText: 'Телефон'),
               ),
               const SizedBox(height: 10),
               TextField(
+                textCapitalization: TextCapitalization.sentences,
+                inputFormatters: AppInputFormatters.sentences,
                 controller: position,
                 decoration: const InputDecoration(labelText: 'Должность'),
               ),
               const SizedBox(height: 10),
               TextField(
+                textCapitalization: TextCapitalization.sentences,
+                inputFormatters: AppInputFormatters.sentences,
                 controller: object,
                 decoration: const InputDecoration(labelText: 'Объект'),
               ),
@@ -556,6 +586,7 @@ class _DocumentOnboardingScreenState extends State<DocumentOnboardingScreen> {
               TextField(
                 controller: rate,
                 keyboardType: TextInputType.number,
+                inputFormatters: AppInputFormatters.groupedNumber,
                 decoration: const InputDecoration(
                   labelText: 'Ставка за смену, ₽',
                 ),
@@ -579,7 +610,7 @@ class _DocumentOnboardingScreenState extends State<DocumentOnboardingScreen> {
                   phone: phone.text.trim(),
                   position: cleanPosition,
                   objectName: cleanObject,
-                  dailyRate: int.tryParse(rate.text.trim()) ?? 0,
+                  dailyRate: AppInputFormatters.tryParseInt(rate.text) ?? 0,
                 ),
               );
             },
@@ -665,11 +696,15 @@ class _DocumentOnboardingScreenState extends State<DocumentOnboardingScreen> {
                   ),
                   const SizedBox(height: 10),
                   TextField(
+                    textCapitalization: TextCapitalization.sentences,
+                    inputFormatters: AppInputFormatters.sentences,
                     controller: position,
                     decoration: const InputDecoration(labelText: 'Должность'),
                   ),
                   const SizedBox(height: 10),
                   TextField(
+                    textCapitalization: TextCapitalization.sentences,
+                    inputFormatters: AppInputFormatters.sentences,
                     controller: compensation,
                     decoration: InputDecoration(
                       labelText: onboardingType == 'gph'
@@ -684,6 +719,8 @@ class _DocumentOnboardingScreenState extends State<DocumentOnboardingScreen> {
                   ),
                   const SizedBox(height: 10),
                   TextField(
+                    textCapitalization: TextCapitalization.sentences,
+                    inputFormatters: AppInputFormatters.sentences,
                     controller: notes,
                     maxLines: 3,
                     decoration: const InputDecoration(labelText: 'Комментарий'),
@@ -1492,6 +1529,8 @@ class _VerificationDialogState extends State<_VerificationDialog> {
             ),
             const SizedBox(height: 12),
             TextField(
+              textCapitalization: TextCapitalization.sentences,
+              inputFormatters: AppInputFormatters.sentences,
               controller: comment,
               maxLines: 3,
               decoration: const InputDecoration(labelText: 'Комментарий'),

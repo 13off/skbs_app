@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:skbs_app/app/app_adaptive_palette.dart';
 import 'package:flutter/services.dart';
+import 'package:skbs_app/widgets/app_input_formatters.dart';
 
 import '../../../../data/employee_repository.dart';
 
@@ -293,6 +294,7 @@ class _AddEmployeeScreenState extends State<AddEmployeeScreen> {
               title: 'Основные данные',
               children: [
                 TextFormField(
+                  inputFormatters: AppInputFormatters.sentences,
                   controller: fioController,
                   enabled: !isSaving,
                   textCapitalization: TextCapitalization.words,
@@ -309,6 +311,7 @@ class _AddEmployeeScreenState extends State<AddEmployeeScreen> {
                 ),
                 const SizedBox(height: 14),
                 TextFormField(
+                  inputFormatters: AppInputFormatters.sentences,
                   controller: positionController,
                   enabled: !isSaving,
                   textCapitalization: TextCapitalization.sentences,
@@ -336,7 +339,7 @@ class _AddEmployeeScreenState extends State<AddEmployeeScreen> {
                     border: OutlineInputBorder(),
                     prefixIcon: Icon(Icons.phone_outlined),
                   ),
-                  inputFormatters: [RussianPhoneTextInputFormatter()],
+                  inputFormatters: AppInputFormatters.russianPhone,
                   validator: validateRussianPhone,
                 ),
               ],
@@ -349,6 +352,7 @@ class _AddEmployeeScreenState extends State<AddEmployeeScreen> {
                   controller: monthlySalaryController,
                   enabled: !isSaving,
                   keyboardType: TextInputType.number,
+                  inputFormatters: AppInputFormatters.groupedNumber,
                   decoration: InputDecoration(
                     labelText: 'Зарплата в месяц, ₽',
                     hintText: 'Например: 180000',
@@ -387,6 +391,8 @@ class _AddEmployeeScreenState extends State<AddEmployeeScreen> {
                 ),
                 const SizedBox(height: 14),
                 TextFormField(
+                  textCapitalization: TextCapitalization.sentences,
+                  inputFormatters: AppInputFormatters.sentences,
                   controller: commentController,
                   enabled: !isSaving,
                   minLines: 2,

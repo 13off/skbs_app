@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
+import 'package:skbs_app/widgets/app_input_formatters.dart';
 
 import '../../../app/app_adaptive_palette.dart';
 import '../../../data/user_repository.dart';
@@ -1000,7 +1001,9 @@ class _ProfessionalPassportEditPageState
       text: initial.preferredCities.join(', '),
     );
     rateController = TextEditingController(
-      text: initial.desiredDailyRate?.toString() ?? '',
+      text: AppInputFormatters.formatNumber(
+        initial.desiredDailyRate?.toString() ?? '',
+      ),
     );
     readyForRotation = initial.readyForRotation;
     openToOffers = initial.openToOffers;
@@ -1094,6 +1097,7 @@ class _ProfessionalPassportEditPageState
                   ),
                   const SizedBox(height: 18),
                   TextField(
+                    inputFormatters: AppInputFormatters.sentences,
                     controller: gradeController,
                     maxLength: 40,
                     textCapitalization: TextCapitalization.sentences,
@@ -1121,6 +1125,7 @@ class _ProfessionalPassportEditPageState
                   ),
                   const SizedBox(height: 12),
                   TextField(
+                    inputFormatters: AppInputFormatters.sentences,
                     controller: aboutController,
                     maxLength: 800,
                     minLines: 4,
@@ -1148,6 +1153,7 @@ class _ProfessionalPassportEditPageState
                   ),
                   const SizedBox(height: 18),
                   TextField(
+                    inputFormatters: AppInputFormatters.sentences,
                     controller: skillsController,
                     maxLines: 4,
                     textCapitalization: TextCapitalization.sentences,
@@ -1173,6 +1179,7 @@ class _ProfessionalPassportEditPageState
                   ),
                   const SizedBox(height: 18),
                   TextField(
+                    inputFormatters: AppInputFormatters.sentences,
                     controller: citiesController,
                     maxLines: 3,
                     textCapitalization: TextCapitalization.words,
@@ -1186,10 +1193,7 @@ class _ProfessionalPassportEditPageState
                   TextField(
                     controller: rateController,
                     keyboardType: TextInputType.number,
-                    inputFormatters: [
-                      FilteringTextInputFormatter.digitsOnly,
-                      LengthLimitingTextInputFormatter(8),
-                    ],
+                    inputFormatters: AppInputFormatters.groupedNumber,
                     decoration: const InputDecoration(
                       labelText: 'Желаемая ставка за смену',
                       hintText: '6000',

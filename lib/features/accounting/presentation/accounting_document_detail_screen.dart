@@ -1,5 +1,6 @@
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
+import 'package:skbs_app/widgets/app_input_formatters.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../app/app_adaptive_palette.dart';
@@ -479,7 +480,9 @@ class _DocumentEditDialogState extends State<_DocumentEditDialog> {
     number = TextEditingController(text: doc.number);
     counterparty = TextEditingController(text: doc.counterparty);
     objectName = TextEditingController(text: doc.objectName);
-    amount = TextEditingController(text: doc.amount.toStringAsFixed(2));
+    amount = TextEditingController(
+      text: AppInputFormatters.formatNumber(doc.amount.toStringAsFixed(2)),
+    );
     vat = TextEditingController(text: doc.vatAmount.toStringAsFixed(2));
     invoice = TextEditingController(text: doc.invoiceNumber);
     comment = TextEditingController(text: doc.comment);
@@ -589,11 +592,15 @@ class _DocumentEditDialogState extends State<_DocumentEditDialog> {
               ),
               const SizedBox(height: 10),
               TextField(
+                textCapitalization: TextCapitalization.sentences,
+                inputFormatters: AppInputFormatters.sentences,
                 controller: counterparty,
                 decoration: const InputDecoration(labelText: 'Контрагент'),
               ),
               const SizedBox(height: 10),
               TextField(
+                textCapitalization: TextCapitalization.sentences,
+                inputFormatters: AppInputFormatters.sentences,
                 controller: objectName,
                 decoration: const InputDecoration(labelText: 'Объект'),
               ),
@@ -605,6 +612,7 @@ class _DocumentEditDialogState extends State<_DocumentEditDialog> {
                       controller: amount,
                       keyboardType:
                           const TextInputType.numberWithOptions(decimal: true),
+                      inputFormatters: AppInputFormatters.groupedNumber,
                       decoration: const InputDecoration(labelText: 'Сумма'),
                     ),
                   ),
@@ -644,6 +652,8 @@ class _DocumentEditDialogState extends State<_DocumentEditDialog> {
               ),
               const SizedBox(height: 10),
               TextField(
+                textCapitalization: TextCapitalization.sentences,
+                inputFormatters: AppInputFormatters.sentences,
                 controller: comment,
                 minLines: 2,
                 maxLines: 4,
@@ -660,7 +670,7 @@ class _DocumentEditDialogState extends State<_DocumentEditDialog> {
         ),
         FilledButton(
           onPressed: () {
-            final parsedAmount = double.tryParse(amount.text.replaceAll(',', '.'));
+            final parsedAmount = AppInputFormatters.tryParseDouble(amount.text);
             final parsedVat = double.tryParse(vat.text.replaceAll(',', '.')) ?? 0;
             if (parsedAmount == null ||
                 parsedAmount <= 0 ||

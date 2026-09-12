@@ -18,6 +18,7 @@ import '../data/recruitment_repository.dart';
 import '../models/recruitment_models.dart';
 import 'recruitment_candidate_crm_section.dart';
 import '../../../navigation/app_page_route.dart';
+import 'package:skbs_app/widgets/app_input_formatters.dart';
 
 Color get _detailText => AppAdaptivePalette.textPrimary;
 Color get _detailMuted => AppAdaptivePalette.textMuted;
@@ -953,6 +954,7 @@ class _RecruitmentApplicationDetailScreenState
                     children: [
                       Expanded(
                         child: TextField(
+                          inputFormatters: AppInputFormatters.sentences,
                           controller: messageController,
                           enabled: !sending,
                           minLines: 1,

@@ -100,7 +100,9 @@ class _LegalMatterEditorScreenState extends State<LegalMatterEditorScreen> {
     courtCaseNumberController.text = process.courtCaseNumber;
     courtNameController.text = process.courtName;
     courtPartiesController.text = process.courtParties;
-    claimAmountController.text = process.claimAmount?.toString() ?? '';
+    claimAmountController.text = AppInputFormatters.formatNumber(
+      process.claimAmount?.toString() ?? '',
+    );
     proceedingStageController.text = process.proceedingStage;
     nextHearingAt = process.nextHearingAt;
     outgoingSentAt = process.outgoingSentAt;
@@ -196,7 +198,9 @@ class _LegalMatterEditorScreenState extends State<LegalMatterEditorScreen> {
       );
       return;
     }
-    final amountText = claimAmountController.text.trim().replaceAll(',', '.');
+    final amountText = AppInputFormatters.normalizeNumber(
+      claimAmountController.text,
+    );
     final amount = amountText.isEmpty ? null : double.tryParse(amountText);
     if (amountText.isNotEmpty && amount == null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -282,9 +286,13 @@ class _LegalMatterEditorScreenState extends State<LegalMatterEditorScreen> {
       padding: const EdgeInsets.all(18),
       child: Column(
         children: [
-          TextField(controller: titleController, decoration: const InputDecoration(labelText: 'Название *')),
+          TextField(
+            textCapitalization: TextCapitalization.sentences,
+            inputFormatters: AppInputFormatters.sentences,controller: titleController, decoration: const InputDecoration(labelText: 'Название *')),
           const SizedBox(height: 12),
           TextField(
+            textCapitalization: TextCapitalization.sentences,
+            inputFormatters: AppInputFormatters.sentences,
             controller: descriptionController,
             minLines: 3,
             maxLines: 6,
@@ -427,9 +435,13 @@ class _LegalMatterEditorScreenState extends State<LegalMatterEditorScreen> {
           if (isCourt) ...[
             TextField(controller: courtCaseNumberController, decoration: const InputDecoration(labelText: 'Номер дела')),
             const SizedBox(height: 12),
-            TextField(controller: courtNameController, decoration: const InputDecoration(labelText: 'Суд')),
+            TextField(
+              textCapitalization: TextCapitalization.sentences,
+              inputFormatters: AppInputFormatters.sentences,controller: courtNameController, decoration: const InputDecoration(labelText: 'Суд')),
             const SizedBox(height: 12),
             TextField(
+              textCapitalization: TextCapitalization.sentences,
+              inputFormatters: AppInputFormatters.sentences,
               controller: courtPartiesController,
               minLines: 2,
               maxLines: 4,
@@ -440,10 +452,13 @@ class _LegalMatterEditorScreenState extends State<LegalMatterEditorScreen> {
           TextField(
             controller: claimAmountController,
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            inputFormatters: AppInputFormatters.groupedNumber,
             decoration: const InputDecoration(labelText: 'Сумма требований, ₽'),
           ),
           const SizedBox(height: 12),
-          TextField(controller: proceedingStageController, decoration: const InputDecoration(labelText: 'Текущая стадия')),
+          TextField(
+            textCapitalization: TextCapitalization.sentences,
+            inputFormatters: AppInputFormatters.sentences,controller: proceedingStageController, decoration: const InputDecoration(labelText: 'Текущая стадия')),
           if (isCourt) ...[
             const SizedBox(height: 4),
             dateField(
@@ -478,6 +493,8 @@ class _LegalMatterEditorScreenState extends State<LegalMatterEditorScreen> {
       child: Column(
         children: [
           TextField(
+            textCapitalization: TextCapitalization.sentences,
+            inputFormatters: AppInputFormatters.sentences,
             controller: actionsController,
             minLines: 2,
             maxLines: 5,
@@ -485,6 +502,8 @@ class _LegalMatterEditorScreenState extends State<LegalMatterEditorScreen> {
           ),
           const SizedBox(height: 12),
           TextField(
+            textCapitalization: TextCapitalization.sentences,
+            inputFormatters: AppInputFormatters.sentences,
             controller: resultController,
             minLines: 2,
             maxLines: 5,
@@ -505,6 +524,8 @@ class _LegalMatterEditorScreenState extends State<LegalMatterEditorScreen> {
           if (managerDecision) ...[
             const SizedBox(height: 8),
             TextField(
+              textCapitalization: TextCapitalization.sentences,
+              inputFormatters: AppInputFormatters.sentences,
               controller: managerQuestionController,
               minLines: 2,
               maxLines: 5,

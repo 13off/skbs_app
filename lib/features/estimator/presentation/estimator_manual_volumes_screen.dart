@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:skbs_app/widgets/app_input_formatters.dart';
 
 import '../../../app/app_adaptive_palette.dart';
 import '../../../data/object_repository.dart';
@@ -79,6 +80,8 @@ class _EstimatorManualVolumesScreenState
               ),
               const SizedBox(height: 12),
               TextField(
+                textCapitalization: TextCapitalization.sentences,
+                inputFormatters: AppInputFormatters.sentences,
                 controller: controller,
                 minLines: 2,
                 maxLines: 4,
@@ -497,7 +500,7 @@ class _ManualVolumeDialogState extends State<_ManualVolumeDialog> {
   }
 
   double? quantity() {
-    return double.tryParse(quantityController.text.trim().replaceAll(',', '.'));
+    return AppInputFormatters.tryParseDouble(quantityController.text);
   }
 
   String get effectiveUnit =>
@@ -610,6 +613,8 @@ class _ManualVolumeDialogState extends State<_ManualVolumeDialog> {
                 ),
               const SizedBox(height: 12),
               TextField(
+                textCapitalization: TextCapitalization.sentences,
+                inputFormatters: AppInputFormatters.sentences,
                 controller: workController,
                 enabled: !saving,
                 decoration: const InputDecoration(
@@ -628,6 +633,7 @@ class _ManualVolumeDialogState extends State<_ManualVolumeDialog> {
                       keyboardType: const TextInputType.numberWithOptions(
                         decimal: true,
                       ),
+                      inputFormatters: AppInputFormatters.groupedNumber,
                       decoration: const InputDecoration(
                         labelText: 'Объём',
                         prefixIcon: Icon(Icons.straighten_rounded),
@@ -696,6 +702,8 @@ class _ManualVolumeDialogState extends State<_ManualVolumeDialog> {
               ),
               const SizedBox(height: 12),
               TextField(
+                textCapitalization: TextCapitalization.sentences,
+                inputFormatters: AppInputFormatters.sentences,
                 controller: commentController,
                 enabled: !saving,
                 minLines: 3,

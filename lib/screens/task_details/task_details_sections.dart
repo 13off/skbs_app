@@ -1,3 +1,4 @@
+import 'package:skbs_app/widgets/app_input_formatters.dart';
 // State helpers below are part of the owning screen library and intentionally
 // update that exact State instance.
 // ignore_for_file: invalid_use_of_protected_member
@@ -51,6 +52,8 @@ extension _TaskDetailsSections on _TaskDetailsScreenState {
         if (!done) ...[
           const SizedBox(height: 14),
           TextField(
+            textCapitalization: TextCapitalization.sentences,
+            inputFormatters: AppInputFormatters.sentences,
             controller: notDoneCommentController,
             enabled: !isSaving && canEditStatus,
             minLines: 2,
@@ -105,6 +108,8 @@ extension _TaskDetailsSections on _TaskDetailsScreenState {
       children: [
         buildFieldLabel('Оси'),
         TextField(
+          textCapitalization: TextCapitalization.sentences,
+          inputFormatters: AppInputFormatters.sentences,
           controller: axesController,
           enabled: !isSaving && canEditAxesWork,
           decoration: InputDecoration(
@@ -123,6 +128,8 @@ extension _TaskDetailsSections on _TaskDetailsScreenState {
       children: [
         buildFieldLabel('Вид работ'),
         TextField(
+          textCapitalization: TextCapitalization.sentences,
+          inputFormatters: AppInputFormatters.sentences,
           controller: workController,
           enabled: !isSaving && canEditAxesWork,
           minLines: 3,

@@ -4,6 +4,7 @@ import '../../../app/app_adaptive_palette.dart';
 import '../../../widgets/premium_ui.dart';
 import '../data/document_template_online_editor.dart';
 import '../models/document_template.dart';
+import 'package:skbs_app/widgets/app_input_formatters.dart';
 
 class DocumentTemplateOnlineEditorScreen extends StatefulWidget {
   final DocumentTemplateRecord template;
@@ -135,6 +136,8 @@ class _DocumentTemplateOnlineEditorScreenState
                     ),
                     const SizedBox(height: 16),
                     TextField(
+                      textCapitalization: TextCapitalization.sentences,
+                      inputFormatters: AppInputFormatters.sentences,
                       controller: notesController,
                       minLines: 2,
                       maxLines: 4,
@@ -413,6 +416,8 @@ class _EditorBlock extends StatelessWidget {
     }
 
     return TextField(
+      textCapitalization: TextCapitalization.sentences,
+      inputFormatters: AppInputFormatters.sentences,
       controller: controller,
       minLines: block.text.length > 130 ? 3 : 1,
       maxLines: 8,

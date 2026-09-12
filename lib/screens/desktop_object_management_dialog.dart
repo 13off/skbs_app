@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:skbs_app/widgets/app_input_formatters.dart';
 
 import '../app/app_adaptive_palette.dart';
 
@@ -94,6 +95,7 @@ class _DesktopObjectManagementDialogState
               controller: controller,
               autofocus: true,
               textCapitalization: TextCapitalization.words,
+              inputFormatters: AppInputFormatters.sentences,
               decoration: const InputDecoration(
                 labelText: 'Название объекта',
                 border: OutlineInputBorder(),

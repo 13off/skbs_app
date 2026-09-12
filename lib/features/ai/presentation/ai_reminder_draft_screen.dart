@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../developer/data/developer_constructor_repository.dart';
 import '../models/ai_assistant_result.dart';
+import 'package:skbs_app/widgets/app_input_formatters.dart';
 
 class AiReminderDraftScreen extends StatefulWidget {
   final AiAssistantAction action;
@@ -152,6 +153,8 @@ class _AiReminderDraftScreenState extends State<AiReminderDraftScreen> {
           ),
           const SizedBox(height: 18),
           TextField(
+            textCapitalization: TextCapitalization.sentences,
+            inputFormatters: AppInputFormatters.sentences,
             controller: nameController,
             enabled: !saving,
             decoration: const InputDecoration(
@@ -161,6 +164,8 @@ class _AiReminderDraftScreenState extends State<AiReminderDraftScreen> {
           ),
           const SizedBox(height: 14),
           TextField(
+            textCapitalization: TextCapitalization.sentences,
+            inputFormatters: AppInputFormatters.sentences,
             controller: bodyController,
             enabled: !saving,
             minLines: 3,
@@ -172,6 +177,8 @@ class _AiReminderDraftScreenState extends State<AiReminderDraftScreen> {
           ),
           const SizedBox(height: 14),
           TextField(
+            textCapitalization: TextCapitalization.sentences,
+            inputFormatters: AppInputFormatters.sentences,
             controller: objectController,
             enabled: !saving,
             decoration: const InputDecoration(

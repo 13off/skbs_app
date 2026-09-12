@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 
 import '../../shared/presentation/specialist_desktop_ui.dart';
 import '../data/company_repository.dart';
+import 'package:skbs_app/widgets/app_input_formatters.dart';
 
 Future<void> showDesktopInvitationLink(
   BuildContext context, {
@@ -315,6 +316,8 @@ class _DesktopCompanyMemberDialogState
                   children: [
                     Expanded(
                       child: TextField(
+                        textCapitalization: TextCapitalization.sentences,
+                        inputFormatters: AppInputFormatters.sentences,
                         controller: fullNameController,
                         enabled: !isSaving,
                         decoration: const InputDecoration(
@@ -379,6 +382,8 @@ class _DesktopCompanyMemberDialogState
                 const SizedBox(height: 14),
               ],
               TextField(
+                textCapitalization: TextCapitalization.sentences,
+                inputFormatters: AppInputFormatters.sentences,
                 controller: professionController,
                 enabled: !isSaving,
                 decoration: const InputDecoration(

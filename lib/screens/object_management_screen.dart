@@ -6,6 +6,7 @@ import '../data/attendance_repository.dart';
 import '../data/employee_repository.dart';
 import '../data/object_repository.dart';
 import '../data/task_repository.dart';
+import 'package:skbs_app/widgets/app_input_formatters.dart';
 
 Color get _bg => AppAdaptivePalette.background;
 Color get _card => AppAdaptivePalette.surfaceElevated;
@@ -205,6 +206,7 @@ class _ObjectManagementScreenState extends State<ObjectManagementScreen> {
                         ),
                         SizedBox(height: 14),
                         TextFormField(
+                          inputFormatters: AppInputFormatters.sentences,
                           controller: controller,
                           enabled: !isSaving,
                           textCapitalization: TextCapitalization.words,

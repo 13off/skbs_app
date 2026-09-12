@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:skbs_app/widgets/app_input_formatters.dart';
 
 import '../../../app/app_adaptive_palette.dart';
 import '../../../app/app_ui_tokens.dart';
@@ -388,6 +389,8 @@ class _RecruitmentApplicationsScreenState
             mainAxisSize: MainAxisSize.min,
             children: [
               TextField(
+                textCapitalization: TextCapitalization.sentences,
+                inputFormatters: AppInputFormatters.sentences,
                 controller: controller,
                 autofocus: true,
                 decoration: const InputDecoration(
@@ -569,6 +572,7 @@ class _RecruitmentApplicationsScreenState
         builder: (context, setDialogState) => AlertDialog(
           title: Text(dialogTitle),
           content: TextField(
+            inputFormatters: AppInputFormatters.sentences,
             controller: controller,
             autofocus: true,
             maxLength: 80,
@@ -2283,7 +2287,9 @@ class _RecruitmentApplicationEditorState
     fullNameController = TextEditingController(
       text: application?.fullName ?? '',
     );
-    phoneController = TextEditingController(text: application?.phone ?? '');
+    phoneController = TextEditingController(
+      text: AppInputFormatters.formatRussianPhone(application?.phone ?? ''),
+    );
     citizenshipController = TextEditingController(
       text: application?.citizenship ?? '',
     );
@@ -2312,7 +2318,13 @@ class _RecruitmentApplicationEditorState
       if (_usesTextController(field.fieldType)) {
         final value = field.formatValue(customValues[field.id]);
         customControllers[field.id] = TextEditingController(
-          text: field.fieldType == 'money' ? value.replaceAll(' ₽', '') : value,
+          text: switch (field.fieldType) {
+            'number' || 'money' => AppInputFormatters.formatNumber(
+                value.replaceAll(' ₽', ''),
+              ),
+            'phone' => AppInputFormatters.formatRussianPhone(value),
+            _ => value,
+          },
         );
       }
     }
@@ -2594,6 +2606,15 @@ class _RecruitmentApplicationEditorState
           controller: customControllers[field.id],
           enabled: !saving,
           keyboardType: keyboardType,
+          textCapitalization: multiline || field.fieldType == 'text'
+              ? TextCapitalization.sentences
+              : TextCapitalization.none,
+          inputFormatters: switch (field.fieldType) {
+            'phone' => AppInputFormatters.russianPhone,
+            'number' || 'money' => AppInputFormatters.groupedNumber,
+            'text' || 'multiline' => AppInputFormatters.sentences,
+            _ => null,
+          },
           minLines: multiline ? 2 : 1,
           maxLines: multiline ? 5 : 1,
           decoration: InputDecoration(
@@ -2663,6 +2684,8 @@ class _RecruitmentApplicationEditorState
                 shrinkWrap: true,
                 children: [
                   TextField(
+                    textCapitalization: TextCapitalization.sentences,
+                    inputFormatters: AppInputFormatters.sentences,
                     controller: fullNameController,
                     enabled: !saving,
                     decoration: const InputDecoration(
@@ -2674,7 +2697,8 @@ class _RecruitmentApplicationEditorState
                   TextField(
                     controller: phoneController,
                     enabled: !saving,
-                    keyboardType: TextInputType.phone,
+                  keyboardType: TextInputType.phone,
+                  inputFormatters: AppInputFormatters.russianPhone,
                     decoration: const InputDecoration(
                       labelText: 'Телефон',
                       prefixIcon: Icon(Icons.phone_outlined),
@@ -2682,6 +2706,8 @@ class _RecruitmentApplicationEditorState
                   ),
                   const SizedBox(height: AppUi.gap12),
                   TextField(
+                    textCapitalization: TextCapitalization.sentences,
+                    inputFormatters: AppInputFormatters.sentences,
                     controller: citizenshipController,
                     enabled: !saving,
                     decoration: const InputDecoration(
@@ -2691,6 +2717,8 @@ class _RecruitmentApplicationEditorState
                   ),
                   const SizedBox(height: AppUi.gap12),
                   TextField(
+                    textCapitalization: TextCapitalization.sentences,
+                    inputFormatters: AppInputFormatters.sentences,
                     controller: vacancyController,
                     enabled: !saving,
                     decoration: const InputDecoration(
@@ -2701,6 +2729,8 @@ class _RecruitmentApplicationEditorState
                   ),
                   const SizedBox(height: AppUi.gap12),
                   TextField(
+                    textCapitalization: TextCapitalization.sentences,
+                    inputFormatters: AppInputFormatters.sentences,
                     controller: objectController,
                     enabled: !saving,
                     decoration: const InputDecoration(
@@ -2710,6 +2740,8 @@ class _RecruitmentApplicationEditorState
                   ),
                   const SizedBox(height: AppUi.gap12),
                   TextField(
+                    textCapitalization: TextCapitalization.sentences,
+                    inputFormatters: AppInputFormatters.sentences,
                     controller: experienceController,
                     enabled: !saving,
                     maxLines: 2,
@@ -2776,6 +2808,8 @@ class _RecruitmentApplicationEditorState
                     ),
                   ],
                   TextField(
+                    textCapitalization: TextCapitalization.sentences,
+                    inputFormatters: AppInputFormatters.sentences,
                     controller: commentController,
                     enabled: !saving,
                     minLines: 2,
