@@ -182,6 +182,10 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
     if (value != null) setState(() => workUnit = value);
   }
 
+  void changeWithoutVolume(bool? value) {
+    setState(() => withoutVolume = value ?? false);
+  }
+
   @override
   void initState() {
     super.initState();

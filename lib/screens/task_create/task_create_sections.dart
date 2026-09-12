@@ -116,9 +116,7 @@ extension _TaskCreateSections on _AddTaskScreenState {
             unit: workUnit,
             onUnitChanged: changeWorkUnit,
             withoutVolume: withoutVolume,
-            onWithoutVolumeChanged: (value) {
-              setState(() => withoutVolume = value ?? false);
-            },
+            onWithoutVolumeChanged: changeWithoutVolume,
           ),
         ],
       ),
