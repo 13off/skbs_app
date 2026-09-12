@@ -48,6 +48,7 @@ class OfflineTaskCreateService {
     String? preferredId,
     double? plannedQuantity,
     String workUnit = 'м³',
+    bool withoutVolume = false,
   }) async {
     final cleanObject = objectName.trim();
     final cleanPreferredId = preferredId?.trim() ?? '';
@@ -109,6 +110,7 @@ class OfflineTaskCreateService {
         'photos': queuedPhotos,
         'planned_quantity': plannedQuantity,
         'work_unit': workUnit,
+        'without_volume': withoutVolume,
       },
     );
 

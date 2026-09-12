@@ -30,6 +30,7 @@ void main() {
     expect(wrapper, contains('workLocation: task.axes'));
     expect(dialog, contains("title: const Text('Завершение задачи')"));
     expect(dialog, contains("'Фактически выполненный объём'"));
+    expect(dialog, contains('if (!widget.withoutVolume)'));
     expect(dialog, contains('max: 200'));
     expect(dialog, contains('?? 100'));
     expect(dialog, isNot(contains('void distributeEqually()')));

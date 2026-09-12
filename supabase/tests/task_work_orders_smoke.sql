@@ -27,51 +27,69 @@ begin
       where company_id = public.current_user_company_id() and not public.task_is_allowed_for_user(id) limit 1;
     participants := jsonb_build_array(jsonb_build_object('employee_id',chosen_employee,'ktu',100,'fio','FORGED'));
     set local role authenticated;
-    perform public.save_task_work_day(chosen_task,100,'м³','2026-09-10',25,participants);
+    perform public.save_task_work_day(chosen_task,100,'м³','2026-09-10',25,participants,false);
     if not exists(select 1 from public.task_work_days where task_id=chosen_task
         and quantity=25 and task_work_days.participants->0->>'fio' <> 'FORGED') then
       raise exception 'Daily output or canonical name missing for %',account.role;
     end if;
-    perform public.save_task_work_day(chosen_task,100,'м³','2026-09-10',50,participants);
+    perform public.save_task_work_day(chosen_task,100,'м³','2026-09-10',50,participants,false);
     if (select quantity from public.task_work_days where task_id=chosen_task and work_date='2026-09-10') <> 50 then
       raise exception 'Daily replacement failed';
     end if;
     begin
-      perform public.save_task_work_day(chosen_task,100,'м³','2026-09-11',-1,participants);
+      perform public.save_task_work_day(chosen_task,100,'м³','2026-09-11',-1,participants,false);
       raise exception 'Negative quantity accepted';
-    exception when check_violation then null;
+    exception when check_violation or raise_exception then
+      if sqlerrm = 'Negative quantity accepted' then raise; end if;
     end;
     begin
       perform public.save_task_work_day(chosen_task,100,'м³','2026-09-11',10,
-          jsonb_build_array(jsonb_build_object('employee_id',chosen_employee,'ktu',0)));
+          jsonb_build_array(jsonb_build_object('employee_id',chosen_employee,'ktu',0)),false);
       raise exception 'Zero KTU accepted';
     exception when raise_exception then
       if sqlerrm = 'Zero KTU accepted' then raise; end if;
     end;
     begin
       perform public.save_task_work_day(chosen_task,100,'м³','2026-09-11',10,
-          jsonb_build_array(jsonb_build_object('employee_id',chosen_employee,'ktu',201)));
+          jsonb_build_array(jsonb_build_object('employee_id',chosen_employee,'ktu',201)),false);
       raise exception 'KTU above 200 accepted';
     exception when raise_exception then
       if sqlerrm = 'KTU above 200 accepted' then raise; end if;
     end;
     perform public.save_task_work_day(chosen_task,100,'м³','2026-09-11',10,
-        jsonb_build_array(jsonb_build_object('employee_id',chosen_employee,'ktu',200)));
+        jsonb_build_array(jsonb_build_object('employee_id',chosen_employee,'ktu',200)),false);
     if foreign_task is not null then
       begin
-        perform public.save_task_work_day(foreign_task,100,'м³','2026-09-10',25,participants);
+        perform public.save_task_work_day(foreign_task,100,'м³','2026-09-10',25,participants,false);
         raise exception 'Cross-company write accepted';
       exception when insufficient_privilege then null;
       end;
     end if;
     if denied_task is not null then
       begin
-        perform public.save_task_work_day(denied_task,100,'м³','2026-09-10',25,participants);
+        perform public.save_task_work_day(denied_task,100,'м³','2026-09-10',25,participants,false);
         raise exception 'Out-of-scope task write accepted';
       exception when insufficient_privilege then null;
       end;
     end if;
     if account.role = 'foreman' then checked_foremen := checked_foremen + 1; end if;
+    delete from public.task_work_days where task_id=chosen_task;
+    perform public.save_task_work_day(chosen_task,null,'','2026-09-12',null,participants,true);
+    if not exists(
+      select 1 from public.task_work_days d
+      join public.task_work_plans p on p.task_id = d.task_id
+      where d.task_id=chosen_task and d.work_date='2026-09-12'
+        and d.quantity is null and d.unit = '' and p.without_volume
+        and d.participants->0->>'fio' <> 'FORGED'
+    ) then
+      raise exception 'Task without volume is missing from the work order';
+    end if;
+    begin
+      perform public.save_task_work_day(chosen_task,null,'','2026-09-12',1,participants,true);
+      raise exception 'Quantity accepted for task without volume';
+    exception when raise_exception then
+      if sqlerrm = 'Quantity accepted for task without volume' then raise; end if;
+    end;
     delete from public.task_work_days where task_id=chosen_task;
     delete from public.task_work_plans where task_id=chosen_task;
     reset role;

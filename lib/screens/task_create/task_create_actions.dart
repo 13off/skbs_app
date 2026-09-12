@@ -143,6 +143,7 @@ extension _TaskCreateActions on _AddTaskScreenState {
       assigneeIds: selectedAssigneeIds.toList(),
       plannedQuantity: parseWorkQuantity(plannedQuantityController.text),
       workUnit: workUnit,
+      withoutVolume: withoutVolume,
       photos: asDraft
           ? const <TaskPhotoFile>[]
           : List<TaskPhotoFile>.from(selectedPhotos),
@@ -201,7 +202,7 @@ extension _TaskCreateActions on _AddTaskScreenState {
     }
 
     final plannedQuantity = parseWorkQuantity(plannedQuantityController.text);
-    if (!isValidWorkQuantity(plannedQuantity)) {
+    if (!withoutVolume && !isValidWorkQuantity(plannedQuantity)) {
       showValidationError('Укажите плановый объём больше нуля');
       return;
     }

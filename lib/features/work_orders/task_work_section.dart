@@ -24,12 +24,13 @@ class TaskWorkSection extends StatefulWidget {
 class TaskWorkSectionState extends State<TaskWorkSection> {
   final planned = TextEditingController();
   String unit = workOrderUnits.first;
+  bool withoutVolume = false;
   String baseline = '';
   bool loading = true;
   bool busy = false;
   String? error;
 
-  String get signature => jsonEncode([planned.text, unit]);
+  String get signature => jsonEncode([planned.text, unit, withoutVolume]);
   bool get dirty => !loading && baseline.isNotEmpty && signature != baseline;
 
   @override
@@ -50,6 +51,7 @@ class TaskWorkSectionState extends State<TaskWorkSection> {
       if (!mounted) return;
       planned.text = plan?['planned_quantity']?.toString() ?? '';
       final savedUnit = plan?['unit']?.toString() ?? '';
+      withoutVolume = plan?['without_volume'] == true;
       unit = workOrderUnits.contains(savedUnit)
           ? savedUnit
           : workOrderUnits.first;
@@ -75,7 +77,9 @@ class TaskWorkSectionState extends State<TaskWorkSection> {
   Future<bool> save() async {
     if (busy || loading) return false;
     final value = parseWorkQuantity(planned.text);
-    if (planned.text.trim().isNotEmpty && !isValidWorkQuantity(value)) {
+    if (!withoutVolume &&
+        planned.text.trim().isNotEmpty &&
+        !isValidWorkQuantity(value)) {
       setState(() => error = 'Введите плановый объём больше нуля');
       return false;
     }
@@ -86,8 +90,9 @@ class TaskWorkSectionState extends State<TaskWorkSection> {
     try {
       await WorkOrderRepository.savePlan(
         taskId: widget.taskId,
-        planned: value,
-        unit: unit,
+        planned: withoutVolume ? null : value,
+        unit: withoutVolume ? '' : unit,
+        withoutVolume: withoutVolume,
       );
       baseline = signature;
       return true;
@@ -121,6 +126,10 @@ class TaskWorkSectionState extends State<TaskWorkSection> {
                 quantityController: planned,
                 unit: unit,
                 enabled: widget.canEdit && !busy,
+                withoutVolume: withoutVolume,
+                onWithoutVolumeChanged: (value) {
+                  setState(() => withoutVolume = value ?? false);
+                },
                 onUnitChanged: (value) {
                   if (value != null) setState(() => unit = value);
                 },

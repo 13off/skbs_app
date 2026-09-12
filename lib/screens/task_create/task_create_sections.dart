@@ -115,6 +115,10 @@ extension _TaskCreateSections on _AddTaskScreenState {
             quantityController: plannedQuantityController,
             unit: workUnit,
             onUnitChanged: changeWorkUnit,
+            withoutVolume: withoutVolume,
+            onWithoutVolumeChanged: (value) {
+              setState(() => withoutVolume = value ?? false);
+            },
           ),
         ],
       ),

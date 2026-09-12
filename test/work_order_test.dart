@@ -60,7 +60,7 @@ void main() {
     expect(matchingHeight, greaterThan(orderButton - 700));
     expect(
       repository,
-      contains('task_work_plans(planned_quantity, unit)'),
+      contains('task_work_plans(planned_quantity, unit, without_volume)'),
     );
   });
   test('Excel keeps chronological records, plan, fact and numeric shares', () {
@@ -69,7 +69,11 @@ void main() {
       'work': 'Армирование', 'axes': 'А–Б/1–3',
       'tasks': {'object_name': 'Объект 1', 'work': 'Армирование',
         'axes': 'А–Б/1–3',
-        'task_work_plans': {'planned_quantity': 200, 'unit': 'м³'}},
+        'task_work_plans': {
+          'planned_quantity': 200,
+          'unit': 'м³',
+          'without_volume': false,
+        }},
       'participants': [for (var i = 1; i <= 4; i++) {'fio': 'Рабочий $i', 'ktu': 100}],
     };
     final book = Excel.decodeBytes(WorkOrderExporter.build(
@@ -86,6 +90,41 @@ void main() {
       expect(row[7]!.value, anyOf(IntCellValue(50), DoubleCellValue(50)));
       expect(row[8]!.value, anyOf(IntCellValue(25), DoubleCellValue(25)));
     }
+  });
+  test('Excel keeps task, worker and KTU but omits volumes when requested', () {
+    final book = Excel.decodeBytes(WorkOrderExporter.build([
+      {
+        'task_id': 'task-no-volume',
+        'work_date': '2026-09-12',
+        'quantity': null,
+        'unit': '',
+        'work': 'Уборка участка',
+        'axes': 'А–Б/1–3',
+        'tasks': {
+          'object_name': 'Объект 1',
+          'work': 'Уборка участка',
+          'axes': 'А–Б/1–3',
+          'task_work_plans': {
+            'planned_quantity': null,
+            'unit': '',
+            'without_volume': true,
+          },
+        },
+        'participants': [
+          {'fio': 'Иванов Иван Иванович', 'ktu': 120},
+        ],
+      },
+    ], DateTime(2026, 9, 12), DateTime(2026, 9, 12), 'Объект 1'));
+    final worker = book['Наряд'].rows.singleWhere(
+      (row) => row.length > 10 &&
+          row[1]?.value.toString() == 'Иванов Иван Иванович',
+    );
+    expect(worker[2]!.value.toString(), 'Уборка участка');
+    expect(worker[3]!.value.toString(), 'А–Б/1–3');
+    for (final column in [4, 5, 6, 7, 8]) {
+      expect(worker[column]!.value.toString(), '');
+    }
+    expect(worker[9]!.value, anyOf(IntCellValue(120), DoubleCellValue(120)));
   });
   testWidgets('export sheet opens with calendar and a single day selected', (tester) async {
     await tester.pumpWidget(MaterialApp(home: Scaffold(body: WorkOrderSheet(
@@ -158,5 +197,40 @@ void main() {
       result?.normalizedContributions.map((entry) => entry.percent),
       [67, 33],
     );
+  });
+
+  testWidgets('task without volume completes with KTU and no quantity field', (
+    tester,
+  ) async {
+    TaskCompletionWorkResult? result;
+    const entries = [
+      TaskContributionEntry(
+        employeeId: 'one',
+        employeeName: 'Первый',
+        position: 'Рабочий',
+        percent: 100,
+      ),
+    ];
+    await tester.pumpWidget(MaterialApp(home: Builder(builder: (context) {
+      return TextButton(
+        onPressed: () async {
+          result = await showTaskContributionDialog(
+            context: context,
+            entries: entries,
+            unit: '',
+            withoutVolume: true,
+          );
+        },
+        child: const Text('Открыть без объёма'),
+      );
+    })));
+    await tester.tap(find.text('Открыть без объёма'));
+    await tester.pumpAndSettle();
+    expect(find.text('Фактически выполненный объём'), findsNothing);
+    expect(find.byType(Slider), findsOneWidget);
+    await tester.tap(find.text('Завершить задачу'));
+    await tester.pumpAndSettle();
+    expect(result?.actualQuantity, isNull);
+    expect(result?.entries.single.percent, 100);
   });
 }

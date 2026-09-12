@@ -82,6 +82,7 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
             result.id!,
           );
           final plan = await WorkOrderRepository.plan(result.id!);
+          final withoutVolume = plan?['without_volume'] == true;
           final existingDay = await WorkOrderRepository.day(
             result.id!,
             result.date,
@@ -101,7 +102,8 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
           final needsContributionConfirmation =
               previousTask.status != 'Выполнено' ||
               !contributionDraft.hasSavedExactDistribution ||
-              existingDay == null;
+              existingDay == null ||
+              (!withoutVolume && existingDay['quantity'] == null);
           if (needsContributionConfirmation) {
             final initialKtu = <String, int>{};
             final rawParticipants = existingDay?['participants'];
@@ -133,6 +135,7 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
               initialActualQuantity:
                   (existingDay?['quantity'] as num?)?.toDouble(),
               initialKtu: initialKtu,
+              withoutVolume: withoutVolume,
             );
             if (!mounted) return;
             if (completionWork == null) continue;
@@ -176,6 +179,7 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
               entries: completionWork.normalizedContributions,
             );
             final plan = await WorkOrderRepository.plan(result.id!);
+            final withoutVolume = plan?['without_volume'] == true;
             await WorkOrderRepository.save(
               taskId: result.id!,
               planned: (plan?['planned_quantity'] as num?)?.toDouble(),
@@ -183,6 +187,7 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
               date: result.date,
               quantity: completionWork.actualQuantity,
               participants: completionWork.workOrderParticipants,
+              withoutVolume: withoutVolume,
             );
           }
           await _submitEstimatorResult(result, completionWork);
@@ -221,7 +226,7 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
 
       await TaskCompletionReportRepository.submit(
         taskId: task.id!,
-        reportedQuantity: completionWork.actualQuantity,
+          reportedQuantity: completionWork.actualQuantity,
         unit: completionWork.unit,
         workLocation: task.axes,
       );

@@ -12,7 +12,7 @@ class TaskCompletionWorkResult {
     required this.entries,
   });
 
-  final double actualQuantity;
+  final double? actualQuantity;
   final String unit;
   final List<TaskContributionEntry> entries;
 
@@ -56,6 +56,7 @@ Future<TaskCompletionWorkResult?> showTaskContributionDialog({
   required String unit,
   double? plannedQuantity,
   double? initialActualQuantity,
+  bool withoutVolume = false,
   Map<String, int> initialKtu = const <String, int>{},
 }) {
   return showDialog<TaskCompletionWorkResult>(
@@ -66,6 +67,7 @@ Future<TaskCompletionWorkResult?> showTaskContributionDialog({
       unit: unit,
       plannedQuantity: plannedQuantity,
       initialActualQuantity: initialActualQuantity,
+      withoutVolume: withoutVolume,
       initialKtu: initialKtu,
     ),
   );
@@ -78,6 +80,7 @@ class _TaskContributionDialog extends StatefulWidget {
     required this.plannedQuantity,
     required this.initialActualQuantity,
     required this.initialKtu,
+    required this.withoutVolume,
   });
 
   final List<TaskContributionEntry> entries;
@@ -85,6 +88,7 @@ class _TaskContributionDialog extends StatefulWidget {
   final double? plannedQuantity;
   final double? initialActualQuantity;
   final Map<String, int> initialKtu;
+  final bool withoutVolume;
 
   @override
   State<_TaskContributionDialog> createState() =>
@@ -126,8 +130,10 @@ class _TaskContributionDialogState extends State<_TaskContributionDialog> {
   }
 
   void confirm() {
-    final actual = parseWorkQuantity(actualController.text);
-    if (!isValidWorkQuantity(actual)) {
+    final actual = widget.withoutVolume
+        ? null
+        : parseWorkQuantity(actualController.text);
+    if (!widget.withoutVolume && !isValidWorkQuantity(actual)) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Укажите выполненный объём больше нуля')),
       );
@@ -145,8 +151,8 @@ class _TaskContributionDialogState extends State<_TaskContributionDialog> {
     }
     Navigator.of(context).pop(
       TaskCompletionWorkResult(
-        actualQuantity: actual!,
-        unit: widget.unit,
+        actualQuantity: actual,
+        unit: widget.withoutVolume ? '' : widget.unit,
         entries: List<TaskContributionEntry>.from(entries),
       ),
     );
@@ -166,7 +172,7 @@ class _TaskContributionDialogState extends State<_TaskContributionDialog> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              if (widget.plannedQuantity != null) ...[
+              if (!widget.withoutVolume && widget.plannedQuantity != null) ...[
                 Text(
                   'План: ${widget.plannedQuantity} ${widget.unit}',
                   style: TextStyle(
@@ -176,18 +182,20 @@ class _TaskContributionDialogState extends State<_TaskContributionDialog> {
                 ),
                 const SizedBox(height: 10),
               ],
-              TextField(
-                controller: actualController,
-                autofocus: true,
-                keyboardType:
-                    const TextInputType.numberWithOptions(decimal: true),
-                decoration: InputDecoration(
-                  labelText: 'Фактически выполненный объём',
-                  suffixText: widget.unit,
-                  border: const OutlineInputBorder(),
+              if (!widget.withoutVolume) ...[
+                TextField(
+                  controller: actualController,
+                  autofocus: true,
+                  keyboardType:
+                      const TextInputType.numberWithOptions(decimal: true),
+                  decoration: InputDecoration(
+                    labelText: 'Фактически выполненный объём',
+                    suffixText: widget.unit,
+                    border: const OutlineInputBorder(),
+                  ),
                 ),
-              ),
-              const SizedBox(height: 14),
+                const SizedBox(height: 14),
+              ],
               Text(
                 'КТУ каждого работника задаётся отдельно: 0–200%, обычное участие — 100%.',
                 style: TextStyle(

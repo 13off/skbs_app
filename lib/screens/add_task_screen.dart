@@ -34,6 +34,7 @@ class TaskCreateDraft {
   final List<TaskCreateDraft> additionalTasks;
   final double? plannedQuantity;
   final String workUnit;
+  final bool withoutVolume;
 
   const TaskCreateDraft({
     required this.task,
@@ -44,6 +45,7 @@ class TaskCreateDraft {
     this.additionalTasks = const <TaskCreateDraft>[],
     this.plannedQuantity,
     this.workUnit = 'м³',
+    this.withoutVolume = false,
   });
 
   List<TaskCreateDraft> get allTasks => <TaskCreateDraft>[
@@ -72,6 +74,7 @@ Future<List<TaskItemData>> persistTaskCreateDraft(
         preferredId: draft.sourceDraftId,
         plannedQuantity: draft.plannedQuantity,
         workUnit: draft.workUnit,
+        withoutVolume: draft.withoutVolume,
       ),
     ];
   }
@@ -94,6 +97,7 @@ Future<List<TaskItemData>> persistTaskCreateDraft(
         preferredId: item.sourceDraftId,
         plannedQuantity: item.plannedQuantity,
         workUnit: item.workUnit,
+        withoutVolume: item.withoutVolume,
       ),
     );
   }
@@ -142,6 +146,7 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
       workController = TextEditingController(),
       plannedQuantityController = TextEditingController();
   String workUnit = workOrderUnits.first;
+  bool withoutVolume = false;
   late DateTime selectedDate;
 
   List<Employee> employees = <Employee>[];

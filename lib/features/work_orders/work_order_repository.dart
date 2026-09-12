@@ -12,6 +12,7 @@ class WorkOrderRepository {
     required String taskId,
     required double? planned,
     required String unit,
+    required bool withoutVolume,
   }) async {
     await _db.rpc('save_task_work_day', params: {
       'p_task_id': taskId,
@@ -20,6 +21,7 @@ class WorkOrderRepository {
       'p_date': dateKey(DateTime.now()),
       'p_quantity': null,
       'p_participants': const <Map<String, dynamic>>[],
+      'p_without_volume': withoutVolume,
     });
   }
 
@@ -39,11 +41,13 @@ class WorkOrderRepository {
 
   static Future<void> save({required String taskId, required double? planned,
     required String unit, required DateTime date, required double? quantity,
-    required List<Map<String, dynamic>> participants}) async {
+    required List<Map<String, dynamic>> participants,
+    required bool withoutVolume}) async {
     await _db.rpc('save_task_work_day', params: {
       'p_task_id': taskId, 'p_planned': planned, 'p_unit': unit,
       'p_date': dateKey(date), 'p_quantity': quantity,
       'p_participants': participants,
+      'p_without_volume': withoutVolume,
     });
   }
 
@@ -59,7 +63,7 @@ class WorkOrderRepository {
     for (var offset = 0; ; offset += 500) {
       var query = _db.from('task_work_days')
           .select('*, tasks!inner(object_name, work, axes, status, '
-              'task_work_plans(planned_quantity, unit))')
+              'task_work_plans(planned_quantity, unit, without_volume))')
           .gte('work_date', dateKey(start)).lte('work_date', dateKey(end));
       if (objectName != null && objectName.trim().isNotEmpty) {
         query = query.eq('tasks.object_name', objectName.trim());

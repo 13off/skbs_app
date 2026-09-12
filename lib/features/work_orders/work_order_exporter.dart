@@ -53,19 +53,29 @@ class WorkOrderExporter {
               : null;
       final people = (day['participants'] as List)
           .map((p) => Map<String, dynamic>.from(p as Map)).toList();
-      final quantity = (day['quantity'] as num).toDouble();
+      final withoutVolume = plan?['without_volume'] == true;
+      final quantity = (day['quantity'] as num?)?.toDouble();
       final planned = (plan?['planned_quantity'] as num?)?.toDouble();
-      final completion = workCompletionPercent(planned, quantity);
-      final allocated = allocateWorkQuantity(quantity,
-          people.map((p) => (p['ktu'] as num).toDouble()).toList());
+      final completion = withoutVolume || quantity == null
+          ? null
+          : workCompletionPercent(planned, quantity);
+      final allocated = withoutVolume || quantity == null
+          ? const <double>[]
+          : allocateWorkQuantity(quantity,
+              people.map((p) => (p['ktu'] as num).toDouble()).toList());
       for (var i = 0; i < people.length; i++) {
         row([++number, '${people[i]['fio']}',
           '${day['work'] ?? task['work']}', '${day['axes'] ?? task['axes']}',
-          '${day['unit']}', planned ?? '', quantity, completion ?? '',
-          allocated[i], people[i]['ktu'] as num, '${task['object_name']}']);
+          withoutVolume ? '' : '${day['unit']}',
+          withoutVolume ? '' : planned ?? '',
+          withoutVolume ? '' : quantity ?? '', completion ?? '',
+          withoutVolume ? '' : allocated[i],
+          people[i]['ktu'] as num, '${task['object_name']}']);
       }
-      title('Общий объём задачи «${day['work'] ?? task['work']}»: '
-          '${quantity.toStringAsFixed(3).replaceAll('.', ',')} ${day['unit']}');
+      if (!withoutVolume && quantity != null) {
+        title('Общий объём задачи «${day['work'] ?? task['work']}»: '
+            '${quantity.toStringAsFixed(3).replaceAll('.', ',')} ${day['unit']}');
+      }
     }
     row([]);
     title('Подписи:');

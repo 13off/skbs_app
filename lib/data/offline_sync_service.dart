@@ -471,12 +471,14 @@ class OfflineSyncService {
     if (!payload.containsKey('planned_quantity')) return;
     final planned = payload['planned_quantity'];
     final unit = payload['work_unit']?.toString().trim() ?? '';
-    if (planned == null || unit.isEmpty) return;
+    final withoutVolume = payload['without_volume'] == true;
+    if (!withoutVolume && (planned == null || unit.isEmpty)) return;
     await Supabase.instance.client.from('task_work_plans').upsert(
       <String, dynamic>{
         'task_id': taskId,
-        'planned_quantity': planned,
-        'unit': unit,
+        'planned_quantity': withoutVolume ? null : planned,
+        'unit': withoutVolume ? '' : unit,
+        'without_volume': withoutVolume,
         'updated_at': DateTime.now().toUtc().toIso8601String(),
       },
       onConflict: 'task_id',

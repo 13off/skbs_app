@@ -21,19 +21,23 @@ class WorkOrderPlanFields extends StatelessWidget {
     required this.quantityController,
     required this.unit,
     required this.onUnitChanged,
+    required this.withoutVolume,
+    required this.onWithoutVolumeChanged,
     this.enabled = true,
   });
 
   final TextEditingController quantityController;
   final String unit;
   final ValueChanged<String?> onUnitChanged;
+  final bool withoutVolume;
+  final ValueChanged<bool?> onWithoutVolumeChanged;
   final bool enabled;
 
   @override
   Widget build(BuildContext context) {
     final quantity = TextField(
       controller: quantityController,
-      enabled: enabled,
+      enabled: enabled && !withoutVolume,
       keyboardType: const TextInputType.numberWithOptions(decimal: true),
       decoration: InputDecoration(
         labelText: 'Плановый объём',
@@ -51,15 +55,55 @@ class WorkOrderPlanFields extends StatelessWidget {
         for (final value in workOrderUnits)
           DropdownMenuItem(value: value, child: Text(value)),
       ],
-      onChanged: enabled ? onUnitChanged : null,
+      onChanged: enabled && !withoutVolume ? onUnitChanged : null,
     );
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
+    final checkbox = InkWell(
+      borderRadius: BorderRadius.circular(12),
+      onTap: enabled ? () => onWithoutVolumeChanged(!withoutVolume) : null,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 2),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Checkbox(
+              value: withoutVolume,
+              onChanged: enabled ? onWithoutVolumeChanged : null,
+            ),
+            const Text(
+              'Без объёма',
+              style: TextStyle(fontWeight: FontWeight.w800),
+            ),
+          ],
+        ),
+      ),
+    );
+    final fields = Row(
       children: [
         Expanded(flex: 3, child: quantity),
         const SizedBox(width: 10),
         Expanded(flex: 2, child: units),
       ],
+    );
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        if (constraints.maxWidth >= 620) {
+          return Row(
+            children: [
+              Expanded(child: fields),
+              const SizedBox(width: 12),
+              checkbox,
+            ],
+          );
+        }
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            fields,
+            const SizedBox(height: 8),
+            checkbox,
+          ],
+        );
+      },
     );
   }
 }
