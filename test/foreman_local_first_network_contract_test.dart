@@ -35,7 +35,7 @@ void main() {
     expect(promptStore, contains('SharedPreferences.getInstance()'));
     expect(prompt, contains('PushPermissionPromptStore.wasShown(user.id)'));
     expect(prompt, contains('PushPermissionPromptStore.markShown(user.id)'));
-    expect(prompt, isNot(contains('if (!mounted || !kIsWeb) return'));
+    expect(prompt, isNot(contains('if (!mounted || !kIsWeb) return')));
 
     final persistIndex = prompt.indexOf(
       'PushPermissionPromptStore.markShown(user.id)',
