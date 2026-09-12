@@ -6,6 +6,8 @@ import '../data/task_progress_repository.dart';
 import '../features/estimator/data/task_completion_report_repository.dart';
 import '../features/estimator/presentation/task_completion_report_dialog.dart';
 import '../features/tasks/presentation/task_contribution_dialog.dart';
+import '../features/work_orders/work_order_fields.dart';
+import '../features/work_orders/work_order_repository.dart';
 import '../models/app_user_profile.dart';
 import '../models/task_item_data.dart';
 import 'task_details/task_details_editor_screen.dart' as editor;
@@ -73,12 +75,17 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
       try {
         final previousChecklistItemId = await previousChecklistItemFuture;
         final linked = _isLinked(result);
-        List<TaskContributionEntry>? contributionsToSave;
+        TaskCompletionWorkResult? completionWork;
         TaskContributionDraft? contributionDraft;
 
         if (result.status == 'Выполнено') {
           contributionDraft = await TaskContributionRepository.fetchDraft(
             result.id!,
+          );
+          final plan = await WorkOrderRepository.plan(result.id!);
+          final existingDay = await WorkOrderRepository.day(
+            result.id!,
+            result.date,
           );
           if (!mounted) return;
           if (contributionDraft.entries.isEmpty) {
@@ -94,14 +101,42 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
 
           final needsContributionConfirmation =
               previousTask.status != 'Выполнено' ||
-              !contributionDraft.hasSavedExactDistribution;
+              !contributionDraft.hasSavedExactDistribution ||
+              existingDay == null;
           if (needsContributionConfirmation) {
-            contributionsToSave = await showTaskContributionDialog(
+            final initialKtu = <String, int>{};
+            final rawParticipants = existingDay?['participants'];
+            if (rawParticipants is List) {
+              for (final raw in rawParticipants.whereType<Map>()) {
+                final person = Map<String, dynamic>.from(raw);
+                final employeeId =
+                    person['employee_id']?.toString().trim() ?? '';
+                final ktu = (person['ktu'] as num?)?.round();
+                if (employeeId.isNotEmpty && ktu != null) {
+                  initialKtu[employeeId] = ktu;
+                }
+              }
+            }
+            final savedUnit = plan?['unit']?.toString().trim() ?? '';
+            final fallbackUnit =
+                existingDay?['unit']?.toString().trim() ?? '';
+            final unit = workOrderUnits.contains(savedUnit)
+                ? savedUnit
+                : workOrderUnits.contains(fallbackUnit)
+                ? fallbackUnit
+                : workOrderUnits.first;
+            completionWork = await showTaskContributionDialog(
               context: context,
               entries: contributionDraft.entries,
+              unit: unit,
+              plannedQuantity:
+                  (plan?['planned_quantity'] as num?)?.toDouble(),
+              initialActualQuantity:
+                  (existingDay?['quantity'] as num?)?.toDouble(),
+              initialKtu: initialKtu,
             );
             if (!mounted) return;
-            if (contributionsToSave == null) continue;
+            if (completionWork == null) continue;
           }
         }
 
@@ -136,15 +171,25 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
         }
 
         if (result.status == 'Выполнено') {
-          if (contributionsToSave != null) {
+          if (completionWork != null) {
             await TaskContributionRepository.save(
               taskId: result.id!,
-              entries: contributionsToSave,
+              entries: completionWork.normalizedContributions,
+            );
+            final plan = await WorkOrderRepository.plan(result.id!);
+            await WorkOrderRepository.save(
+              taskId: result.id!,
+              planned: (plan?['planned_quantity'] as num?)?.toDouble(),
+              unit: completionWork.unit,
+              date: result.date,
+              quantity: completionWork.actualQuantity,
+              participants: completionWork.workOrderParticipants,
             );
           }
           await _offerEstimatorSubmission(result);
         } else if (previousTask.status == 'Выполнено') {
           await TaskContributionRepository.clear(result.id!);
+          await WorkOrderRepository.deleteDay(result.id!, result.date);
         }
 
         if (!mounted) return;

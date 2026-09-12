@@ -46,6 +46,8 @@ class OfflineTaskCreateService {
     required List<TaskPhotoFile> photos,
     bool isDraft = false,
     String? preferredId,
+    double? plannedQuantity,
+    String workUnit = 'м³',
   }) async {
     final cleanObject = objectName.trim();
     final cleanPreferredId = preferredId?.trim() ?? '';
@@ -105,6 +107,8 @@ class OfflineTaskCreateService {
         'milestone_id': localTask.milestoneId,
         'checklist_item_id': localTask.checklistItemId,
         'photos': queuedPhotos,
+        'planned_quantity': plannedQuantity,
+        'work_unit': workUnit,
       },
     );
 

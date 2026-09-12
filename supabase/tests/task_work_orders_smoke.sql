@@ -48,6 +48,15 @@ begin
     exception when raise_exception then
       if sqlerrm = 'Zero KTU accepted' then raise; end if;
     end;
+    begin
+      perform public.save_task_work_day(chosen_task,100,'м³','2026-09-11',10,
+          jsonb_build_array(jsonb_build_object('employee_id',chosen_employee,'ktu',201)));
+      raise exception 'KTU above 200 accepted';
+    exception when raise_exception then
+      if sqlerrm = 'KTU above 200 accepted' then raise; end if;
+    end;
+    perform public.save_task_work_day(chosen_task,100,'м³','2026-09-11',10,
+        jsonb_build_array(jsonb_build_object('employee_id',chosen_employee,'ktu',200)));
     if foreign_task is not null then
       begin
         perform public.save_task_work_day(foreign_task,100,'м³','2026-09-10',25,participants);

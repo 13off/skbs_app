@@ -16,6 +16,7 @@ import '../features/tasks/voice/task_voice_employee_matcher.dart';
 import '../features/tasks/voice/task_voice_parser.dart';
 import '../features/tasks/voice/task_voice_recognition.dart';
 import '../features/tasks/voice/task_voice_strict_session.dart';
+import '../features/work_orders/work_order_fields.dart';
 import '../models/employee.dart';
 import '../models/task_item_data.dart';
 part 'task_create/task_create_actions.dart';
@@ -31,6 +32,8 @@ class TaskCreateDraft {
   final bool saveAsDraft;
   final String? sourceDraftId;
   final List<TaskCreateDraft> additionalTasks;
+  final double? plannedQuantity;
+  final String workUnit;
 
   const TaskCreateDraft({
     required this.task,
@@ -39,6 +42,8 @@ class TaskCreateDraft {
     this.saveAsDraft = false,
     this.sourceDraftId,
     this.additionalTasks = const <TaskCreateDraft>[],
+    this.plannedQuantity,
+    this.workUnit = 'м³',
   });
 
   List<TaskCreateDraft> get allTasks => <TaskCreateDraft>[
@@ -65,6 +70,8 @@ Future<List<TaskItemData>> persistTaskCreateDraft(
         photos: draft.photos,
         isDraft: draft.saveAsDraft,
         preferredId: draft.sourceDraftId,
+        plannedQuantity: draft.plannedQuantity,
+        workUnit: draft.workUnit,
       ),
     ];
   }
@@ -85,6 +92,8 @@ Future<List<TaskItemData>> persistTaskCreateDraft(
         photos: const <TaskPhotoFile>[],
         isDraft: item.saveAsDraft,
         preferredId: item.sourceDraftId,
+        plannedQuantity: item.plannedQuantity,
+        workUnit: item.workUnit,
       ),
     );
   }
@@ -130,7 +139,9 @@ class AddTaskScreen extends StatefulWidget {
 
 class _AddTaskScreenState extends State<AddTaskScreen> {
   final TextEditingController axesController = TextEditingController(),
-      workController = TextEditingController();
+      workController = TextEditingController(),
+      plannedQuantityController = TextEditingController();
+  String workUnit = workOrderUnits.first;
   late DateTime selectedDate;
 
   List<Employee> employees = <Employee>[];
@@ -185,6 +196,7 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
   void dispose() {
     axesController.dispose();
     workController.dispose();
+    plannedQuantityController.dispose();
     super.dispose();
   }
 

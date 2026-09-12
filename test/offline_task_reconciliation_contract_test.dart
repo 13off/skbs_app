@@ -24,6 +24,9 @@ void main() {
     expect(service, contains("'task_photos::\$taskId'"));
     expect(service, contains("'storage_path': ''"));
     expect(service, contains("photoStage: 'before'"));
+    expect(service, contains("'planned_quantity': plannedQuantity"));
+    final sync = source('lib/data/offline_sync_service.dart');
+    expect(sync, contains('_saveTaskWorkPlan(id, payload)'));
   });
 
   test('waiting indicator does not call server contact a completed sync', () {

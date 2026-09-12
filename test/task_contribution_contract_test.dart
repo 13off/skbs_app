@@ -4,7 +4,7 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  test('completed task asks for one exact 100 percent contribution split', () {
+  test('completed task asks for actual volume and independent KTU', () {
     final wrapper = File(
       'lib/screens/task_details_screen.dart',
     ).readAsStringSync();
@@ -20,9 +20,13 @@ void main() {
     expect(wrapper, contains('hasSavedExactDistribution'));
     expect(wrapper, contains('добавьте хотя бы одного участника'));
     expect(wrapper, contains('TaskContributionRepository.clear'));
-    expect(dialog, contains("title: const Text('Вклад в результат')"));
-    expect(dialog, contains("'Всего: \$total%'"));
-    expect(dialog, contains("label: const Text('Поровну')"));
+    expect(dialog, contains("title: const Text('Завершение задачи')"));
+    expect(dialog, contains("'Фактически выполненный объём'"));
+    expect(dialog, contains('max: 200'));
+    expect(dialog, contains('?? 100'));
+    expect(dialog, isNot(contains('void distributeEqually()')));
+    expect(dialog, isNot(contains('remaining = 100 - target')));
+    expect(dialog, contains('normalizedContributions'));
     expect(repository, contains('static List<int> equalPercents'));
     expect(repository, contains("'save_task_contributions'"));
   });

@@ -4,6 +4,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:skbs_app/features/work_orders/work_order_repository.dart';
 import 'package:skbs_app/features/work_orders/work_order_exporter.dart';
 import 'package:skbs_app/features/work_orders/work_order_sheet.dart';
+import 'package:skbs_app/data/task_contribution_repository.dart';
+import 'package:skbs_app/features/tasks/presentation/task_contribution_dialog.dart';
 
 void main() {
   test('equal KTU means equal shares without multiplying output', () {
@@ -49,5 +51,63 @@ void main() {
         .onDateChanged(DateTime(2026, 9, 12));
     await tester.pump();
     expect(find.text('Период: 09.09.2026 — 12.09.2026'), findsOneWidget);
+  });
+
+  testWidgets('completion uses independent 0..200 KTU sliders', (tester) async {
+    TaskCompletionWorkResult? result;
+    const entries = [
+      TaskContributionEntry(
+        employeeId: 'one',
+        employeeName: 'Первый',
+        position: 'Бетонщик',
+        percent: 50,
+      ),
+      TaskContributionEntry(
+        employeeId: 'two',
+        employeeName: 'Второй',
+        position: 'Арматурщик',
+        percent: 50,
+      ),
+    ];
+    await tester.pumpWidget(MaterialApp(home: Builder(builder: (context) {
+      return TextButton(
+        onPressed: () async {
+          result = await showTaskContributionDialog(
+            context: context,
+            entries: entries,
+            unit: 'м³',
+            plannedQuantity: 120,
+          );
+        },
+        child: const Text('Открыть'),
+      );
+    })));
+    await tester.tap(find.text('Открыть'));
+    await tester.pumpAndSettle();
+
+    final sliders = tester.widgetList<Slider>(find.byType(Slider)).toList();
+    expect(sliders, hasLength(2));
+    expect(sliders[0].value, 100);
+    expect(sliders[1].value, 100);
+    expect(sliders[0].max, 200);
+
+    await tester.drag(find.byType(Slider).first, const Offset(1000, 0));
+    await tester.pump();
+    final changed = tester.widgetList<Slider>(find.byType(Slider)).toList();
+    expect(changed[0].value, 200);
+    expect(changed[1].value, 100);
+
+    await tester.enterText(
+      find.widgetWithText(TextField, 'Фактически выполненный объём'),
+      '90',
+    );
+    await tester.tap(find.text('Завершить задачу'));
+    await tester.pumpAndSettle();
+    expect(result?.actualQuantity, 90);
+    expect(result?.entries.map((entry) => entry.percent), [200, 100]);
+    expect(
+      result?.normalizedContributions.map((entry) => entry.percent),
+      [67, 33],
+    );
   });
 }

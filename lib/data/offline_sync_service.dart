@@ -427,6 +427,7 @@ class OfflineSyncService {
     row['id'] = id;
     await client.from('tasks').upsert(row, onConflict: 'id');
     await _saveTaskAssignees(id, payload['assignee_ids']);
+    await _saveTaskWorkPlan(id, payload);
     await _saveTaskLink(id, payload);
     await _uploadQueuedPhotos(id, payload['photos']);
 
@@ -460,6 +461,25 @@ class OfflineSyncService {
             },
           )
           .toList(growable: false),
+    );
+  }
+
+  static Future<void> _saveTaskWorkPlan(
+    String taskId,
+    Map<String, dynamic> payload,
+  ) async {
+    if (!payload.containsKey('planned_quantity')) return;
+    final planned = payload['planned_quantity'];
+    final unit = payload['work_unit']?.toString().trim() ?? '';
+    if (planned == null || unit.isEmpty) return;
+    await Supabase.instance.client.from('task_work_plans').upsert(
+      <String, dynamic>{
+        'task_id': taskId,
+        'planned_quantity': planned,
+        'unit': unit,
+        'updated_at': DateTime.now().toUtc().toIso8601String(),
+      },
+      onConflict: 'task_id',
     );
   }
 

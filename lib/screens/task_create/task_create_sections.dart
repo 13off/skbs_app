@@ -95,6 +95,34 @@ extension _TaskCreateSections on _AddTaskScreenState {
     );
   }
 
+  Widget buildWorkOrderFields() {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppAdaptivePalette.surfaceSoft,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: AppAdaptivePalette.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const Text(
+            'Объём и наряд',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
+          ),
+          const SizedBox(height: 12),
+          WorkOrderPlanFields(
+            quantityController: plannedQuantityController,
+            unit: workUnit,
+            onUnitChanged: (value) {
+              if (value != null) setState(() => workUnit = value);
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget buildAssigneesBlock() {
     final active = isVoiceFieldActive(TaskVoiceField.assignees);
     return AnimatedContainer(

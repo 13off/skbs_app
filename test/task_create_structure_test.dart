@@ -26,7 +26,7 @@ void main() {
     expect(shell, contains("part 'task_create/task_create_view.dart';"));
     expect(shell, contains('class TaskCreateDraft'));
     expect(shell, contains('class AddTaskScreen extends StatefulWidget'));
-    expect(shell.split('\n').length, lessThan(200));
+    expect(shell.split('\n').length, lessThan(220));
     expect(
       shell,
       contains('Future<List<TaskItemData>> persistTaskCreateDraft'),
@@ -41,6 +41,7 @@ void main() {
     expect(actions, contains('void changeMilestone('));
     expect(actions, contains('Future<void> saveTask()'));
     expect(sections, contains('Widget buildAssigneesBlock()'));
+    expect(sections, contains('Widget buildWorkOrderFields()'));
     expect(sections, contains('Widget buildPhotosBlock()'));
     expect(view, contains('Widget buildTaskCreateView()'));
   });

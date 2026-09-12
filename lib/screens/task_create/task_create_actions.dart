@@ -141,6 +141,8 @@ extension _TaskCreateActions on _AddTaskScreenState {
     return TaskCreateDraft(
       task: task,
       assigneeIds: selectedAssigneeIds.toList(),
+      plannedQuantity: parseWorkQuantity(plannedQuantityController.text),
+      workUnit: workUnit,
       photos: asDraft
           ? const <TaskPhotoFile>[]
           : List<TaskPhotoFile>.from(selectedPhotos),
@@ -195,6 +197,12 @@ extension _TaskCreateActions on _AddTaskScreenState {
     );
     if (goalError != null) {
       showValidationError(goalError);
+      return;
+    }
+
+    final plannedQuantity = parseWorkQuantity(plannedQuantityController.text);
+    if (!isValidWorkQuantity(plannedQuantity)) {
+      showValidationError('Укажите плановый объём больше нуля');
       return;
     }
 

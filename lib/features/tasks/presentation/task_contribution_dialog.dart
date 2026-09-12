@@ -3,22 +3,88 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 import '../../../data/task_contribution_repository.dart';
+import '../../work_orders/work_order_fields.dart';
 
-Future<List<TaskContributionEntry>?> showTaskContributionDialog({
+class TaskCompletionWorkResult {
+  const TaskCompletionWorkResult({
+    required this.actualQuantity,
+    required this.unit,
+    required this.entries,
+  });
+
+  final double actualQuantity;
+  final String unit;
+  final List<TaskContributionEntry> entries;
+
+  List<Map<String, dynamic>> get workOrderParticipants => [
+    for (final entry in entries)
+      <String, dynamic>{
+        'employee_id': entry.employeeId,
+        'ktu': entry.percent,
+      },
+  ];
+
+  /// The old contribution report expects a 100% distribution. Keep that
+  /// report compatible while KTU itself remains independent in the UI.
+  List<TaskContributionEntry> get normalizedContributions {
+    final total = entries.fold<int>(0, (sum, item) => sum + item.percent);
+    final raw = [for (final entry in entries) 100 * entry.percent / total];
+    final normalized = raw.map((value) => value.floor()).toList();
+    var remainder =
+        100 - normalized.fold<int>(0, (sum, value) => sum + value);
+    final order = List<int>.generate(entries.length, (index) => index)
+      ..sort((first, second) {
+        final firstPart = raw[first] - normalized[first];
+        final secondPart = raw[second] - normalized[second];
+        final comparison = secondPart.compareTo(firstPart);
+        return comparison == 0 ? first.compareTo(second) : comparison;
+      });
+    for (final index in order) {
+      if (remainder-- <= 0) break;
+      normalized[index]++;
+    }
+    return [
+      for (var index = 0; index < entries.length; index++)
+        entries[index].copyWith(percent: normalized[index]),
+    ];
+  }
+}
+
+Future<TaskCompletionWorkResult?> showTaskContributionDialog({
   required BuildContext context,
   required List<TaskContributionEntry> entries,
+  required String unit,
+  double? plannedQuantity,
+  double? initialActualQuantity,
+  Map<String, int> initialKtu = const <String, int>{},
 }) {
-  return showDialog<List<TaskContributionEntry>>(
+  return showDialog<TaskCompletionWorkResult>(
     context: context,
     barrierDismissible: false,
-    builder: (_) => _TaskContributionDialog(entries: entries),
+    builder: (_) => _TaskContributionDialog(
+      entries: entries,
+      unit: unit,
+      plannedQuantity: plannedQuantity,
+      initialActualQuantity: initialActualQuantity,
+      initialKtu: initialKtu,
+    ),
   );
 }
 
 class _TaskContributionDialog extends StatefulWidget {
-  final List<TaskContributionEntry> entries;
+  const _TaskContributionDialog({
+    required this.entries,
+    required this.unit,
+    required this.plannedQuantity,
+    required this.initialActualQuantity,
+    required this.initialKtu,
+  });
 
-  const _TaskContributionDialog({required this.entries});
+  final List<TaskContributionEntry> entries;
+  final String unit;
+  final double? plannedQuantity;
+  final double? initialActualQuantity;
+  final Map<String, int> initialKtu;
 
   @override
   State<_TaskContributionDialog> createState() =>
@@ -27,88 +93,71 @@ class _TaskContributionDialog extends StatefulWidget {
 
 class _TaskContributionDialogState extends State<_TaskContributionDialog> {
   late List<TaskContributionEntry> entries;
+  late final TextEditingController actualController;
 
   @override
   void initState() {
     super.initState();
-    entries = List<TaskContributionEntry>.from(widget.entries);
-  }
-
-  int get total => entries.fold<int>(0, (sum, item) => sum + item.percent);
-
-  void distributeEqually() {
-    final percents = TaskContributionRepository.equalPercents(entries.length);
-    setState(() {
-      entries = <TaskContributionEntry>[
-        for (var index = 0; index < entries.length; index++)
-          entries[index].copyWith(percent: percents[index]),
-      ];
-    });
-  }
-
-  void changePercent(int changedIndex, int requestedPercent) {
-    if (entries.length <= 1) return;
-    final target = requestedPercent.clamp(0, 100).toInt();
-    final remaining = 100 - target;
-    final otherIndexes = <int>[
-      for (var index = 0; index < entries.length; index++)
-        if (index != changedIndex) index,
+    entries = [
+      for (final entry in widget.entries)
+        entry.copyWith(
+          percent: (widget.initialKtu[entry.employeeId] ?? 100)
+              .clamp(0, 200)
+              .toInt(),
+        ),
     ];
-    final currentOtherTotal = otherIndexes.fold<int>(
-      0,
-      (sum, index) => sum + entries[index].percent,
+    actualController = TextEditingController(
+      text: widget.initialActualQuantity?.toString() ?? '',
     );
-    final weights = <double>[
-      for (final index in otherIndexes)
-        currentOtherTotal == 0 ? 1 : entries[index].percent / currentOtherTotal,
-    ];
-    final raw = <double>[
-      for (final weight in weights)
-        currentOtherTotal == 0
-            ? remaining / otherIndexes.length
-            : remaining * weight,
-    ];
-    final next = raw.map((value) => value.floor()).toList();
-    var missing = remaining - next.fold<int>(0, (sum, value) => sum + value);
-    final fractionalOrder = List<int>.generate(raw.length, (index) => index)
-      ..sort((first, second) {
-        final firstPart = raw[first] - raw[first].floor();
-        final secondPart = raw[second] - raw[second].floor();
-        return secondPart.compareTo(firstPart);
-      });
-    for (final index in fractionalOrder) {
-      if (missing <= 0) break;
-      next[index]++;
-      missing--;
-    }
+  }
 
+  @override
+  void dispose() {
+    actualController.dispose();
+    super.dispose();
+  }
+
+  void changeKtu(int index, int value) {
     setState(() {
-      final updated = List<TaskContributionEntry>.from(entries);
-      updated[changedIndex] = updated[changedIndex].copyWith(percent: target);
-      for (var offset = 0; offset < otherIndexes.length; offset++) {
-        final index = otherIndexes[offset];
-        updated[index] = updated[index].copyWith(percent: next[offset]);
-      }
-      entries = updated;
+      entries[index] = entries[index].copyWith(
+        percent: value.clamp(0, 200).toInt(),
+      );
     });
   }
 
   void confirm() {
-    if (entries.isEmpty || total != 100) {
+    final actual = parseWorkQuantity(actualController.text);
+    if (!isValidWorkQuantity(actual)) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Общий вклад должен составлять 100%')),
+        const SnackBar(content: Text('Укажите выполненный объём больше нуля')),
       );
       return;
     }
-    Navigator.of(context).pop(List<TaskContributionEntry>.from(entries));
+    if (entries.isEmpty || entries.every((entry) => entry.percent == 0)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Хотя бы у одного работника КТУ должен быть больше нуля',
+          ),
+        ),
+      );
+      return;
+    }
+    Navigator.of(context).pop(
+      TaskCompletionWorkResult(
+        actualQuantity: actual!,
+        unit: widget.unit,
+        entries: List<TaskContributionEntry>.from(entries),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final maxHeight = math.min(MediaQuery.sizeOf(context).height * 0.72, 620.0);
+    final maxHeight = math.min(MediaQuery.sizeOf(context).height * 0.78, 680.0);
     return AlertDialog(
-      title: const Text('Вклад в результат'),
+      title: const Text('Завершение задачи'),
       content: SizedBox(
         width: 560,
         child: ConstrainedBox(
@@ -117,45 +166,35 @@ class _TaskContributionDialogState extends State<_TaskContributionDialog> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              if (widget.plannedQuantity != null) ...[
+                Text(
+                  'План: ${widget.plannedQuantity} ${widget.unit}',
+                  style: TextStyle(
+                    color: scheme.onSurfaceVariant,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 10),
+              ],
+              TextField(
+                controller: actualController,
+                autofocus: true,
+                keyboardType:
+                    const TextInputType.numberWithOptions(decimal: true),
+                decoration: InputDecoration(
+                  labelText: 'Фактически выполненный объём',
+                  suffixText: widget.unit,
+                  border: const OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 14),
               Text(
-                'Распределите 100% между участниками задачи. По умолчанию вклад разделён поровну.',
+                'КТУ каждого работника задаётся отдельно: 0–200%, обычное участие — 100%.',
                 style: TextStyle(
                   color: scheme.onSurfaceVariant,
                   fontWeight: FontWeight.w600,
                   height: 1.35,
                 ),
-              ),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 7,
-                    ),
-                    decoration: BoxDecoration(
-                      color: total == 100
-                          ? scheme.primaryContainer
-                          : scheme.errorContainer,
-                      borderRadius: BorderRadius.circular(100),
-                    ),
-                    child: Text(
-                      'Всего: $total%',
-                      style: TextStyle(
-                        color: total == 100
-                            ? scheme.onPrimaryContainer
-                            : scheme.onErrorContainer,
-                        fontWeight: FontWeight.w900,
-                      ),
-                    ),
-                  ),
-                  const Spacer(),
-                  TextButton.icon(
-                    onPressed: distributeEqually,
-                    icon: const Icon(Icons.balance_rounded, size: 18),
-                    label: const Text('Поровну'),
-                  ),
-                ],
               ),
               const SizedBox(height: 6),
               Flexible(
@@ -195,7 +234,7 @@ class _TaskContributionDialogState extends State<_TaskContributionDialog> {
                                 ),
                               ),
                               SizedBox(
-                                width: 62,
+                                width: 72,
                                 child: Text(
                                   '${entry.percent}%',
                                   textAlign: TextAlign.end,
@@ -209,13 +248,11 @@ class _TaskContributionDialogState extends State<_TaskContributionDialog> {
                           ),
                           Slider(
                             min: 0,
-                            max: 100,
-                            divisions: 100,
+                            max: 200,
+                            divisions: 200,
                             value: entry.percent.toDouble(),
-                            onChanged: entries.length == 1
-                                ? null
-                                : (value) =>
-                                      changePercent(index, value.round()),
+                            onChanged: (value) =>
+                                changeKtu(index, value.round()),
                           ),
                         ],
                       ),
@@ -235,7 +272,7 @@ class _TaskContributionDialogState extends State<_TaskContributionDialog> {
         FilledButton.icon(
           onPressed: confirm,
           icon: const Icon(Icons.check_rounded),
-          label: const Text('Подтвердить вклад'),
+          label: const Text('Завершить задачу'),
         ),
       ],
     );

@@ -8,6 +8,31 @@ class WorkOrderRepository {
   static Future<Map<String, dynamic>?> plan(String taskId) => _db
       .from('task_work_plans').select().eq('task_id', taskId).maybeSingle();
 
+  static Future<void> savePlan({
+    required String taskId,
+    required double? planned,
+    required String unit,
+  }) async {
+    await _db.rpc('save_task_work_day', params: {
+      'p_task_id': taskId,
+      'p_planned': planned,
+      'p_unit': unit,
+      'p_date': dateKey(DateTime.now()),
+      'p_quantity': null,
+      'p_participants': const <Map<String, dynamic>>[],
+    });
+  }
+
+  static Future<Map<String, dynamic>?> day(
+    String taskId,
+    DateTime date,
+  ) => _db
+      .from('task_work_days')
+      .select()
+      .eq('task_id', taskId)
+      .eq('work_date', dateKey(date))
+      .maybeSingle();
+
   static Future<List<Map<String, dynamic>>> days(String taskId) async =>
       await _db.from('task_work_days').select().eq('task_id', taskId)
           .order('work_date');
