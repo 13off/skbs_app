@@ -94,6 +94,7 @@ class _PushPermissionPromptHostState extends State<PushPermissionPromptHost> {
 
       // Фиксируем показ до открытия окна: повторная инициализация виджета,
       // вкладки или приложения не сможет открыть второй такой же вопрос.
+      // Если пользователь выберет «Позже», push останется доступен в настройках.
       _handledForSession = true;
       final persisted = await PushPermissionPromptStore.markShown(user.id);
       if (!persisted || !mounted) return;
