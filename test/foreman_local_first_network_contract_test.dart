@@ -7,12 +7,46 @@ String source(String path) => File(path).readAsStringSync();
 void main() {
   test('уведомления не запрашиваются автоматически при запуске или входе', () {
     final main = source('lib/screens/main_screen.dart');
+    final app = source('lib/main.dart');
+    final employeeAuth = source(
+      'lib/features/auth/data/employee_auth_repository.dart',
+    );
     final users = source('lib/features/auth/data/user_repository.dart');
 
     expect(main, isNot(contains('Включить уведомления')));
     expect(main, isNot(contains('_bootstrapPushNotifications')));
+    expect(app, isNot(contains('requestPermission: true')));
+    expect(employeeAuth, isNot(contains('requestPermission: true')));
     expect(users, isNot(contains('requestPermission: true')));
     expect(users, contains('PushNotificationService.syncForCurrentSession()'));
+  });
+
+  test('предложение включить уведомления показывается один раз на пользователя', () {
+    final prompt = source('lib/widgets/push_permission_prompt_host.dart');
+    final promptStore = source(
+      'lib/services/push_permission_prompt_store.dart',
+    );
+    final settings = source('lib/screens/push_notification_settings_screen.dart');
+
+    expect(
+      promptStore,
+      contains("'appstroy_push_permission_prompt_shown_v1_'"),
+    );
+    expect(promptStore, contains('SharedPreferences.getInstance()'));
+    expect(prompt, contains('PushPermissionPromptStore.wasShown(user.id)'));
+    expect(prompt, contains('PushPermissionPromptStore.markShown(user.id)'));
+    expect(prompt, isNot(contains('if (!mounted || !kIsWeb) return'));
+
+    final persistIndex = prompt.indexOf(
+      'PushPermissionPromptStore.markShown(user.id)',
+    );
+    final dialogIndex = prompt.indexOf('await showDialog<void>');
+    expect(persistIndex, greaterThanOrEqualTo(0));
+    expect(dialogIndex, greaterThan(persistIndex));
+
+    // После первого отказа пользователь может включить push только вручную.
+    expect(settings, contains('Разрешить и подключить'));
+    expect(settings, contains('requestPermission: true'));
   });
 
   test('создание задачи всегда local-first независимо от navigator online', () {

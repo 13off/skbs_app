@@ -122,9 +122,7 @@ class EmployeeAuthRepository {
         throw const AuthException('Не удалось сохранить вход сотрудника');
       }
       UserRepository.clearProfileCache();
-      unawaited(
-        PushNotificationService.syncForCurrentSession(requestPermission: true),
-      );
+      unawaited(PushNotificationService.syncForCurrentSession());
     }
 
     return EmployeeMaxLoginPoll(
@@ -170,8 +168,6 @@ class EmployeeAuthRepository {
     }
 
     UserRepository.clearProfileCache();
-    unawaited(
-      PushNotificationService.syncForCurrentSession(requestPermission: true),
-    );
+    unawaited(PushNotificationService.syncForCurrentSession());
   }
 }

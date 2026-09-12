@@ -124,11 +124,7 @@ class _SkbsAppState extends State<SkbsApp> {
         const Duration(milliseconds: 4500),
       );
       if (!kIsWeb && Supabase.instance.client.auth.currentUser != null) {
-        unawaited(
-          PushNotificationService.syncForCurrentSession(
-            requestPermission: true,
-          ),
-        );
+        unawaited(PushNotificationService.syncForCurrentSession());
       }
     } catch (_) {
       // Push работает поверх приложения и не блокирует его запуск.
@@ -154,9 +150,7 @@ class _SkbsAppState extends State<SkbsApp> {
               authState.event == AuthChangeEvent.tokenRefreshed) {
             _handlePushNavigation();
             unawaited(
-              PushNotificationService.syncForCurrentSession(
-                requestPermission: !kIsWeb,
-              ),
+              PushNotificationService.syncForCurrentSession(),
             );
           }
         });
