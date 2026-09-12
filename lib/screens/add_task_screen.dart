@@ -25,7 +25,6 @@ part 'task_create/task_create_loading.dart';
 part 'task_create/task_create_sections.dart';
 part 'task_create/task_create_view.dart';
 part 'task_create/task_create_voice.dart';
-
 class TaskCreateDraft {
   final TaskItemData task;
   final List<String> assigneeIds;
