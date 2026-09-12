@@ -48,6 +48,10 @@ void main() {
       details.indexOf("photoStage: 'after'"),
       lessThan(details.indexOf('buildActionButtons()')),
     );
+    expect(
+      details.indexOf('TaskWorkSection('),
+      lessThan(details.indexOf('buildAssigneesBlock()')),
+    );
     final orderButton = mobileTasks.indexOf("label: const Text('Скачать наряд')");
     final fullWidth = mobileTasks.lastIndexOf('width: double.infinity', orderButton);
     final matchingHeight = mobileTasks.lastIndexOf('height: 54', orderButton);
