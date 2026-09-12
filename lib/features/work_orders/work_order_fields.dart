@@ -98,9 +98,9 @@ class WorkOrderPlanFields extends StatelessWidget {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            fields,
-            const SizedBox(height: 8),
             checkbox,
+            const SizedBox(height: 8),
+            fields,
           ],
         );
       },

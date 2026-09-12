@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:skbs_app/features/work_orders/work_order_repository.dart';
 import 'package:skbs_app/features/work_orders/work_order_exporter.dart';
+import 'package:skbs_app/features/work_orders/work_order_fields.dart';
 import 'package:skbs_app/features/work_orders/work_order_sheet.dart';
 import 'package:skbs_app/data/task_contribution_repository.dart';
 import 'package:skbs_app/features/tasks/presentation/task_contribution_dialog.dart';
@@ -150,6 +151,44 @@ void main() {
         .onDateChanged(DateTime(2026, 9, 12));
     await tester.pump();
     expect(find.text('Период: 09.09.2026 — 12.09.2026'), findsOneWidget);
+  });
+
+  testWidgets('mobile task form visibly exposes the no-volume checkbox', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(390, 844));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    final controller = TextEditingController();
+    addTearDown(controller.dispose);
+    var withoutVolume = false;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: Padding(
+            padding: const EdgeInsets.all(16),
+            child: StatefulBuilder(
+              builder: (context, setState) => WorkOrderPlanFields(
+                quantityController: controller,
+                unit: 'м³',
+                withoutVolume: withoutVolume,
+                onUnitChanged: (_) {},
+                onWithoutVolumeChanged: (value) {
+                  setState(() => withoutVolume = value ?? false);
+                },
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    expect(find.text('Без объёма'), findsOneWidget);
+    expect(find.byType(Checkbox), findsOneWidget);
+    expect(tester.widget<Checkbox>(find.byType(Checkbox)).value, isFalse);
+    await tester.tap(find.text('Без объёма'));
+    await tester.pump();
+    expect(tester.widget<Checkbox>(find.byType(Checkbox)).value, isTrue);
   });
 
   testWidgets('completion uses independent 0..200 KTU sliders', (tester) async {
