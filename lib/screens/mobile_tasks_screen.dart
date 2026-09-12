@@ -720,12 +720,20 @@ class _TasksScreenState extends State<TasksScreen> {
             ],
             buildActButton(tasks),
             if (widget.profile.isAdmin || widget.profile.isForeman)
-              Padding(padding: const EdgeInsets.only(top: 10),
-                child: OutlinedButton.icon(
-                  onPressed: () => showWorkOrderSheet(context,
-                    objectName: widget.selectedObjectName, initialDate: selectedDate),
-                  icon: const Icon(Icons.download_outlined),
-                  label: const Text('Скачать наряд'),
+              Padding(
+                padding: const EdgeInsets.only(top: 10),
+                child: SizedBox(
+                  width: double.infinity,
+                  height: 54,
+                  child: OutlinedButton.icon(
+                    onPressed: () => showWorkOrderSheet(
+                      context,
+                      objectName: widget.selectedObjectName,
+                      initialDate: selectedDate,
+                    ),
+                    icon: const Icon(Icons.download_outlined),
+                    label: const Text('Скачать наряд'),
+                  ),
                 ),
               ),
             const SizedBox(height: 78),

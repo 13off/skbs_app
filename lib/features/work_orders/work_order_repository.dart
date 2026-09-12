@@ -58,7 +58,8 @@ class WorkOrderRepository {
     final result = <Map<String, dynamic>>[];
     for (var offset = 0; ; offset += 500) {
       var query = _db.from('task_work_days')
-          .select('*, tasks!inner(object_name, work, axes, status)')
+          .select('*, tasks!inner(object_name, work, axes, status, '
+              'task_work_plans(planned_quantity, unit))')
           .gte('work_date', dateKey(start)).lte('work_date', dateKey(end));
       if (objectName != null && objectName.trim().isNotEmpty) {
         query = query.eq('tasks.object_name', objectName.trim());

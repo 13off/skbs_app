@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:excel/excel.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -20,11 +22,50 @@ void main() {
     expect(() => allocateWorkQuantity(1, [double.nan]), throwsArgumentError);
     expect(() => allocateWorkQuantity(-1, [100]), throwsArgumentError);
   });
-  test('Excel keeps chronological daily records, names and numeric shares', () {
+  test('completion percent compares the task fact with its plan', () {
+    expect(workCompletionPercent(20, 10), 50);
+    expect(workCompletionPercent(10, 20), 200);
+    expect(workCompletionPercent(30, 10), 33.3);
+    expect(workCompletionPercent(0, 10), isNull);
+    expect(workCompletionPercent(null, 10), isNull);
+  });
+  test('task UI keeps photos above actions and makes order button full width', () {
+    final details = File(
+      'lib/screens/task_details/task_details_view.dart',
+    ).readAsStringSync();
+    final mobileTasks = File(
+      'lib/screens/mobile_tasks_screen.dart',
+    ).readAsStringSync();
+    final repository = File(
+      'lib/features/work_orders/work_order_repository.dart',
+    ).readAsStringSync();
+
+    expect(
+      details.indexOf("photoStage: 'before'"),
+      lessThan(details.indexOf('buildActionButtons()')),
+    );
+    expect(
+      details.indexOf("photoStage: 'after'"),
+      lessThan(details.indexOf('buildActionButtons()')),
+    );
+    final orderButton = mobileTasks.indexOf("label: const Text('Скачать наряд')");
+    final fullWidth = mobileTasks.lastIndexOf('width: double.infinity', orderButton);
+    final matchingHeight = mobileTasks.lastIndexOf('height: 54', orderButton);
+    expect(orderButton, greaterThan(0));
+    expect(fullWidth, greaterThan(orderButton - 700));
+    expect(matchingHeight, greaterThan(orderButton - 700));
+    expect(
+      repository,
+      contains('task_work_plans(planned_quantity, unit)'),
+    );
+  });
+  test('Excel keeps chronological records, plan, fact and numeric shares', () {
     Map<String, dynamic> day(String date) => {
       'task_id': 'task', 'work_date': date, 'quantity': 100, 'unit': 'м³',
       'work': 'Армирование', 'axes': 'А–Б/1–3',
-      'tasks': {'object_name': 'Объект 1', 'work': 'Армирование', 'axes': 'А–Б/1–3'},
+      'tasks': {'object_name': 'Объект 1', 'work': 'Армирование',
+        'axes': 'А–Б/1–3',
+        'task_work_plans': {'planned_quantity': 200, 'unit': 'м³'}},
       'participants': [for (var i = 1; i <= 4; i++) {'fio': 'Рабочий $i', 'ktu': 100}],
     };
     final book = Excel.decodeBytes(WorkOrderExporter.build(
@@ -32,10 +73,14 @@ void main() {
     final rows = book['Наряд'].rows;
     final labels = rows.map((r) => r.isEmpty ? '' : r.first?.value.toString() ?? '').toList();
     expect(labels.indexOf('Дата: 10.09.2026'), lessThan(labels.indexOf('Дата: 11.09.2026')));
-    final people = rows.where((r) => r.length > 5 && r[1]?.value.toString().startsWith('Рабочий') == true).toList();
+    final people = rows.where((r) => r.length > 10 &&
+        r[1]?.value.toString().startsWith('Рабочий') == true).toList();
     expect(people.length, 8);
     for (final row in people) {
-      expect(row[5]!.value, anyOf(IntCellValue(25), DoubleCellValue(25)));
+      expect(row[5]!.value, anyOf(IntCellValue(200), DoubleCellValue(200)));
+      expect(row[6]!.value, anyOf(IntCellValue(100), DoubleCellValue(100)));
+      expect(row[7]!.value, anyOf(IntCellValue(50), DoubleCellValue(50)));
+      expect(row[8]!.value, anyOf(IntCellValue(25), DoubleCellValue(25)));
     }
   });
   testWidgets('export sheet opens with calendar and a single day selected', (tester) async {
