@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:skbs_app/app/app_adaptive_palette.dart';
+import 'package:skbs_app/widgets/app_input_formatters.dart';
 
 import '../../../data/app_data_sync.dart';
 import '../../../models/app_user_profile.dart';

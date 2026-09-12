@@ -1,4 +1,3 @@
-import 'package:skbs_app/widgets/app_input_formatters.dart';
 // State helpers below are part of the owning screen library and intentionally
 // update that exact State instance.
 // ignore_for_file: invalid_use_of_protected_member
