@@ -20,6 +20,14 @@ void main() {
     expect(wrapper, contains('hasSavedExactDistribution'));
     expect(wrapper, contains('добавьте хотя бы одного участника'));
     expect(wrapper, contains('TaskContributionRepository.clear'));
+    expect(wrapper, isNot(contains('showTaskCompletionReportDialog')));
+    expect(wrapper, contains('TaskCompletionReportRepository.submit'));
+    expect(
+      wrapper,
+      contains('reportedQuantity: completionWork.actualQuantity'),
+    );
+    expect(wrapper, contains('unit: completionWork.unit'));
+    expect(wrapper, contains('workLocation: task.axes'));
     expect(dialog, contains("title: const Text('Завершение задачи')"));
     expect(dialog, contains("'Фактически выполненный объём'"));
     expect(dialog, contains('max: 200'));
@@ -29,6 +37,20 @@ void main() {
     expect(dialog, contains('normalizedContributions'));
     expect(repository, contains('static List<int> equalPercents'));
     expect(repository, contains("'save_task_contributions'"));
+  });
+
+  test('planned volume is saved only by the main task save action', () {
+    final workSection = File(
+      'lib/features/work_orders/task_work_section.dart',
+    ).readAsStringSync();
+    final taskActions = File(
+      'lib/screens/task_details/task_details_actions.dart',
+    ).readAsStringSync();
+
+    expect(workSection, isNot(contains('Сохранить плановый объём')));
+    expect(workSection, isNot(contains('FilledButton')));
+    expect(workSection, contains('Future<bool> saveIfDirty()'));
+    expect(taskActions, contains('workSectionKey.currentState?.saveIfDirty()'));
   });
 
   test('server validates tenant task participants and exact total', () {

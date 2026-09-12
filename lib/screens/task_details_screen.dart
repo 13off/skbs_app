@@ -4,7 +4,6 @@ import '../app/app_adaptive_palette.dart';
 import '../data/task_contribution_repository.dart';
 import '../data/task_progress_repository.dart';
 import '../features/estimator/data/task_completion_report_repository.dart';
-import '../features/estimator/presentation/task_completion_report_dialog.dart';
 import '../features/tasks/presentation/task_contribution_dialog.dart';
 import '../features/work_orders/work_order_fields.dart';
 import '../features/work_orders/work_order_repository.dart';
@@ -186,7 +185,7 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
               participants: completionWork.workOrderParticipants,
             );
           }
-          await _offerEstimatorSubmission(result);
+          await _submitEstimatorResult(result, completionWork);
         } else if (previousTask.status == 'Выполнено') {
           await TaskContributionRepository.clear(result.id!);
           await WorkOrderRepository.deleteDay(result.id!, result.date);
@@ -204,8 +203,15 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
     }
   }
 
-  Future<void> _offerEstimatorSubmission(TaskItemData task) async {
-    if (!mounted || (task.id?.trim() ?? '').isEmpty) return;
+  Future<void> _submitEstimatorResult(
+    TaskItemData task,
+    TaskCompletionWorkResult? completionWork,
+  ) async {
+    if (!mounted ||
+        completionWork == null ||
+        (task.id?.trim() ?? '').isEmpty) {
+      return;
+    }
     try {
       final existing = await TaskCompletionReportRepository.fetchForTask(
         task.id!,
@@ -213,15 +219,18 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
       if (!mounted) return;
       if (existing != null && !existing.isReturned) return;
 
-      final submitted = await showTaskCompletionReportDialog(
-        context: context,
-        task: task,
-        existing: existing,
+      await TaskCompletionReportRepository.submit(
+        taskId: task.id!,
+        reportedQuantity: completionWork.actualQuantity,
+        unit: completionWork.unit,
+        workLocation: task.axes,
       );
-      if (!mounted || !submitted) return;
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Выполненная работа передана инженеру-сметчику'),
+          content: Text(
+            'Фактический объём автоматически передан инженеру-сметчику',
+          ),
         ),
       );
     } catch (error) {

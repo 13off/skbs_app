@@ -69,10 +69,10 @@ class TaskWorkSectionState extends State<TaskWorkSection> {
 
   Future<bool> saveIfDirty() async {
     if (!dirty) return true;
-    return save(notify: false);
+    return save();
   }
 
-  Future<bool> save({bool notify = true}) async {
+  Future<bool> save() async {
     if (busy || loading) return false;
     final value = parseWorkQuantity(planned.text);
     if (planned.text.trim().isNotEmpty && !isValidWorkQuantity(value)) {
@@ -90,11 +90,6 @@ class TaskWorkSectionState extends State<TaskWorkSection> {
         unit: unit,
       );
       baseline = signature;
-      if (mounted && notify) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Плановый объём сохранён')),
-        );
-      }
       return true;
     } catch (exception) {
       if (mounted) {
@@ -130,13 +125,6 @@ class TaskWorkSectionState extends State<TaskWorkSection> {
                   if (value != null) setState(() => unit = value);
                 },
               ),
-            if (widget.canEdit && !loading) ...[
-              const SizedBox(height: 10),
-              FilledButton(
-                onPressed: busy ? null : () => save(),
-                child: Text(busy ? 'Сохранение…' : 'Сохранить плановый объём'),
-              ),
-            ],
             if (error != null) ...[
               const SizedBox(height: 8),
               Text(
