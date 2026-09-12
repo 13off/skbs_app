@@ -173,6 +173,10 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
     return policy.requireBeforePhoto ? policy.minBeforePhotos : 1;
   }
 
+  void changeWorkUnit(String? value) {
+    if (value != null) setState(() => workUnit = value);
+  }
+
   @override
   void initState() {
     super.initState();

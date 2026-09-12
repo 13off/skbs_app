@@ -114,9 +114,7 @@ extension _TaskCreateSections on _AddTaskScreenState {
           WorkOrderPlanFields(
             quantityController: plannedQuantityController,
             unit: workUnit,
-            onUnitChanged: (value) {
-              if (value != null) setState(() => workUnit = value);
-            },
+            onUnitChanged: changeWorkUnit,
           ),
         ],
       ),

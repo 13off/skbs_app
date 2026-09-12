@@ -67,7 +67,10 @@ class TaskWorkSectionState extends State<TaskWorkSection> {
     }
   }
 
-  Future<bool> saveIfDirty() async => !dirty || save(notify: false);
+  Future<bool> saveIfDirty() async {
+    if (!dirty) return true;
+    return save(notify: false);
+  }
 
   Future<bool> save({bool notify = true}) async {
     if (busy || loading) return false;
