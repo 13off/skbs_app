@@ -63,6 +63,17 @@ void main() {
       contains('task_work_plans(planned_quantity, unit, without_volume)'),
     );
   });
+  test('foreman desktop exposes act and work-order actions', () {
+    final desktop = File(
+      'lib/features/foreman/presentation/foreman_desktop_tasks_screen.dart',
+    ).readAsStringSync();
+
+    expect(desktop, contains("label: const Text('Сформировать акт')"));
+    expect(desktop, contains("label: const Text('Скачать наряд')"));
+    expect(desktop, contains('ActPreviewScreen(tasks: tasks'));
+    expect(desktop, contains('showWorkOrderSheet('));
+    expect(desktop, contains('constraints: const BoxConstraints(maxWidth: 760)'));
+  });
   test('Excel keeps chronological records, plan, fact and numeric shares', () {
     Map<String, dynamic> day(String date) => {
       'task_id': 'task', 'work_date': date, 'quantity': 100, 'unit': 'м³',

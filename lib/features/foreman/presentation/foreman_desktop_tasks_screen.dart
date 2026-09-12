@@ -9,8 +9,10 @@ import '../../../features/tasks/presentation/task_drafts_sheet.dart';
 import '../../../features/tasks/task_edit_policy.dart';
 import '../../../models/app_user_profile.dart';
 import '../../../models/task_item_data.dart';
+import '../../../screens/act_preview_screen.dart';
 import '../../../screens/add_task_screen.dart';
 import '../../../screens/task_details_screen.dart';
+import '../../work_orders/work_order_sheet.dart';
 import '../../shared/presentation/specialist_desktop_ui.dart';
 import '../data/foreman_workspace_repository.dart';
 import 'foreman_task_filters.dart';
@@ -271,6 +273,53 @@ class _ForemanDesktopTasksScreenState extends State<ForemanDesktopTasksScreen> {
     if (mounted) await loadTasks(forceRefresh: true);
   }
 
+  void openActPreview() {
+    if (tasks.isEmpty) return;
+    Navigator.push<void>(
+      context,
+      AppPageRoute<void>(
+        builder: (_) => ActPreviewScreen(tasks: tasks, date: selectedDate),
+      ),
+    );
+  }
+
+  Widget documentActions() {
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 760),
+        child: Row(
+          children: [
+            Expanded(
+              child: SizedBox(
+                height: 54,
+                child: OutlinedButton.icon(
+                  onPressed: tasks.isEmpty ? null : openActPreview,
+                  icon: const Icon(Icons.description_outlined),
+                  label: const Text('Сформировать акт'),
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: SizedBox(
+                height: 54,
+                child: OutlinedButton.icon(
+                  onPressed: () => showWorkOrderSheet(
+                    context,
+                    objectName: cleanObjectName(objectName),
+                    initialDate: selectedDate,
+                  ),
+                  icon: const Icon(Icons.download_outlined),
+                  label: const Text('Скачать наряд'),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   ForemanTaskMeta metaFor(TaskItemData task) {
     final id = task.id?.trim();
     return id == null || id.isEmpty
@@ -433,6 +482,8 @@ class _ForemanDesktopTasksScreenState extends State<ForemanDesktopTasksScreen> {
         ),
         const SizedBox(height: 18),
         content(),
+        const SizedBox(height: 18),
+        documentActions(),
       ],
     );
   }
