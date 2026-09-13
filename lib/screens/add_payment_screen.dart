@@ -264,6 +264,45 @@ class _AddPaymentScreenState extends State<AddPaymentScreen> {
     return result;
   }
 
+  String employeeLabel(Employee employee) {
+    final objectName = employee.objectName.trim();
+    if (isAllObjectsScope(selectedObjectName) && objectName.isNotEmpty) {
+      return '${employee.name} — $objectName';
+    }
+    return employee.name;
+  }
+
+  Iterable<Employee> employeeSuggestions(
+    TextEditingValue value,
+    List<Employee> availableEmployees,
+  ) {
+    if (selectedObjectName == null) return const <Employee>[];
+    final query = value.text.trim().toLowerCase();
+    if (query.isEmpty) return const <Employee>[];
+
+    final matches = availableEmployees.where((employee) {
+      final name = employee.name.trim().toLowerCase();
+      final objectName = employee.objectName.trim().toLowerCase();
+      final wordStarts = name
+          .split(RegExp(r'\s+'))
+          .any((part) => part.startsWith(query));
+      return name.startsWith(query) ||
+          wordStarts ||
+          name.contains(query) ||
+          (isAllObjectsScope(selectedObjectName) && objectName.contains(query));
+    }).toList(growable: false);
+
+    matches.sort((a, b) {
+      final aName = a.name.trim().toLowerCase();
+      final bName = b.name.trim().toLowerCase();
+      final aStarts = aName.startsWith(query);
+      final bStarts = bName.startsWith(query);
+      if (aStarts != bStarts) return aStarts ? -1 : 1;
+      return a.name.compareTo(b.name);
+    });
+    return matches.take(20);
+  }
+
   Employee? findSelectedEmployee() {
     if (selectedEmployeeId == null) return null;
 
@@ -531,12 +570,13 @@ class _AddPaymentScreenState extends State<AddPaymentScreen> {
       body = buildEmptyState();
     } else {
       final availableEmployees = employeesForSelectedObject();
-      final employeeFieldValue =
-          availableEmployees.any(
-            (employee) => employee.id == selectedEmployeeId,
-          )
-          ? selectedEmployeeId
-          : null;
+      Employee? selectedEmployeeForField;
+      for (final employee in availableEmployees) {
+        if (employee.id == selectedEmployeeId) {
+          selectedEmployeeForField = employee;
+          break;
+        }
+      }
 
       body = ListView(
         padding: const EdgeInsets.all(20),
@@ -611,37 +651,65 @@ class _AddPaymentScreenState extends State<AddPaymentScreen> {
 
           const SizedBox(height: 14),
 
-          DropdownButtonFormField<String>(
+          Autocomplete<Employee>(
             key: ValueKey("payment-employee-${selectedObjectName ?? 'none'}"),
-            initialValue: employeeFieldValue,
-            items: availableEmployees.map((employee) {
-              return DropdownMenuItem<String>(
-                value: employee.id,
-                child: Text(
-                  isAllObjectsScope(selectedObjectName) &&
-                          employee.objectName.trim().isNotEmpty
-                      ? '${employee.name} — ${employee.objectName.trim()}'
-                      : employee.name,
-                  overflow: TextOverflow.ellipsis,
+            initialValue: TextEditingValue(
+              text: selectedEmployeeForField == null
+                  ? ''
+                  : employeeLabel(selectedEmployeeForField),
+            ),
+            displayStringForOption: employeeLabel,
+            optionsBuilder: (value) =>
+                employeeSuggestions(value, availableEmployees),
+            onSelected: (employee) {
+              selectedEmployeeId = employee.id;
+              if (errorText == 'Выберите сотрудника') {
+                setState(() => errorText = null);
+              }
+            },
+            fieldViewBuilder: (
+              context,
+              textEditingController,
+              focusNode,
+              onFieldSubmitted,
+            ) {
+              return TextField(
+                controller: textEditingController,
+                focusNode: focusNode,
+                enabled: !isSaving && selectedObjectName != null,
+                textCapitalization: TextCapitalization.words,
+                onChanged: (value) {
+                  final selected = findSelectedEmployee();
+                  if (selected != null &&
+                      value.trim() != employeeLabel(selected).trim()) {
+                    selectedEmployeeId = null;
+                  }
+                },
+                onSubmitted: (_) => onFieldSubmitted(),
+                decoration: InputDecoration(
+                  labelText: 'Сотрудник',
+                  hintText: selectedObjectName == null
+                      ? 'Сначала выберите объект'
+                      : availableEmployees.isEmpty
+                      ? 'На объекте нет сотрудников'
+                      : 'Начните вводить фамилию или имя',
+                  prefixIcon: const Icon(Icons.search_rounded),
+                  suffixIcon: textEditingController.text.isEmpty
+                      ? null
+                      : IconButton(
+                          tooltip: 'Очистить',
+                          onPressed: isSaving
+                              ? null
+                              : () {
+                                  textEditingController.clear();
+                                  selectedEmployeeId = null;
+                                },
+                          icon: const Icon(Icons.close_rounded),
+                        ),
+                  border: const OutlineInputBorder(),
                 ),
               );
-            }).toList(),
-            onChanged: isSaving || selectedObjectName == null
-                ? null
-                : (employeeId) {
-                    setState(() {
-                      selectedEmployeeId = employeeId;
-                    });
-                  },
-            decoration: InputDecoration(
-              labelText: 'Сотрудник',
-              hintText: selectedObjectName == null
-                  ? 'Сначала выберите объект'
-                  : availableEmployees.isEmpty
-                  ? 'На объекте нет сотрудников'
-                  : 'Выберите сотрудника',
-              border: const OutlineInputBorder(),
-            ),
+            },
           ),
 
           const SizedBox(height: 14),

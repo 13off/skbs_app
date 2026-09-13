@@ -26,6 +26,32 @@ class ExpenseCategoryData {
   }
 }
 
+class ExpenseCounterpartyData {
+  final String id;
+  final String name;
+  final String type;
+  final String inn;
+  final String kpp;
+
+  const ExpenseCounterpartyData({
+    required this.id,
+    required this.name,
+    required this.type,
+    required this.inn,
+    required this.kpp,
+  });
+
+  factory ExpenseCounterpartyData.fromMap(Map<String, dynamic> map) {
+    return ExpenseCounterpartyData(
+      id: map['id']?.toString() ?? '',
+      name: map['name']?.toString() ?? '',
+      type: map['counterparty_type']?.toString() ?? 'other',
+      inn: map['inn']?.toString() ?? '',
+      kpp: map['kpp']?.toString() ?? '',
+    );
+  }
+}
+
 class ExpenseObjectData {
   final String id;
   final String name;
@@ -300,6 +326,57 @@ class ExpenseRepository {
 
   Future<void> deleteCategory(String id) async {
     await _client.from('expense_categories').delete().eq('id', id);
+  }
+
+  Future<List<ExpenseCounterpartyData>> fetchCounterparties() async {
+    final raw = await _client
+        .from('accounting_counterparties')
+        .select('id,name,counterparty_type,inn,kpp')
+        .order('name')
+        .limit(1000);
+    return (raw as List)
+        .whereType<Map>()
+        .map(
+          (item) => ExpenseCounterpartyData.fromMap(
+            Map<String, dynamic>.from(item),
+          ),
+        )
+        .where((item) => item.id.isNotEmpty && item.name.trim().isNotEmpty)
+        .toList(growable: false);
+  }
+
+  Future<void> createCounterparty({
+    required String name,
+    String type = 'other',
+    String inn = '',
+    String kpp = '',
+  }) async {
+    await _client.from('accounting_counterparties').insert(<String, dynamic>{
+      'name': name.trim(),
+      'counterparty_type': type.trim().isEmpty ? 'other' : type.trim(),
+      'inn': inn.trim(),
+      'kpp': kpp.trim(),
+    });
+  }
+
+  Future<void> updateCounterparty({
+    required String id,
+    required String name,
+    required String type,
+    String inn = '',
+    String kpp = '',
+  }) async {
+    await _client.from('accounting_counterparties').update(<String, dynamic>{
+      'name': name.trim(),
+      'counterparty_type': type.trim().isEmpty ? 'other' : type.trim(),
+      'inn': inn.trim(),
+      'kpp': kpp.trim(),
+      'updated_at': DateTime.now().toUtc().toIso8601String(),
+    }).eq('id', id);
+  }
+
+  Future<void> deleteCounterparty(String id) async {
+    await _client.from('accounting_counterparties').delete().eq('id', id);
   }
 
   Future<CreatedExpenseData> createExpense({
