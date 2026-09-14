@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:skbs_app/widgets/app_input_formatters.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../../navigation/app_page_route.dart';
 import '../../../widgets/app_page.dart';
 import '../../../widgets/premium_ui_v2.dart';
 import '../data/expense_repository.dart';
@@ -192,7 +193,7 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
 
   Future<void> openSettings() async {
     await Navigator.of(context).push<void>(
-      MaterialPageRoute<void>(
+      AppPageRoute<void>(
         builder: (_) => const ExpenseSettingsScreen(),
       ),
     );
