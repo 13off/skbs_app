@@ -249,6 +249,7 @@ class ExecutivePanelRepository {
     );
 
     final drafts = <String, _ExecutivePaymentDraft>{};
+    final draftByEmployeeId = <String, _ExecutivePaymentDraft>{};
     final employeeIds = <String>{};
     for (final row in periodRows) {
       final name = row.employee.name.trim();
@@ -262,6 +263,7 @@ class ExecutivePanelRepository {
       if (employeeId.isNotEmpty) {
         employeeIds.add(employeeId);
         draft.employeeIds.add(employeeId);
+        draftByEmployeeId[employeeId] = draft;
       }
       final employeeObject = row.employee.objectName.trim();
       if (employeeObject.isNotEmpty) draft.objectNames.add(employeeObject);
@@ -275,17 +277,14 @@ class ExecutivePanelRepository {
       );
       for (final payment in payments) {
         if (!_paymentBelongsToPeriod(payment, first, last)) continue;
-        final draft = drafts.values.cast<_ExecutivePaymentDraft?>().firstWhere(
-          (item) => item!.employeeIds.contains(payment.employeeId),
-          orElse: () => null,
-        );
+        final draft = draftByEmployeeId[payment.employeeId];
         if (draft != null) draft.paid += payment.amount;
       }
     }
 
     final balances = drafts.values
         .map((draft) => draft.toBalance())
-        .where((row) => row.balance > 0.005)
+        .where((row) => row.balance.abs() > 0.005)
         .toList(growable: false)
       ..sort(
         (firstRow, secondRow) =>
