@@ -16,14 +16,14 @@ drop policy if exists expense_categories_developer_update
   on public.expense_categories;
 drop policy if exists expense_categories_developer_delete
   on public.expense_categories;
-drop policy if exists expense_categories_manage_insert
+drop policy if exists expense_categories_write_insert
   on public.expense_categories;
-drop policy if exists expense_categories_manage_update
+drop policy if exists expense_categories_write_update
   on public.expense_categories;
-drop policy if exists expense_categories_manage_delete
+drop policy if exists expense_categories_write_delete
   on public.expense_categories;
 
-create policy expense_categories_manage_insert
+create policy expense_categories_write_insert
 on public.expense_categories
 for insert
 to authenticated
@@ -32,7 +32,7 @@ with check (
   and public.current_user_role() in ('admin', 'developer', 'accountant')
 );
 
-create policy expense_categories_manage_update
+create policy expense_categories_write_update
 on public.expense_categories
 for update
 to authenticated
@@ -45,7 +45,7 @@ with check (
   and public.current_user_role() in ('admin', 'developer', 'accountant')
 );
 
-create policy expense_categories_manage_delete
+create policy expense_categories_write_delete
 on public.expense_categories
 for delete
 to authenticated
