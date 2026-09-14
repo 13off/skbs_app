@@ -28,6 +28,8 @@ void main() {
     expect(worker, contains("self.addEventListener('activate'"));
     expect(worker, contains("self.addEventListener('fetch'"));
     expect(worker, contains('self.clients.claim()'));
+    expect(worker, contains('self.clients.matchAll'));
+    expect(worker, contains('client.navigate(client.url)'));
     expect(worker, contains("request.mode === 'navigate'"));
     expect(worker, contains("atScope('index.html')"));
     expect(worker, contains('ignoreSearch: true'));

@@ -33,21 +33,30 @@ self.addEventListener('install', (event) => {
 
 self.addEventListener('activate', (event) => {
   event.waitUntil(
-    Promise.all([
-      caches.keys().then((keys) =>
-        Promise.all(
-          keys
-            .filter(
-              (key) =>
-                CACHE_PREFIXES.some((prefix) => key.startsWith(prefix)) &&
-                key !== SHELL_CACHE &&
-                key !== RUNTIME_CACHE,
-            )
-            .map((key) => caches.delete(key)),
-        ),
-      ),
-      self.clients.claim(),
-    ]),
+    (async () => {
+      const keys = await caches.keys();
+      const staleKeys = keys.filter(
+        (key) =>
+          CACHE_PREFIXES.some((prefix) => key.startsWith(prefix)) &&
+          key !== SHELL_CACHE &&
+          key !== RUNTIME_CACHE,
+      );
+      await Promise.all(staleKeys.map((key) => caches.delete(key)));
+      await self.clients.claim();
+
+      // The page can still be running bootstrap code supplied by a legacy
+      // cache. When an older AppStroy cache was replaced, navigate open PWA
+      // windows once so even that first transition loads the current build.
+      if (staleKeys.length > 0) {
+        const clients = await self.clients.matchAll({
+          type: 'window',
+          includeUncontrolled: true,
+        });
+        await Promise.all(
+          clients.map((client) => client.navigate(client.url)),
+        );
+      }
+    })(),
   );
 });
 
