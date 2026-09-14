@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 
+import '../../models/app_user_profile.dart';
 import '../../navigation/navigation_session.dart';
 
 class RolePreviewState {
@@ -26,7 +27,7 @@ class RolePreviewState {
   bool get isHrMode => role == 'hr';
   bool get isProcurementMode => role == 'procurement';
   bool get isEstimatorMode => role == 'estimator';
-  bool get isExecutiveMode => role == 'executive';
+  bool get isExecutiveMode => role == AppUserProfile.executiveRole;
 
   String get title {
     switch (role) {
@@ -46,8 +47,8 @@ class RolePreviewState {
         return 'Снабженец';
       case 'estimator':
         return 'Инженер-сметчик';
-      case 'executive':
-        return 'Повелитель';
+      case AppUserProfile.executiveRole:
+        return AppUserProfile.executiveRoleTitle;
       default:
         return 'Руководитель';
     }
@@ -108,8 +109,8 @@ class RolePreviewController {
       state.value = const RolePreviewState(role: 'estimator');
       return;
     }
-    if (savedRole == 'executive') {
-      state.value = const RolePreviewState(role: 'executive');
+    if (savedRole == AppUserProfile.executiveRole) {
+      state.value = const RolePreviewState(role: AppUserProfile.executiveRole);
       return;
     }
 
@@ -178,7 +179,9 @@ class RolePreviewController {
   }
 
   static void showExecutive() {
-    setState(const RolePreviewState(role: 'executive'));
+    setState(
+      const RolePreviewState(role: AppUserProfile.executiveRole),
+    );
   }
 
   static void reset({bool clearPersisted = true}) {
