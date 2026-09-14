@@ -26,6 +26,7 @@ class RolePreviewState {
   bool get isHrMode => role == 'hr';
   bool get isProcurementMode => role == 'procurement';
   bool get isEstimatorMode => role == 'estimator';
+  bool get isExecutiveMode => role == 'executive';
 
   String get title {
     switch (role) {
@@ -45,6 +46,8 @@ class RolePreviewState {
         return 'Снабженец';
       case 'estimator':
         return 'Инженер-сметчик';
+      case 'executive':
+        return 'Повелитель';
       default:
         return 'Руководитель';
     }
@@ -103,6 +106,10 @@ class RolePreviewController {
     }
     if (savedRole == 'estimator') {
       state.value = const RolePreviewState(role: 'estimator');
+      return;
+    }
+    if (savedRole == 'executive') {
+      state.value = const RolePreviewState(role: 'executive');
       return;
     }
 
@@ -168,6 +175,10 @@ class RolePreviewController {
 
   static void showEstimator() {
     setState(const RolePreviewState(role: 'estimator'));
+  }
+
+  static void showExecutive() {
+    setState(const RolePreviewState(role: 'executive'));
   }
 
   static void reset({bool clearPersisted = true}) {
