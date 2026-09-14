@@ -1,5 +1,8 @@
-const SHELL_CACHE = 'appstroy-shell-v2';
-const RUNTIME_CACHE = 'appstroy-static-v2';
+const workerUrl = new URL(self.location.href);
+const rawBuildId = workerUrl.searchParams.get('v') || 'development';
+const buildId = rawBuildId.replace(/[^a-zA-Z0-9._-]/g, '-');
+const SHELL_CACHE = `appstroy-shell-${buildId}`;
+const RUNTIME_CACHE = `appstroy-static-${buildId}`;
 const CACHE_PREFIXES = ['appstroy-shell-', 'appstroy-static-'];
 
 const scopeUrl = new URL(self.registration.scope);

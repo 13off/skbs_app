@@ -11,6 +11,9 @@ void main() {
     expect(bootstrap, contains("canvasKitBaseUrl: 'canvaskit/'"));
     expect(bootstrap, contains("searchParams.get('v')"));
     expect(bootstrap, contains("workerUrl.searchParams.set('v', buildId)"));
+    expect(bootstrap, contains("updateViaCache: 'none'"));
+    expect(bootstrap, contains("addEventListener('controllerchange'"));
+    expect(bootstrap, contains('window.location.reload()'));
     expect(bootstrap, isNot(contains('serviceWorkerSettings')));
     expect(bootstrap, isNot(contains('flutter_service_worker.js')));
   });
@@ -18,7 +21,9 @@ void main() {
   test('offline worker owns navigation fallback and static shell cache', () {
     final worker = File('web/appstroy-offline-sw.js').readAsStringSync();
 
-    expect(worker, contains("const SHELL_CACHE = 'appstroy-shell-v2'"));
+    expect(worker, contains("searchParams.get('v')"));
+    expect(worker, contains(r'`appstroy-shell-${buildId}`'));
+    expect(worker, contains(r'`appstroy-static-${buildId}`'));
     expect(worker, contains("self.addEventListener('install'"));
     expect(worker, contains("self.addEventListener('activate'"));
     expect(worker, contains("self.addEventListener('fetch'"));
