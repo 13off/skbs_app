@@ -6,6 +6,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../../widgets/app_page.dart';
 import '../../../widgets/premium_ui_v2.dart';
 import '../data/expense_repository.dart';
+import 'expense_settings_screen.dart';
 
 class ExpensesScreen extends StatefulWidget {
   final String? selectedObjectName;
@@ -40,6 +41,7 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
     objects: [],
     rows: [],
   );
+  List<ExpenseCounterpartyData> counterparties = const [];
   String selectedCategory = _allCategories;
   String selectedObject = _allObjects;
   bool preferredObjectApplied = false;
@@ -145,10 +147,16 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
       });
     }
     try {
-      final data = await repository.fetchSnapshot(from: from, to: to);
+      final result = await Future.wait<dynamic>([
+        repository.fetchSnapshot(from: from, to: to),
+        repository.fetchCounterparties(),
+      ]);
+      final data = result[0] as ExpensesSnapshot;
+      final loadedCounterparties = result[1] as List<ExpenseCounterpartyData>;
       if (!mounted) return;
       setState(() {
         snapshot = data;
+        counterparties = loadedCounterparties;
         loading = false;
         if (!preferredObjectApplied) {
           preferredObjectApplied = true;
@@ -180,6 +188,15 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
         errorText = 'Не удалось загрузить расходы: ${readableError(error)}';
       });
     }
+  }
+
+  Future<void> openSettings() async {
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute<void>(
+        builder: (_) => const ExpenseSettingsScreen(),
+      ),
+    );
+    if (mounted) await load();
   }
 
   List<ExpenseItemData> get filteredRows {
@@ -437,6 +454,7 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
     final counterpartyController = TextEditingController(
       text: initial?.counterpartyName ?? '',
     );
+    final counterpartyFocusNode = FocusNode();
     final commentController = TextEditingController(text: initial?.comment ?? '');
     var date = initial?.date ?? DateTime.now();
     var categoryId = initial?.categoryId ?? '';
@@ -540,14 +558,88 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                           setDialogState(() => objectId = value ?? ''),
                     ),
                     const SizedBox(height: 12),
-                    TextField(
-                      textCapitalization: TextCapitalization.sentences,
-                      inputFormatters: AppInputFormatters.sentences,
-                      controller: counterpartyController,
-                      decoration: const InputDecoration(
-                        labelText: 'Кто оплатил / контрагент',
-                        hintText: 'Например, Одинцев И. А. или ООО «Поставщик»',
-                      ),
+                    LayoutBuilder(
+                      builder: (context, constraints) {
+                        return RawAutocomplete<ExpenseCounterpartyData>(
+                          textEditingController: counterpartyController,
+                          focusNode: counterpartyFocusNode,
+                          displayStringForOption: (item) => item.name,
+                          optionsBuilder: (value) {
+                            final query = value.text.trim().toLowerCase();
+                            final matches = counterparties.where((item) {
+                              if (query.isEmpty) return true;
+                              final name = item.name.trim().toLowerCase();
+                              return name.startsWith(query) ||
+                                  name.split(RegExp(r'\s+')).any(
+                                    (part) => part.startsWith(query),
+                                  ) ||
+                                  name.contains(query);
+                            }).take(10);
+                            return matches;
+                          },
+                          onSelected: (item) {
+                            counterpartyController.text = item.name;
+                          },
+                          fieldViewBuilder:
+                              (
+                                context,
+                                controller,
+                                focusNode,
+                                onFieldSubmitted,
+                              ) {
+                                return TextField(
+                                  textCapitalization:
+                                      TextCapitalization.sentences,
+                                  inputFormatters:
+                                      AppInputFormatters.sentences,
+                                  controller: controller,
+                                  focusNode: focusNode,
+                                  onSubmitted: (_) => onFieldSubmitted(),
+                                  decoration: const InputDecoration(
+                                    labelText: 'Кто оплатил / контрагент',
+                                    hintText:
+                                        'Начните вводить название или ФИО',
+                                    suffixIcon: Icon(Icons.search_rounded),
+                                  ),
+                                );
+                              },
+                          optionsViewBuilder: (context, onSelected, options) {
+                            final items = options.toList(growable: false);
+                            return Align(
+                              alignment: Alignment.topLeft,
+                              child: Material(
+                                elevation: 8,
+                                borderRadius: BorderRadius.circular(16),
+                                clipBehavior: Clip.antiAlias,
+                                child: ConstrainedBox(
+                                  constraints: BoxConstraints(
+                                    maxWidth: constraints.maxWidth,
+                                    maxHeight: 280,
+                                  ),
+                                  child: ListView.builder(
+                                    padding: EdgeInsets.zero,
+                                    shrinkWrap: true,
+                                    itemCount: items.length,
+                                    itemBuilder: (context, index) {
+                                      final item = items[index];
+                                      return ListTile(
+                                        leading: Icon(
+                                          item.isIndividual
+                                              ? Icons.person_outline_rounded
+                                              : Icons.apartment_rounded,
+                                        ),
+                                        title: Text(item.name),
+                                        subtitle: Text(item.entityTypeLabel),
+                                        onTap: () => onSelected(item),
+                                      );
+                                    },
+                                  ),
+                                ),
+                              ),
+                            );
+                          },
+                        );
+                      },
                     ),
                     const SizedBox(height: 8),
                     ListTile(
@@ -617,7 +709,7 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                       const Align(
                         alignment: Alignment.centerLeft,
                         child: Text(
-                          'Статьи расходов добавляются в панели Разработчика.',
+                          'Добавьте статьи через шестерёнку в разделе «Расходы».',
                           style: TextStyle(fontSize: 12),
                         ),
                       ),
@@ -695,6 +787,7 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
     nameController.dispose();
     amountController.dispose();
     counterpartyController.dispose();
+    counterpartyFocusNode.dispose();
     commentController.dispose();
   }
 
@@ -1855,10 +1948,20 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
     return AppLazyPage(
       title: 'Расходы',
       subtitle: 'Выплаты сотрудникам и другие фактические расходы',
-      headerTrailing: IconButton(
-        tooltip: 'Обновить',
-        onPressed: busy ? null : load,
-        icon: const Icon(Icons.refresh_rounded),
+      headerTrailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          IconButton(
+            tooltip: 'Настройки расходов',
+            onPressed: busy ? null : openSettings,
+            icon: const Icon(Icons.settings_outlined),
+          ),
+          IconButton(
+            tooltip: 'Обновить',
+            onPressed: busy ? null : load,
+            icon: const Icon(Icons.refresh_rounded),
+          ),
+        ],
       ),
       leading: [filterPanel(), expenseListHeader()],
       itemCount: rows.length,

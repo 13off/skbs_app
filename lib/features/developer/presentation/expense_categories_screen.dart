@@ -164,7 +164,7 @@ class _ExpenseCategoriesScreenState extends State<ExpenseCategoriesScreen> {
   Widget build(BuildContext context) {
     return AppPage(
       title: 'Статьи расходов',
-      subtitle: 'Справочник для раздела «Расходы» руководителя',
+      subtitle: 'Справочник раздела «Расходы»',
       showBackButton: true,
       headerTrailing: IconButton(
         tooltip: 'Обновить',
@@ -197,7 +197,7 @@ class _ExpenseCategoriesScreenState extends State<ExpenseCategoriesScreen> {
                             ),
                             SizedBox(height: 4),
                             Text(
-                              'Добавляй, переименовывай и удаляй статьи здесь. Руководитель только выбирает их при внесении расхода.',
+                              'Добавляй, переименовывай и удаляй статьи здесь или через настройки раздела «Расходы».',
                             ),
                           ],
                         ),

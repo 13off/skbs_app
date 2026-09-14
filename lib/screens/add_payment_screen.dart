@@ -10,6 +10,34 @@ import '../data/payment_repository.dart';
 import '../models/employee.dart';
 import '../widgets/object_employee_scope.dart';
 
+List<Employee> searchPaymentEmployees({
+  required Iterable<Employee> employees,
+  required String query,
+  int limit = 12,
+}) {
+  final normalizedQuery = query.trim().toLowerCase();
+  final ranked = employees.map((employee) {
+    final normalizedName = employee.name.trim().toLowerCase();
+    final words = normalizedName.split(RegExp(r'\s+'));
+    final rank = normalizedQuery.isEmpty
+        ? 0
+        : normalizedName.startsWith(normalizedQuery)
+        ? 0
+        : words.any((word) => word.startsWith(normalizedQuery))
+        ? 1
+        : normalizedName.contains(normalizedQuery)
+        ? 2
+        : 3;
+    return (employee: employee, rank: rank);
+  }).where((item) => item.rank < 3).toList();
+  ranked.sort((a, b) {
+    final byRank = a.rank.compareTo(b.rank);
+    if (byRank != 0) return byRank;
+    return a.employee.name.compareTo(b.employee.name);
+  });
+  return ranked.take(limit).map((item) => item.employee).toList();
+}
+
 class AddPaymentScreen extends StatefulWidget {
   final int periodYear;
   final int periodMonth;
@@ -33,6 +61,8 @@ class AddPaymentScreen extends StatefulWidget {
 class _AddPaymentScreenState extends State<AddPaymentScreen> {
   final amountController = TextEditingController();
   final commentController = TextEditingController();
+  final employeeSearchController = TextEditingController();
+  final employeeSearchFocusNode = FocusNode();
 
   String? selectedObjectName;
   String? selectedEmployeeId;
@@ -73,6 +103,8 @@ class _AddPaymentScreenState extends State<AddPaymentScreen> {
   void dispose() {
     amountController.dispose();
     commentController.dispose();
+    employeeSearchController.dispose();
+    employeeSearchFocusNode.dispose();
     super.dispose();
   }
 
@@ -239,6 +271,7 @@ class _AddPaymentScreenState extends State<AddPaymentScreen> {
           }
         }
       });
+      employeeSearchController.text = findSelectedEmployee()?.name ?? '';
     } catch (e) {
       if (!mounted) return;
 
@@ -531,13 +564,6 @@ class _AddPaymentScreenState extends State<AddPaymentScreen> {
       body = buildEmptyState();
     } else {
       final availableEmployees = employeesForSelectedObject();
-      final employeeFieldValue =
-          availableEmployees.any(
-            (employee) => employee.id == selectedEmployeeId,
-          )
-          ? selectedEmployeeId
-          : null;
-
       body = ListView(
         padding: const EdgeInsets.all(20),
         children: [
@@ -601,6 +627,7 @@ class _AddPaymentScreenState extends State<AddPaymentScreen> {
                       selectedObjectName = objectName;
                       selectedEmployeeId = null;
                     });
+                    employeeSearchController.clear();
                   },
             decoration: const InputDecoration(
               labelText: 'Объект',
@@ -611,37 +638,92 @@ class _AddPaymentScreenState extends State<AddPaymentScreen> {
 
           const SizedBox(height: 14),
 
-          DropdownButtonFormField<String>(
-            key: ValueKey("payment-employee-${selectedObjectName ?? 'none'}"),
-            initialValue: employeeFieldValue,
-            items: availableEmployees.map((employee) {
-              return DropdownMenuItem<String>(
-                value: employee.id,
-                child: Text(
-                  isAllObjectsScope(selectedObjectName) &&
-                          employee.objectName.trim().isNotEmpty
-                      ? '${employee.name} — ${employee.objectName.trim()}'
-                      : employee.name,
-                  overflow: TextOverflow.ellipsis,
-                ),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              return RawAutocomplete<Employee>(
+                textEditingController: employeeSearchController,
+                focusNode: employeeSearchFocusNode,
+                displayStringForOption: (employee) => employee.name,
+                optionsBuilder: (value) {
+                  if (selectedObjectName == null) return const <Employee>[];
+                  return searchPaymentEmployees(
+                    employees: availableEmployees,
+                    query: value.text,
+                  );
+                },
+                onSelected: (employee) {
+                  setState(() => selectedEmployeeId = employee.id);
+                },
+                fieldViewBuilder:
+                    (context, controller, focusNode, onFieldSubmitted) {
+                      return TextField(
+                        key: ValueKey(
+                          'payment-employee-${selectedObjectName ?? 'none'}',
+                        ),
+                        controller: controller,
+                        focusNode: focusNode,
+                        enabled: !isSaving && selectedObjectName != null,
+                        textCapitalization: TextCapitalization.words,
+                        inputFormatters: AppInputFormatters.sentences,
+                        onChanged: (value) {
+                          final selected = findSelectedEmployee();
+                          if (selected != null &&
+                              value.trim() != selected.name.trim()) {
+                            setState(() => selectedEmployeeId = null);
+                          }
+                        },
+                        onSubmitted: (_) => onFieldSubmitted(),
+                        decoration: InputDecoration(
+                          labelText: 'Сотрудник',
+                          hintText: selectedObjectName == null
+                              ? 'Сначала выберите объект'
+                              : availableEmployees.isEmpty
+                              ? 'На объекте нет сотрудников'
+                              : 'Начните вводить ФИО',
+                          suffixIcon: const Icon(Icons.search_rounded),
+                          border: const OutlineInputBorder(),
+                        ),
+                      );
+                    },
+                optionsViewBuilder: (context, onSelected, options) {
+                  final items = options.toList(growable: false);
+                  return Align(
+                    alignment: Alignment.topLeft,
+                    child: Material(
+                      elevation: 8,
+                      borderRadius: BorderRadius.circular(16),
+                      clipBehavior: Clip.antiAlias,
+                      child: SizedBox(
+                        width: constraints.maxWidth,
+                        child: ConstrainedBox(
+                          constraints: const BoxConstraints(maxHeight: 320),
+                          child: ListView.builder(
+                            padding: EdgeInsets.zero,
+                            shrinkWrap: true,
+                            itemCount: items.length,
+                            itemBuilder: (context, index) {
+                              final employee = items[index];
+                              final object = employee.objectName.trim();
+                              return ListTile(
+                                leading: const Icon(Icons.person_outline),
+                                title: Text(employee.name),
+                                subtitle: isAllObjectsScope(
+                                          selectedObjectName,
+                                        ) &&
+                                        object.isNotEmpty
+                                    ? Text(object)
+                                    : null,
+                                onTap: () => onSelected(employee),
+                              );
+                            },
+                          ),
+                        ),
+                      ),
+                    ),
+                  );
+                },
               );
-            }).toList(),
-            onChanged: isSaving || selectedObjectName == null
-                ? null
-                : (employeeId) {
-                    setState(() {
-                      selectedEmployeeId = employeeId;
-                    });
-                  },
-            decoration: InputDecoration(
-              labelText: 'Сотрудник',
-              hintText: selectedObjectName == null
-                  ? 'Сначала выберите объект'
-                  : availableEmployees.isEmpty
-                  ? 'На объекте нет сотрудников'
-                  : 'Выберите сотрудника',
-              border: const OutlineInputBorder(),
-            ),
+            },
           ),
 
           const SizedBox(height: 14),
