@@ -47,7 +47,8 @@ void main() {
         "kind: 'task.photos.add'",
         "dedupeKey: '\${taskId.trim()}::\$photoStage'",
         'photoStage: photoStage',
-        "text.contains('сеть')",
+        'OfflineSyncService.serializePhoto(',
+        'unawaited(OfflineSyncService.flush())',
         "'Фото сохранено на устройстве и отправится при появлении сети'",
       ],
     );
@@ -55,6 +56,8 @@ void main() {
       "case 'task.photos.add':",
       "final stage = photo['photo_stage']?.toString() == 'after'",
       "client.storage.from('task-photos').uploadBinary(",
+      'upsert: false',
+      '_isStorageConflict(error)',
     ]);
     containsAll('lib/screens/task_details/task_details_sections.dart', const [
       "photo.storagePath.trim().isEmpty",

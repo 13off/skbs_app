@@ -54,7 +54,9 @@ void main() {
     expect(sync, contains("case 'task.create':"));
     expect(sync, contains("case 'task.assignees':"));
     expect(sync, contains("case 'task.photos.add':"));
-    expect(sync, contains('upsert: true'));
+    expect(sync, contains('upsert: false'));
+    expect(sync, contains('_isStorageConflict(error)'));
+    expect(sync, contains("from('task_photos').insert"));
   });
 
   test('task form keeps old policy and employee flow when network drops', () {
