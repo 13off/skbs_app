@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -980,27 +981,34 @@ class TaskRepository {
   }) async {
     final cleanTaskId = taskId.trim();
     if (cleanTaskId.isEmpty) return;
-    try {
-      await TaskAssigneeRepository.saveAssignees(
-        taskId: cleanTaskId,
-        assigneeIds: assigneeIds,
-      );
-      await OfflineSyncService.markSynced();
-    } catch (error) {
-      if (!OfflineSyncService.isNetworkFailure(error)) rethrow;
-      await OfflineSyncService.enqueue(
-        kind: 'task.assignees',
-        dedupeKey: cleanTaskId,
-        payload: <String, dynamic>{
-          'id': cleanTaskId,
-          'assignee_ids': assigneeIds,
-        },
-      );
-    }
+    final cleanAssigneeIds = TaskAssigneeRepository.cleanIdSet(
+      assigneeIds,
+    ).toList(growable: false);
+
+    // Existing-task edits are local-first too. A weak connection may still
+    // return an HTTP/RLS response instead of a socket error, so deciding
+    // whether to queue from the server exception loses the user's selection.
+    await OfflineSyncService.enqueue(
+      kind: 'task.assignees',
+      dedupeKey: cleanTaskId,
+      payload: <String, dynamic>{
+        'id': cleanTaskId,
+        'assignee_ids': cleanAssigneeIds,
+      },
+    );
     await OfflineSyncService.saveSnapshot(
       'task_assignee_ids::$cleanTaskId',
-      assigneeIds,
+      cleanAssigneeIds,
     );
+    AppDataSync.notifyLocal(
+      const <AppDataDomain>{AppDataDomain.tasks},
+      context: <String, dynamic>{
+        'table': 'task_assignees',
+        'task_id': cleanTaskId,
+        'source': 'local_first_task_assignees',
+      },
+    );
+    unawaited(OfflineSyncService.flush());
   }
 
   static Future<void> saveTaskAssigneesIfChanged({

@@ -31,6 +31,29 @@ void main() {
     expect(sync, contains("'without_volume': withoutVolume"));
   });
 
+  test('existing task assignees and photos are local-first', () {
+    final repository = source('lib/data/task_repository.dart');
+    final photoActions = source(
+      'lib/screens/task_details/task_details_photo_actions.dart',
+    );
+
+    expect(repository, contains("'source': 'local_first_task_assignees'"));
+    expect(repository, contains("kind: 'task.assignees'"));
+    expect(repository, contains('unawaited(OfflineSyncService.flush())'));
+    expect(photoActions, contains("kind: 'task.photos.add'"));
+    expect(photoActions, contains('OfflineSyncService.serializePhoto('));
+    expect(photoActions, isNot(contains('TaskPhotoRepository.uploadPhotos(')));
+  });
+
+  test('queued photo replay does not require Storage update permission', () {
+    final sync = source('lib/data/offline_sync_service.dart');
+
+    expect(sync, contains('upsert: false'));
+    expect(sync, contains('_isStorageConflict(error)'));
+    expect(sync, contains("from('task_photos').insert"));
+    expect(sync, contains('_isDatabaseConflict(error)'));
+  });
+
   test('waiting indicator does not call server contact a completed sync', () {
     final status = source('lib/widgets/offline_sync_banner.dart');
 

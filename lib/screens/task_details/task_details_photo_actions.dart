@@ -5,65 +5,62 @@
 part of 'task_details_editor_screen.dart';
 
 extension _TaskDetailsPhotoActions on _TaskDetailsScreenState {
-  bool _isPhotoNetworkFailure(Object error) {
-    final text = error.toString().toLowerCase();
-    return OfflineSyncService.isNetworkFailure(error) ||
-        text.contains('сеть') ||
-        text.contains('соединен') ||
-        text.contains('нет подключения');
-  }
-
   Future<List<TaskPhotoData>> _uploadOrQueuePhotos({
     required String taskId,
     required List<TaskPhotoFile> pickedPhotos,
     required String photoStage,
     required void Function(TaskPhotoUploadProgress progress) onProgress,
   }) async {
-    try {
-      return await TaskPhotoRepository.uploadPhotos(
-        taskId: taskId,
-        photos: pickedPhotos,
-        photoStage: photoStage,
-        onProgress: onProgress,
-      );
-    } catch (error) {
-      if (!_isPhotoNetworkFailure(error)) rethrow;
+    // Persist every picked photo before contacting Storage. Weak LTE can
+    // return 403/Unauthorized while a token refresh is still pending; that
+    // must not discard a photo or expose a Supabase error to the foreman.
+    final queued = pickedPhotos
+        .map(
+          (photo) => OfflineSyncService.serializePhoto(
+            originalName: photo.originalName,
+            contentType: photo.contentType,
+            extension: photo.extension,
+            bytes: photo.bytes,
+            photoStage: photoStage,
+          ),
+        )
+        .toList(growable: false);
+    await OfflineSyncService.enqueue(
+      kind: 'task.photos.add',
+      dedupeKey: '${taskId.trim()}::$photoStage',
+      payload: <String, dynamic>{
+        'id': taskId.trim(),
+        'photo_stage': photoStage,
+        'photos': queued,
+      },
+    );
 
-      final queued = pickedPhotos
-          .map(
-            (photo) => OfflineSyncService.serializePhoto(
-              originalName: photo.originalName,
-              contentType: photo.contentType,
-              extension: photo.extension,
-              bytes: photo.bytes,
-              photoStage: photoStage,
-            ),
-          )
-          .toList(growable: false);
-      await OfflineSyncService.enqueue(
-        kind: 'task.photos.add',
-        dedupeKey: '${taskId.trim()}::$photoStage',
-        payload: <String, dynamic>{
-          'id': taskId.trim(),
-          'photo_stage': photoStage,
-          'photos': queued,
-        },
-      );
+    final totalBytes = pickedPhotos.fold<int>(
+      0,
+      (sum, photo) => sum + photo.bytes.length,
+    );
+    onProgress(
+      TaskPhotoUploadProgress(
+        loadedBytes: totalBytes,
+        totalBytes: totalBytes,
+        completedFiles: pickedPhotos.length,
+        totalFiles: pickedPhotos.length,
+      ),
+    );
 
-      final now = DateTime.now();
-      return queued
-          .map(
-            (row) => TaskPhotoData(
-              id: row['offline_id']?.toString() ?? '',
-              taskId: taskId.trim(),
-              storagePath: '',
-              originalName: row['original_name']?.toString() ?? 'Фото',
-              photoStage: photoStage,
-              createdAt: now,
-            ),
-          )
-          .toList(growable: false);
-    }
+    final now = DateTime.now();
+    return queued
+        .map(
+          (row) => TaskPhotoData(
+            id: row['offline_id']?.toString() ?? '',
+            taskId: taskId.trim(),
+            storagePath: '',
+            originalName: row['original_name']?.toString() ?? 'Фото',
+            photoStage: photoStage,
+            createdAt: now,
+          ),
+        )
+        .toList(growable: false);
   }
 
   Future<void> _savePhotosSnapshot(
@@ -147,6 +144,7 @@ extension _TaskDetailsPhotoActions on _TaskDetailsScreenState {
       await _savePhotosSnapshot(taskId, nextPhotos);
       if (!mounted) return;
       setState(() => photos = nextPhotos);
+      unawaited(OfflineSyncService.flush());
 
       final count = uploadedPhotos.length;
       final queuedOffline = uploadedPhotos.any(

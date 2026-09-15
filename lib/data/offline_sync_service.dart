@@ -506,22 +506,49 @@ class OfflineSyncService {
           ? photo['offline_id'].toString().trim()
           : createLocalId();
       final path = '$taskId/$stage/offline_$photoId.$extension';
-      await client.storage.from('task-photos').uploadBinary(
-        path,
-        bytes,
-        fileOptions: FileOptions(
-          contentType: photo['content_type']?.toString(),
-          upsert: true,
-        ),
-      );
-      await client.from('task_photos').upsert(<String, dynamic>{
-        'id': photoId,
-        'task_id': taskId,
-        'storage_path': path,
-        'original_name': photo['original_name']?.toString() ?? 'Фото',
-        'photo_stage': stage,
-      }, onConflict: 'id');
+      try {
+        await client.storage.from('task-photos').uploadBinary(
+          path,
+          bytes,
+          fileOptions: FileOptions(
+            contentType: photo['content_type']?.toString(),
+            upsert: false,
+          ),
+        );
+      } catch (error) {
+        // The previous attempt may have uploaded the bytes while its response
+        // was lost. The deterministic offline path makes 409 safe to accept.
+        if (!_isStorageConflict(error)) rethrow;
+      }
+      try {
+        await client.from('task_photos').insert(<String, dynamic>{
+          'id': photoId,
+          'task_id': taskId,
+          'storage_path': path,
+          'original_name': photo['original_name']?.toString() ?? 'Фото',
+          'photo_stage': stage,
+        });
+      } catch (error) {
+        // Metadata can have committed before the phone lost the response.
+        // Retrying the same UUID is complete, not a failed upload.
+        if (!_isDatabaseConflict(error)) rethrow;
+      }
     }
+  }
+
+  static bool _isStorageConflict(Object error) {
+    final text = error.toString().toLowerCase();
+    return text.contains('statuscode: 409') ||
+        text.contains('statuscode:409') ||
+        text.contains('status: 409') ||
+        text.contains('status:409') ||
+        text.contains('already exists') ||
+        text.contains('duplicate');
+  }
+
+  static bool _isDatabaseConflict(Object error) {
+    final text = error.toString().toLowerCase();
+    return text.contains('23505') || text.contains('duplicate key');
   }
 
   static Future<void> _saveTaskLink(
