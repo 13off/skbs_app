@@ -24,7 +24,7 @@ on:
       - '.github/workflows/build-windows-desktop.yml'
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: appstroy-windows-desktop-${{ github.ref }}
@@ -147,11 +147,28 @@ jobs:
           if (!(Test-Path $installer)) { throw "Installer was not produced" }
           Get-FileHash $installer -Algorithm SHA256 | ForEach-Object { "$($_.Hash.ToLower())  AppStroy-Windows-Setup.exe" } | Set-Content 'windows-output/AppStroy-Windows-Setup.sha256' -Encoding ascii
 
-      - name: Upload Windows package
-        continue-on-error: true
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
-        with:
-          name: AppStroy-Windows-Desktop
-          path: windows-output/
-          retention-days: 30
-          if-no-files-found: error
+      - name: Publish Windows files in GitHub Release
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: pwsh
+        run: |
+          $tag = 'appstroy-latest'
+          gh release view $tag *> $null
+          if ($LASTEXITCODE -ne 0) {
+            gh release create $tag --target $env:GITHUB_SHA --title 'AppСтрой — актуальные сборки' --notes 'Автоматически обновляемые сборки AppСтрой для Android, Windows и iOS.'
+            if ($LASTEXITCODE -ne 0) {
+              gh release view $tag *> $null
+              if ($LASTEXITCODE -ne 0) { throw 'Unable to create or find GitHub Release' }
+            }
+          }
+
+          $files = @(
+            'windows-output/AppStroy-Windows-Setup.exe',
+            'windows-output/AppStroy-Windows-Setup.sha256',
+            'windows-output/AppStroy-Windows-latest.zip',
+            'windows-output/AppStroy-Windows-latest.sha256',
+            'windows-output/source-commit.txt'
+          )
+          gh release upload $tag $files --clobber
+          if ($LASTEXITCODE -ne 0) { throw 'Unable to upload Windows release files' }

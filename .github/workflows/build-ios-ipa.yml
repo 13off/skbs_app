@@ -9,7 +9,7 @@ on:
       - release/ios-release.txt
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: appstroy-ios-ipa
@@ -33,20 +33,6 @@ jobs:
     steps:
       - name: Checkout source
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
-
-      - name: Checkout download repository
-        id: download_repo
-        continue-on-error: true
-        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
-        with:
-          repository: 13off/appstroy-web
-          token: ${{ secrets.WEB_DEPLOY_TOKEN }}
-          path: appstroy-web
-          ref: downloads
-
-      - name: Warn when download publishing is unavailable
-        if: steps.download_repo.outcome != 'success'
-        run: echo "::warning::Публикация IPA в appstroy-web недоступна; тесты и сборка iOS продолжаются."
 
       - name: Setup Flutter
         uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
@@ -182,52 +168,24 @@ jobs:
           rm -rf Payload
           shasum -a 256 AppStroy-latest.ipa > AppStroy-iOS-latest.sha256
 
-      - name: Upload IPA artifact
+      - name: Publish IPA in GitHub Release
         if: always() && steps.ios_prepare.outcome == 'success' && steps.ios_build.outcome == 'success'
-        continue-on-error: true
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
-        with:
-          name: AppStroy-iOS-IPA
-          path: ios-output/
-          retention-days: 30
-
-      - name: Publish final iOS build result
-        if: always() && steps.download_repo.outcome == 'success'
+        env:
+          GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
-          cd appstroy-web
-          git pull --rebase origin downloads
-          cd ..
-          mkdir -p appstroy-web/downloads
-          test -f ios-prepare.log || printf 'Prepare step did not produce a log\n' > ios-prepare.log
-          test -f ios-build.log || printf 'Xcode build was not started\n' > ios-build.log
-          cp ios-prepare.log appstroy-web/downloads/ios-prepare.log
-          cp ios-build.log appstroy-web/downloads/ios-build.log
-          printf '%s\n' "$(git rev-parse HEAD)" > appstroy-web/downloads/ios-source-commit.txt
-
-          if [ "${{ steps.ios_prepare.outcome }}" = "success" ] && \
-             [ "${{ steps.ios_build.outcome }}" = "success" ]; then
-            rm -f appstroy-web/downloads/AppStroy-*.ipa
-            cp ios-output/AppStroy-*.ipa appstroy-web/downloads/
-            cp ios-output/AppStroy-iOS-latest.sha256 appstroy-web/downloads/
-            printf 'success\n' > appstroy-web/downloads/ios-build-status.txt
-          else
-            printf 'failure\n' > appstroy-web/downloads/ios-build-status.txt
+          TAG="appstroy-latest"
+          if ! gh release view "$TAG" >/dev/null 2>&1; then
+            gh release create "$TAG" \
+              --target "$GITHUB_SHA" \
+              --title "AppСтрой — актуальные сборки" \
+              --notes "Автоматически обновляемые сборки AppСтрой для Android, Windows и iOS." \
+              || gh release view "$TAG" >/dev/null
           fi
-
-          cd appstroy-web
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add downloads
-          if ! git diff --cached --quiet; then
-            if [ "${{ steps.ios_prepare.outcome }}" = "success" ] && [ "${{ steps.ios_build.outcome }}" = "success" ]; then
-              git commit -m "опубликована проверочная IPA для iPhone"
-            else
-              git commit -m "сохранена ошибка сборки iOS"
-            fi
-            git pull --rebase origin downloads
-            git push origin HEAD:downloads
-          fi
+          gh release upload "$TAG" \
+            ios-output/AppStroy-latest.ipa \
+            ios-output/AppStroy-iOS-latest.sha256 \
+            --clobber
 
       - name: Fail workflow when iOS build failed
         if: steps.ios_prepare.outcome != 'success' || steps.ios_build.outcome != 'success'
