@@ -2,9 +2,9 @@ AppСтрой mobile release
 version: 1.3.9+23
 previous mobile release: 1.3.9+23
 release date: 2026-09-16
-release attempt: 7
-accepted application commit: f71c17337ed4816949c141a24f74d14335336115
-validation workflow commit: f71c17337ed4816949c141a24f74d14335336115
+release attempt: 8
+accepted application commit: 88244c52740451f0aed540b06fdb4ea20b8f02b1
+validation workflow commit: 88244c52740451f0aed540b06fdb4ea20b8f02b1
 features: publish Android APK, unsigned iOS IPA, and Windows installer/portable ZIP through a stable GitHub Release instead of quota-limited Actions artifacts
 web: keep the accepted PWA deployment unchanged
 mobile: build Android release APK and unsigned verification iOS IPA from current main and upload stable release assets
