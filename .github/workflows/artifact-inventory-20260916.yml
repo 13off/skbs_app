@@ -1,0 +1,67 @@
+name: One-time artifact inventory 2026-09-16
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/artifact-inventory-20260916.yml
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  inventory:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Count current workflow artifacts
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
+        with:
+          script: |
+            const artifacts = await github.paginate(
+              github.rest.actions.listArtifactsForRepo,
+              {
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                per_page: 100,
+              },
+            );
+
+            const active = artifacts.filter((artifact) => !artifact.expired);
+            const bytes = active.reduce(
+              (sum, artifact) => sum + (artifact.size_in_bytes || 0),
+              0,
+            );
+            const groups = new Map();
+
+            for (const artifact of active) {
+              const current = groups.get(artifact.name) || { count: 0, bytes: 0 };
+              current.count += 1;
+              current.bytes += artifact.size_in_bytes || 0;
+              groups.set(artifact.name, current);
+            }
+
+            const byName = [...groups.entries()]
+              .map(([name, value]) => ({
+                name,
+                count: value.count,
+                bytes: value.bytes,
+                mib: Number((value.bytes / 1024 / 1024).toFixed(2)),
+              }))
+              .sort((a, b) => b.bytes - a.bytes);
+
+            const result = {
+              count: active.length,
+              bytes,
+              mib: Number((bytes / 1024 / 1024).toFixed(2)),
+              gib: Number((bytes / 1024 / 1024 / 1024).toFixed(3)),
+              byName,
+            };
+
+            console.log('ARTIFACT_INVENTORY_JSON=' + JSON.stringify(result));
+            await core.summary
+              .addHeading('Current artifact inventory')
+              .addRaw(`Count: ${result.count}\n`)
+              .addRaw(`Total: ${result.mib} MiB (${result.gib} GiB)\n`)
+              .write();
