@@ -1,0 +1,72 @@
+name: One-time artifact cleanup 2026-08-02 through 2026-09-11 MSK
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/cleanup-artifacts-20260916.yml
+
+permissions:
+  actions: write
+  contents: read
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Delete artifacts in approved date range
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
+        with:
+          script: |
+            const startExclusive = Date.parse('2026-08-01T21:00:00Z');
+            const endExclusive = Date.parse('2026-09-11T21:00:00Z');
+            const artifacts = await github.paginate(
+              github.rest.actions.listArtifactsForRepo,
+              {
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                per_page: 100,
+              },
+            );
+
+            const targets = artifacts.filter((artifact) => {
+              const createdAt = Date.parse(artifact.created_at);
+              return !artifact.expired &&
+                createdAt > startExclusive &&
+                createdAt < endExclusive;
+            });
+
+            let deleted = 0;
+            let alreadyMissing = 0;
+            let bytes = 0;
+
+            for (const artifact of targets) {
+              try {
+                await github.rest.actions.deleteArtifact({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  artifact_id: artifact.id,
+                });
+                deleted += 1;
+                bytes += artifact.size_in_bytes || 0;
+              } catch (error) {
+                if (error.status === 404 || error.status === 410) {
+                  alreadyMissing += 1;
+                  continue;
+                }
+                throw error;
+              }
+            }
+
+            const mib = (bytes / 1024 / 1024).toFixed(2);
+            await core.summary
+              .addHeading('Artifact cleanup')
+              .addRaw('Approved range: 2026-08-02 through 2026-09-11 MSK\n')
+              .addRaw(`Matched: ${targets.length}\n`)
+              .addRaw(`Deleted: ${deleted}\n`)
+              .addRaw(`Already missing: ${alreadyMissing}\n`)
+              .addRaw(`Freed from current artifact storage: ${mib} MiB\n`)
+              .write();
+
+            core.notice(`Deleted ${deleted} artifacts (${mib} MiB); ${alreadyMissing} were already absent.`);
