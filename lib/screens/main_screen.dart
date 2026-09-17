@@ -12,6 +12,7 @@ import '../features/company_chat/presentation/company_chat_shell.dart';
 import '../features/developer/presentation/developer_main_screen.dart';
 import '../features/employee/presentation/employee_platform_with_passport.dart';
 import '../features/estimator/presentation/estimator_main_screen.dart';
+import '../features/executive/presentation/executive_main_screen.dart';
 import '../features/foreman/presentation/foreman_main_screen.dart';
 import '../features/legal/presentation/legal_main_screen.dart';
 import '../features/procurement/presentation/procurement_main_screen.dart';
@@ -52,7 +53,9 @@ class _MainScreenState extends State<MainScreen> {
     );
     AppCacheCoordinator.clearAll();
     navigationRestoreFuture = restoreNavigation();
-    if (widget.profile.isAdmin || widget.profile.isForeman) {
+    if (widget.profile.isAdmin ||
+        widget.profile.isForeman ||
+        widget.profile.isExecutive) {
       unawaited(warmUpApplication());
     }
   }
@@ -73,7 +76,9 @@ class _MainScreenState extends State<MainScreen> {
     );
     AppCacheCoordinator.clearAll();
     navigationRestoreFuture = restoreNavigation();
-    if (widget.profile.isAdmin || widget.profile.isForeman) {
+    if (widget.profile.isAdmin ||
+        widget.profile.isForeman ||
+        widget.profile.isExecutive) {
       unawaited(warmUpApplication());
     }
   }
@@ -101,7 +106,7 @@ class _MainScreenState extends State<MainScreen> {
   }
 
   String? initialObjectNameFor(AppUserProfile profile) {
-    if (profile.isAdmin) return null;
+    if (profile.isAdmin || profile.isExecutive) return null;
     final value = profile.objectName.trim();
     return value.isEmpty ? null : value;
   }
@@ -167,6 +172,9 @@ class _MainScreenState extends State<MainScreen> {
     if (profile.isEstimator) {
       return EstimatorMainScreen(profile: profile);
     }
+    if (profile.isExecutive) {
+      return ExecutiveMainScreen(profile: profile);
+    }
     if (profile.isAdmin) {
       return ManagerMainScreen(profile: profile);
     }
@@ -214,7 +222,9 @@ class _MainScreenState extends State<MainScreen> {
                     child: platform,
                   );
 
-            if (profile.isEmployee) return workVisualScope(content);
+            if (profile.isEmployee || profile.isExecutive) {
+              return workVisualScope(content);
+            }
             return workVisualScope(
               CompanyChatShell(
                 key: ValueKey<String>(
