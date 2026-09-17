@@ -81,7 +81,9 @@ class _ExecutiveMainScreenState extends State<ExecutiveMainScreen>
       ],
       tabBuilder: (context, index) {
         return switch (index) {
-          0 => const _ExecutiveChatScreen(),
+          0 => _ExecutiveChatScreen(
+            companyId: widget.profile.activeCompanyId,
+          ),
           1 => const _ExecutivePaymentsScreen(),
           _ => const SizedBox.shrink(),
         };
@@ -91,7 +93,9 @@ class _ExecutiveMainScreenState extends State<ExecutiveMainScreen>
 }
 
 class _ExecutiveChatScreen extends StatefulWidget {
-  const _ExecutiveChatScreen();
+  final String companyId;
+
+  const _ExecutiveChatScreen({required this.companyId});
 
   @override
   State<_ExecutiveChatScreen> createState() => _ExecutiveChatScreenState();
@@ -144,6 +148,7 @@ class _ExecutiveChatScreenState extends State<_ExecutiveChatScreen> {
       final result = await Future.wait<dynamic>([
         ObjectRepository.fetchObjectNames(forceRefresh: forceObjects),
         ExecutivePanelRepository.fetchTaskMessages(
+          companyId: widget.companyId,
           startDate: period.start,
           endDate: period.end,
           objectName: selectedObjectName,
@@ -152,14 +157,15 @@ class _ExecutiveChatScreenState extends State<_ExecutiveChatScreen> {
       if (!mounted || generation != loadGeneration) return;
       final nextObjectNames = result[0] as List<String>;
       final nextMessages = result[1] as List<ExecutiveTaskMessage>;
+      final objectSelectionBecameInvalid =
+          selectedObjectName != null &&
+          !nextObjectNames.contains(selectedObjectName);
       setState(() {
         objectNames = nextObjectNames;
-        if (selectedObjectName != null &&
-            !nextObjectNames.contains(selectedObjectName)) {
-          selectedObjectName = null;
-        }
+        if (objectSelectionBecameInvalid) selectedObjectName = null;
         messages = nextMessages;
       });
+      if (objectSelectionBecameInvalid) unawaited(_load());
     } catch (error) {
       if (!mounted || generation != loadGeneration) return;
       setState(() {
@@ -336,14 +342,17 @@ class _ExecutivePaymentsScreenState extends State<_ExecutivePaymentsScreen> {
       if (!mounted || generation != loadGeneration) return;
       final nextObjectNames = result[0] as List<String>;
       final nextSummary = result[1] as ExecutivePaymentSummary;
+      final objectSelectionBecameInvalid =
+          selectedObjectName != null &&
+          !nextObjectNames.contains(selectedObjectName);
       setState(() {
         objectNames = nextObjectNames;
-        if (selectedObjectName != null &&
-            !nextObjectNames.contains(selectedObjectName)) {
-          selectedObjectName = null;
-        }
+        if (objectSelectionBecameInvalid) selectedObjectName = null;
         summary = nextSummary;
       });
+      if (objectSelectionBecameInvalid) {
+        unawaited(_load(forceRefresh: true));
+      }
     } catch (error) {
       if (!mounted || generation != loadGeneration) return;
       setState(() {
