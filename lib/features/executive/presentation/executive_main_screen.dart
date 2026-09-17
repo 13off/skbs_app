@@ -253,7 +253,10 @@ class _ExecutiveChatScreenState extends State<_ExecutiveChatScreen> {
               ] else ...[
                 const SizedBox(height: 14),
                 for (final message in messages) ...[
-                  _ExecutiveTaskMessageCard(message: message),
+                  _ExecutiveTaskMessageCard(
+                    key: ValueKey<String>(message.id),
+                    message: message,
+                  ),
                   const SizedBox(height: 12),
                 ],
               ],
@@ -472,6 +475,7 @@ class _ExecutiveFilterBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final balanceIsOverpayment = row.balance < 0;
     return PremiumWorkCard(
       radius: 22,
       padding: const EdgeInsets.all(12),
@@ -620,7 +624,7 @@ class _ExecutiveFilterButton extends StatelessWidget {
 class _ExecutiveTaskMessageCard extends StatelessWidget {
   final ExecutiveTaskMessage message;
 
-  const _ExecutiveTaskMessageCard({required this.message});
+  const _ExecutiveTaskMessageCard({super.key, required this.message});
 
   @override
   Widget build(BuildContext context) {
@@ -695,13 +699,14 @@ class _ExecutivePhotoGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final onePhoto = photos.length == 1;
+    final visibleCount = photos.length > 4 ? 4 : photos.length;
+    final onePhoto = visibleCount == 1;
     return ClipRRect(
       borderRadius: BorderRadius.circular(16),
       child: GridView.builder(
         shrinkWrap: true,
         physics: const NeverScrollableScrollPhysics(),
-        itemCount: photos.length,
+        itemCount: visibleCount,
         gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
           crossAxisCount: onePhoto ? 1 : 2,
           crossAxisSpacing: 3,
@@ -710,19 +715,39 @@ class _ExecutivePhotoGrid extends StatelessWidget {
         ),
         itemBuilder: (context, index) {
           final photo = photos[index];
+          final hiddenCount = photos.length - visibleCount;
+          final showMore = hiddenCount > 0 && index == visibleCount - 1;
           return InkWell(
             onTap: () => _openPhoto(context, index),
-            child: Image.network(
-              photo.signedUrl,
-              fit: BoxFit.cover,
-              errorBuilder: (_, _, _) => Container(
-                color: AppAdaptivePalette.surfaceSoft,
-                alignment: Alignment.center,
-                child: Icon(
-                  Icons.broken_image_outlined,
-                  color: AppAdaptivePalette.textMuted,
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                Image.network(
+                  photo.signedUrl,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, _, _) => Container(
+                    color: AppAdaptivePalette.surfaceSoft,
+                    alignment: Alignment.center,
+                    child: Icon(
+                      Icons.broken_image_outlined,
+                      color: AppAdaptivePalette.textMuted,
+                    ),
+                  ),
                 ),
-              ),
+                if (showMore)
+                  Container(
+                    color: Colors.black45,
+                    alignment: Alignment.center,
+                    child: Text(
+                      '+$hiddenCount',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 28,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                  ),
+              ],
             ),
           );
         },
@@ -931,7 +956,7 @@ class _ExecutivePaymentCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Остаток к выплате',
+                  balanceIsOverpayment ? 'Переплата' : 'Остаток к выплате',
                   style: TextStyle(
                     color: AppAdaptivePalette.textMuted,
                     fontSize: 12,
@@ -940,7 +965,7 @@ class _ExecutivePaymentCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 3),
                 Text(
-                  _formatMoney(row.balance),
+                  _formatMoney(row.balance.abs()),
                   style: TextStyle(
                     color: AppAdaptivePalette.textPrimary,
                     fontSize: 24,
