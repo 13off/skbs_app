@@ -1729,30 +1729,3 @@ String _formatMoney(num value) {
     (_) => ' ',
   );
 }
-),
-    '',
-  ).replaceAll('.', ',');
-}
-
-String _paymentTypeTitle(String value) {
-  switch (value) {
-    case 'advance':
-      return 'Аванс';
-    case 'salary':
-      return 'Зарплата';
-    case 'final':
-      return 'Окончательный расчёт';
-    case 'cash':
-      return 'Наличные';
-    default:
-      return value.trim().isEmpty ? 'Выплата' : value;
-  }
-}
-
-String _formatMoney(num value) {
-  final rounded = value.round().toString();
-  return rounded.replaceAllMapped(
-    RegExp(r'\B(?=(\d{3})+(?!\d))'),
-    (_) => ' ',
-  );
-}
