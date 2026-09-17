@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../app/app_adaptive_palette.dart';
 import '../../data/employee_repository.dart';
 import '../../data/object_repository.dart';
+import '../../models/app_user_profile.dart';
 import '../../models/employee.dart';
 import '../../widgets/app_page.dart';
 import '../../widgets/premium_ui_v2.dart';
@@ -43,6 +44,8 @@ class _RolePreviewScreenState extends State<RolePreviewScreen> {
   void selectProcurement() => RolePreviewController.showProcurement();
 
   void selectEstimator() => RolePreviewController.showEstimator();
+
+  void selectExecutive() => RolePreviewController.showExecutive();
 
   void showDirectoryLoadError(String message) {
     if (!mounted) return;
@@ -423,6 +426,13 @@ class _RolePreviewScreenState extends State<RolePreviewScreen> {
                 title: 'Руководитель',
                 selected: preview.isAdminMode,
                 onTap: selectAdmin,
+              ),
+              roleCard(
+                icon: Icons.dashboard_customize_rounded,
+                title: AppUserProfile.executiveRoleTitle,
+                selected: preview.isExecutiveMode,
+                onTap: selectExecutive,
+                badge: 'ЧАТ · ОПЛАТА',
               ),
               roleCard(
                 icon: Icons.developer_mode_rounded,
