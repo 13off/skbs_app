@@ -99,10 +99,14 @@ class ExecutivePanelRepository {
   }
 
   static Future<List<ExecutiveTaskMessage>> fetchTaskMessages({
+    required String companyId,
     required DateTime startDate,
     required DateTime endDate,
     String? objectName,
   }) async {
+    final cleanCompanyId = companyId.trim();
+    if (cleanCompanyId.isEmpty) return const <ExecutiveTaskMessage>[];
+
     final start = _cleanDate(startDate);
     final end = _cleanDate(endDate);
     final first = start.isAfter(end) ? end : start;
@@ -114,6 +118,7 @@ class ExecutivePanelRepository {
         .select(
           'id, task_date, object_name, axes, work, status, not_done_comment, created_by, created_at',
         )
+        .eq('company_id', cleanCompanyId)
         .eq('is_draft', false)
         .gte('task_date', _dateKey(first))
         .lte('task_date', _dateKey(last));
@@ -200,18 +205,20 @@ class ExecutivePanelRepository {
       final sections = <String>[];
       final axes = row['axes']?.toString().trim() ?? '';
       final work = row['work']?.toString().trim() ?? '';
+      final status = row['status']?.toString().trim() ?? '';
       final comment = row['not_done_comment']?.toString().trim() ?? '';
-      if (axes.isNotEmpty) sections.add(axes);
-      if (work.isNotEmpty) sections.add(work);
-      if (assignees.isNotEmpty) {
-        sections.add(
-          assignees
-              .map((item) => item.employeeName.trim())
-              .where((name) => name.isNotEmpty)
-              .join('\n'),
-        );
+      final assigneeNames = assignees
+          .map((item) => item.employeeName.trim())
+          .where((name) => name.isNotEmpty)
+          .toList(growable: false);
+
+      if (axes.isNotEmpty) sections.add('Оси / участок\n$axes');
+      if (work.isNotEmpty) sections.add('Работа\n$work');
+      if (assigneeNames.isNotEmpty) {
+        sections.add("Исполнители\n${assigneeNames.join('\n')}");
       }
-      if (comment.isNotEmpty) sections.add(comment);
+      if (status.isNotEmpty) sections.add('Статус\n$status');
+      if (comment.isNotEmpty) sections.add('Комментарий\n$comment');
 
       final creatorName = row['created_by']?.toString().trim() ?? '';
       return ExecutiveTaskMessage(
@@ -220,7 +227,7 @@ class ExecutivePanelRepository {
         createdAt: createdAt,
         objectName: row['object_name']?.toString().trim() ?? '',
         creatorName: creatorName.isEmpty ? 'Мастер' : creatorName,
-        status: row['status']?.toString().trim() ?? '',
+        status: status,
         text: sections.where((section) => section.isNotEmpty).join('\n\n'),
         photos:
             signedPhotosByTask[id] ?? const <ExecutiveTaskPhoto>[],
