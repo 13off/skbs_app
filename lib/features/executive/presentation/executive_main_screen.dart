@@ -475,7 +475,6 @@ class _ExecutiveFilterBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final balanceIsOverpayment = row.balance < 0;
     return PremiumWorkCard(
       radius: 22,
       padding: const EdgeInsets.all(12),
@@ -902,6 +901,7 @@ class _ExecutivePaymentCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final balanceIsOverpayment = row.balance < 0;
     return PremiumWorkCard(
       radius: 22,
       padding: const EdgeInsets.all(16),
