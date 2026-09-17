@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../../../app/app_adaptive_palette.dart';
 import '../../../data/app_cache_coordinator.dart';
@@ -268,6 +269,8 @@ class _ExecutiveChatScreenState extends State<_ExecutiveChatScreen> {
   }
 }
 
+enum _ExecutiveEmploymentFilter { all, active, fired }
+
 class _ExecutivePaymentsScreen extends StatefulWidget {
   const _ExecutivePaymentsScreen();
 
@@ -277,11 +280,18 @@ class _ExecutivePaymentsScreen extends StatefulWidget {
 }
 
 class _ExecutivePaymentsScreenState extends State<_ExecutivePaymentsScreen> {
+  final TextEditingController searchController = TextEditingController();
+  final Map<String, TextEditingController> shareAmountControllers =
+      <String, TextEditingController>{};
+
   late DateTimeRange period;
   StreamSubscription<AppDataChange>? dataChanges;
   String? selectedObjectName;
   List<String> objectNames = const <String>[];
   ExecutivePaymentSummary? summary;
+  _ExecutiveEmploymentFilter employmentFilter =
+      _ExecutiveEmploymentFilter.all;
+  bool editingForShare = false;
   bool isLoading = false;
   String? errorText;
   int loadGeneration = 0;
@@ -301,7 +311,142 @@ class _ExecutivePaymentsScreenState extends State<_ExecutivePaymentsScreen> {
   @override
   void dispose() {
     dataChanges?.cancel();
+    searchController.dispose();
+    _disposeShareControllers();
     super.dispose();
+  }
+
+  void _disposeShareControllers() {
+    for (final controller in shareAmountControllers.values) {
+      controller.dispose();
+    }
+    shareAmountControllers.clear();
+  }
+
+  void _resetShareDraft() {
+    _disposeShareControllers();
+    editingForShare = false;
+  }
+
+  String _rowKey(ExecutivePaymentBalance row) {
+    if (row.employeeIds.isNotEmpty) return row.employeeIds.join('|');
+    return row.employeeName.trim().toLowerCase();
+  }
+
+  List<ExecutivePaymentBalance> _visibleRows(ExecutivePaymentSummary? current) {
+    if (current == null) return const <ExecutivePaymentBalance>[];
+    final query = searchController.text.trim().toLowerCase();
+    return current.rows.where((row) {
+      final employmentMatches = switch (employmentFilter) {
+        _ExecutiveEmploymentFilter.all => true,
+        _ExecutiveEmploymentFilter.active => row.isActive,
+        _ExecutiveEmploymentFilter.fired => !row.isActive,
+      };
+      if (!employmentMatches) return false;
+      if (query.isEmpty) return true;
+      return row.employeeName.toLowerCase().contains(query) ||
+          row.objectTitle.toLowerCase().contains(query);
+    }).toList(growable: false);
+  }
+
+  double _actualTotal(Iterable<ExecutivePaymentBalance> rows) {
+    return rows.fold<double>(
+      0,
+      (sum, row) => sum + (row.balance > 0 ? row.balance : 0),
+    );
+  }
+
+  double _parseShareAmount(String value) {
+    final clean = value
+        .replaceAll(' ', '')
+        .replaceAll(',', '.')
+        .replaceAll(RegExp(r'[^0-9.\-]'), '');
+    return double.tryParse(clean) ?? 0;
+  }
+
+  double _shareAmountFor(ExecutivePaymentBalance row) {
+    final controller = shareAmountControllers[_rowKey(row)];
+    if (controller == null) return row.balance > 0 ? row.balance : 0;
+    return _parseShareAmount(controller.text);
+  }
+
+  double _shareTotal(Iterable<ExecutivePaymentBalance> rows) {
+    return rows.fold<double>(0, (sum, row) {
+      final amount = _shareAmountFor(row);
+      return sum + (amount > 0 ? amount : 0);
+    });
+  }
+
+  void _beginShareEdit() {
+    final current = summary;
+    if (current == null || current.rows.isEmpty) return;
+    _disposeShareControllers();
+    for (final row in current.rows) {
+      final initial = row.balance > 0 ? row.balance.round() : 0;
+      shareAmountControllers[_rowKey(row)] = TextEditingController(
+        text: initial.toString(),
+      );
+    }
+    setState(() => editingForShare = true);
+  }
+
+  void _cancelShareEdit() {
+    setState(_resetShareDraft);
+  }
+
+  String get _employmentTitle => switch (employmentFilter) {
+    _ExecutiveEmploymentFilter.all => 'Все сотрудники',
+    _ExecutiveEmploymentFilter.active => 'Действующие',
+    _ExecutiveEmploymentFilter.fired => 'Уволенные',
+  };
+
+  Future<void> _copyForShare(List<ExecutivePaymentBalance> rows) async {
+    final copyRows = <String>[];
+    var total = 0.0;
+    for (final row in rows) {
+      final amount = editingForShare
+          ? _shareAmountFor(row)
+          : (row.balance > 0 ? row.balance : 0);
+      if (amount <= 0.005) continue;
+      total += amount;
+      copyRows.add('${_formatMoney(amount)} — ${row.employeeName}');
+    }
+    if (copyRows.isEmpty) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Нет сумм для отправки')),
+      );
+      return;
+    }
+
+    final header =
+        'Остатки · ${selectedObjectName ?? 'Все объекты'} · '
+        '$_employmentTitle · ${_formatRange(period)}';
+    final text = <String>[
+      header,
+      '',
+      ...copyRows,
+      '',
+      'Итого: ${_formatMoney(total)}',
+    ].join('\n');
+    await Clipboard.setData(ClipboardData(text: text));
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Список скопирован')),
+    );
+  }
+
+  Future<void> _openDetails(ExecutivePaymentBalance row) async {
+    await showModalBottomSheet<void>(
+      context: context,
+      useSafeArea: true,
+      isScrollControlled: true,
+      backgroundColor: AppAdaptivePalette.background,
+      builder: (_) => _ExecutiveEmployeeDetailsSheet(
+        row: row,
+        period: period,
+      ),
+    );
   }
 
   void _handleDataChange(AppDataChange change) {
@@ -352,6 +497,7 @@ class _ExecutivePaymentsScreenState extends State<_ExecutivePaymentsScreen> {
         objectNames = nextObjectNames;
         if (objectSelectionBecameInvalid) selectedObjectName = null;
         summary = nextSummary;
+        _resetShareDraft();
       });
       if (objectSelectionBecameInvalid) {
         unawaited(_load(forceRefresh: true));
@@ -387,6 +533,7 @@ class _ExecutivePaymentsScreenState extends State<_ExecutivePaymentsScreen> {
         start: _dateOnly(picked.start),
         end: _dateOnly(picked.end),
       );
+      _resetShareDraft();
     });
     await _load(forceRefresh: true);
   }
@@ -397,13 +544,130 @@ class _ExecutivePaymentsScreenState extends State<_ExecutivePaymentsScreen> {
     if (normalized == selectedObjectName) return;
     setState(() {
       selectedObjectName = normalized;
+      _resetShareDraft();
     });
     await _load(forceRefresh: true);
+  }
+
+  void _changeEmploymentFilter(_ExecutiveEmploymentFilter value) {
+    if (value == employmentFilter) return;
+    setState(() {
+      employmentFilter = value;
+      _resetShareDraft();
+    });
+  }
+
+  Widget _paymentFilters() {
+    return PremiumWorkCard(
+      radius: 22,
+      padding: const EdgeInsets.all(14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          TextField(
+            controller: searchController,
+            onChanged: (_) => setState(() {}),
+            decoration: InputDecoration(
+              hintText: 'ФИО сотрудника',
+              prefixIcon: const Icon(Icons.search_rounded),
+              suffixIcon: searchController.text.isEmpty
+                  ? null
+                  : IconButton(
+                      onPressed: () {
+                        searchController.clear();
+                        setState(() {});
+                      },
+                      icon: const Icon(Icons.close_rounded),
+                    ),
+              filled: true,
+              fillColor: AppAdaptivePalette.inputSurface,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(16),
+                borderSide: BorderSide(color: AppAdaptivePalette.border),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(16),
+                borderSide: BorderSide(color: AppAdaptivePalette.border),
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              ChoiceChip(
+                label: const Text('Все'),
+                selected: employmentFilter == _ExecutiveEmploymentFilter.all,
+                onSelected: (_) =>
+                    _changeEmploymentFilter(_ExecutiveEmploymentFilter.all),
+              ),
+              ChoiceChip(
+                label: const Text('Действующие'),
+                selected:
+                    employmentFilter == _ExecutiveEmploymentFilter.active,
+                onSelected: (_) =>
+                    _changeEmploymentFilter(_ExecutiveEmploymentFilter.active),
+              ),
+              ChoiceChip(
+                label: const Text('Уволенные'),
+                selected:
+                    employmentFilter == _ExecutiveEmploymentFilter.fired,
+                onSelected: (_) =>
+                    _changeEmploymentFilter(_ExecutiveEmploymentFilter.fired),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _shareActions(List<ExecutivePaymentBalance> rows) {
+    if (!editingForShare) {
+      return Row(
+        children: [
+          Expanded(
+            child: OutlinedButton.icon(
+              onPressed: rows.isEmpty ? null : _beginShareEdit,
+              icon: const Icon(Icons.edit_note_rounded),
+              label: const Text('Редактировать для отправки'),
+            ),
+          ),
+          const SizedBox(width: 10),
+          IconButton.filledTonal(
+            tooltip: 'Скопировать как есть',
+            onPressed: rows.isEmpty ? null : () => _copyForShare(rows),
+            icon: const Icon(Icons.copy_rounded),
+          ),
+        ],
+      );
+    }
+
+    return Row(
+      children: [
+        Expanded(
+          child: FilledButton.icon(
+            onPressed: rows.isEmpty ? null : () => _copyForShare(rows),
+            icon: const Icon(Icons.copy_all_rounded),
+            label: const Text('Скопировать'),
+          ),
+        ),
+        const SizedBox(width: 10),
+        OutlinedButton(
+          onPressed: _cancelShareEdit,
+          child: const Text('Отмена'),
+        ),
+      ],
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     final current = summary;
+    final rows = _visibleRows(current);
+    final total = editingForShare ? _shareTotal(rows) : _actualTotal(rows);
+
     return Scaffold(
       backgroundColor: Colors.transparent,
       appBar: AppBar(
@@ -425,6 +689,8 @@ class _ExecutivePaymentsScreenState extends State<_ExecutivePaymentsScreen> {
                 onObjectChanged: _changeObject,
                 onPickPeriod: _pickPeriod,
               ),
+              const SizedBox(height: 12),
+              _paymentFilters(),
               if (isLoading) ...[
                 const SizedBox(height: 12),
                 const LinearProgressIndicator(),
@@ -437,16 +703,45 @@ class _ExecutivePaymentsScreenState extends State<_ExecutivePaymentsScreen> {
                 ),
               ] else if (current != null) ...[
                 const SizedBox(height: 14),
-                _ExecutivePaymentTotal(total: current.totalDue),
+                _shareActions(rows),
+                if (editingForShare) ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    'Изменения ниже нужны только для сообщения. '
+                    'Выплаты и начисления в системе не меняются.',
+                    style: TextStyle(
+                      color: AppAdaptivePalette.textMuted,
+                      fontSize: 12,
+                      height: 1.35,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
                 const SizedBox(height: 14),
-                if (!isLoading && current.rows.isEmpty)
+                _ExecutivePaymentTotal(
+                  total: total,
+                  count: rows.length,
+                  edited: editingForShare,
+                ),
+                const SizedBox(height: 14),
+                if (!isLoading && rows.isEmpty)
                   const _ExecutiveMessageState(
                     icon: Icons.check_circle_outline_rounded,
-                    text: 'По выбранным фильтрам остатка к выплате нет',
+                    text: 'По выбранным фильтрам остатка нет',
                   )
                 else
-                  for (final row in current.rows) ...[
-                    _ExecutivePaymentCard(row: row, period: period),
+                  for (final row in rows) ...[
+                    _ExecutivePaymentCard(
+                      row: row,
+                      period: period,
+                      onInfo: () => _openDetails(row),
+                      shareAmountController: editingForShare
+                          ? shareAmountControllers[_rowKey(row)]
+                          : null,
+                      onShareAmountChanged: editingForShare
+                          ? () => setState(() {})
+                          : null,
+                    ),
                     const SizedBox(height: 12),
                   ],
               ],
@@ -858,8 +1153,14 @@ class _ExecutivePhotoViewerState extends State<_ExecutivePhotoViewer> {
 
 class _ExecutivePaymentTotal extends StatelessWidget {
   final double total;
+  final int count;
+  final bool edited;
 
-  const _ExecutivePaymentTotal({required this.total});
+  const _ExecutivePaymentTotal({
+    required this.total,
+    required this.count,
+    required this.edited,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -870,7 +1171,7 @@ class _ExecutivePaymentTotal extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Всего к выплате',
+            edited ? 'Итого для отправки' : 'Всего к выплате',
             style: TextStyle(
               color: AppAdaptivePalette.textMuted,
               fontSize: 13,
@@ -887,6 +1188,15 @@ class _ExecutivePaymentTotal extends StatelessWidget {
               fontWeight: FontWeight.w900,
             ),
           ),
+          const SizedBox(height: 5),
+          Text(
+            'Сотрудников в списке: $count',
+            style: TextStyle(
+              color: AppAdaptivePalette.textMuted,
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
         ],
       ),
     );
@@ -896,8 +1206,17 @@ class _ExecutivePaymentTotal extends StatelessWidget {
 class _ExecutivePaymentCard extends StatelessWidget {
   final ExecutivePaymentBalance row;
   final DateTimeRange period;
+  final VoidCallback onInfo;
+  final TextEditingController? shareAmountController;
+  final VoidCallback? onShareAmountChanged;
 
-  const _ExecutivePaymentCard({required this.row, required this.period});
+  const _ExecutivePaymentCard({
+    required this.row,
+    required this.period,
+    required this.onInfo,
+    this.shareAmountController,
+    this.onShareAmountChanged,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -908,26 +1227,52 @@ class _ExecutivePaymentCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            row.employeeName,
-            style: TextStyle(
-              color: AppAdaptivePalette.textPrimary,
-              fontSize: 17,
-              fontWeight: FontWeight.w900,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            '${_formatRange(period)} · ${row.objectTitle}',
-            style: TextStyle(
-              color: AppAdaptivePalette.textMuted,
-              fontSize: 12,
-              fontWeight: FontWeight.w700,
-            ),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      row.employeeName,
+                      style: TextStyle(
+                        color: AppAdaptivePalette.textPrimary,
+                        fontSize: 17,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      '${row.isActive ? 'Действующий' : 'Уволен'} · '
+                      '${_formatRange(period)} · ${row.objectTitle}',
+                      style: TextStyle(
+                        color: AppAdaptivePalette.textMuted,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              IconButton.filledTonal(
+                tooltip: 'Информация о сотруднике',
+                onPressed: onInfo,
+                icon: const Icon(Icons.info_outline_rounded),
+              ),
+            ],
           ),
           const SizedBox(height: 16),
           Row(
             children: [
+              Expanded(
+                child: _ExecutiveMoneyCell(
+                  label: 'Смены',
+                  textValue: _formatShifts(row.shifts),
+                ),
+              ),
+              const SizedBox(width: 10),
               Expanded(
                 child: _ExecutiveMoneyCell(
                   label: 'Начислено',
@@ -944,35 +1289,318 @@ class _ExecutivePaymentCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 14),
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(
-              color: AppAdaptivePalette.surfaceSoft,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: AppAdaptivePalette.border),
+          if (shareAmountController != null)
+            TextField(
+              controller: shareAmountController,
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+                signed: true,
+              ),
+              onChanged: (_) => onShareAmountChanged?.call(),
+              decoration: InputDecoration(
+                labelText: 'Сумма для отправки',
+                helperText: 'Только копия — данные системы не изменятся',
+                suffixText: '₽',
+                filled: true,
+                fillColor: AppAdaptivePalette.inputSurface,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+              ),
+            )
+          else
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: AppAdaptivePalette.surfaceSoft,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: AppAdaptivePalette.border),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    balanceIsOverpayment ? 'Переплата' : 'Остаток к выплате',
+                    style: TextStyle(
+                      color: AppAdaptivePalette.textMuted,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    _formatMoney(row.balance.abs()),
+                    style: TextStyle(
+                      color: AppAdaptivePalette.textPrimary,
+                      fontSize: 24,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ],
+              ),
             ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  balanceIsOverpayment ? 'Переплата' : 'Остаток к выплате',
-                  style: TextStyle(
-                    color: AppAdaptivePalette.textMuted,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w800,
+        ],
+      ),
+    );
+  }
+}
+
+class _ExecutiveEmployeeDetailsSheet extends StatefulWidget {
+  final ExecutivePaymentBalance row;
+  final DateTimeRange period;
+
+  const _ExecutiveEmployeeDetailsSheet({
+    required this.row,
+    required this.period,
+  });
+
+  @override
+  State<_ExecutiveEmployeeDetailsSheet> createState() =>
+      _ExecutiveEmployeeDetailsSheetState();
+}
+
+class _ExecutiveEmployeeDetailsSheetState
+    extends State<_ExecutiveEmployeeDetailsSheet> {
+  late final Future<ExecutiveEmployeePaymentDetails> detailsFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    detailsFuture = ExecutivePanelRepository.fetchEmployeePaymentDetails(
+      balance: widget.row,
+      startDate: widget.period.start,
+      endDate: widget.period.end,
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final height = MediaQuery.sizeOf(context).height * 0.9;
+    return SizedBox(
+      height: height,
+      child: FutureBuilder<ExecutiveEmployeePaymentDetails>(
+        future: detailsFuture,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState != ConnectionState.done) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          if (snapshot.hasError || snapshot.data == null) {
+            return _ExecutiveMessageState(
+              icon: Icons.error_outline_rounded,
+              text: 'Не удалось загрузить подробности: ${snapshot.error}',
+            );
+          }
+          final details = snapshot.data!;
+          final attendance = details.attendance
+              .where((item) => item.shifts.abs() > 0.0001)
+              .toList(growable: false);
+
+          return ListView(
+            padding: const EdgeInsets.fromLTRB(18, 18, 18, 36),
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      details.employeeName,
+                      style: TextStyle(
+                        color: AppAdaptivePalette.textPrimary,
+                        fontSize: 22,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: () => Navigator.pop(context),
+                    icon: const Icon(Icons.close_rounded),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 4),
+              Text(
+                '${details.isActive ? 'Действующий' : 'Уволен'} · '
+                '${details.objectNames.isEmpty ? 'Все объекты' : details.objectNames.join(', ')}',
+                style: TextStyle(
+                  color: AppAdaptivePalette.textMuted,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(height: 16),
+              PremiumWorkCard(
+                radius: 22,
+                padding: const EdgeInsets.all(14),
+                child: Wrap(
+                  spacing: 16,
+                  runSpacing: 16,
+                  children: [
+                    _ExecutiveDetailMetric(
+                      label: 'Первая смена в системе',
+                      value: details.firstShiftDate == null
+                          ? 'Нет данных'
+                          : _formatDate(details.firstShiftDate!),
+                    ),
+                    _ExecutiveDetailMetric(
+                      label: 'Период',
+                      value: _formatRange(widget.period),
+                    ),
+                    _ExecutiveDetailMetric(
+                      label: 'Смены',
+                      value: _formatShifts(details.shifts),
+                    ),
+                    _ExecutiveDetailMetric(
+                      label: 'Начислено',
+                      value: _formatMoney(details.accrued),
+                    ),
+                    _ExecutiveDetailMetric(
+                      label: 'Выплачено',
+                      value: _formatMoney(details.paid),
+                    ),
+                    _ExecutiveDetailMetric(
+                      label: details.balance >= 0 ? 'Остаток' : 'Переплата',
+                      value: _formatMoney(details.balance.abs()),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 20),
+              Text(
+                'Табель за период',
+                style: TextStyle(
+                  color: AppAdaptivePalette.textPrimary,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              const SizedBox(height: 10),
+              if (attendance.isEmpty)
+                const _ExecutiveMessageState(
+                  icon: Icons.event_busy_outlined,
+                  text: 'В выбранном периоде смен нет',
+                )
+              else
+                PremiumWorkCard(
+                  radius: 22,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 6,
+                  ),
+                  child: Column(
+                    children: [
+                      for (var index = 0; index < attendance.length; index++) ...[
+                        ListTile(
+                          contentPadding: EdgeInsets.zero,
+                          leading: const Icon(Icons.event_available_outlined),
+                          title: Text(_formatDate(attendance[index].date)),
+                          trailing: Text(
+                            '${_formatShifts(attendance[index].shifts)} смен.',
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                        ),
+                        if (index != attendance.length - 1)
+                          Divider(color: AppAdaptivePalette.border),
+                      ],
+                    ],
                   ),
                 ),
-                const SizedBox(height: 3),
-                Text(
-                  _formatMoney(row.balance.abs()),
-                  style: TextStyle(
-                    color: AppAdaptivePalette.textPrimary,
-                    fontSize: 24,
-                    fontWeight: FontWeight.w900,
+              const SizedBox(height: 20),
+              Text(
+                'Выплаты за период',
+                style: TextStyle(
+                  color: AppAdaptivePalette.textPrimary,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              const SizedBox(height: 10),
+              if (details.payments.isEmpty)
+                const _ExecutiveMessageState(
+                  icon: Icons.payments_outlined,
+                  text: 'Выплат за выбранный расчётный период нет',
+                )
+              else
+                PremiumWorkCard(
+                  radius: 22,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 6,
+                  ),
+                  child: Column(
+                    children: [
+                      for (
+                        var index = 0;
+                        index < details.payments.length;
+                        index++
+                      ) ...[
+                        ListTile(
+                          contentPadding: EdgeInsets.zero,
+                          leading: const Icon(Icons.payments_outlined),
+                          title: Text(
+                            _paymentTypeTitle(
+                              details.payments[index].paymentType,
+                            ),
+                          ),
+                          subtitle: Text(
+                            <String>[
+                              _formatDate(details.payments[index].paymentDate),
+                              if (details.payments[index].comment.trim().isNotEmpty)
+                                details.payments[index].comment.trim(),
+                            ].join(' · '),
+                          ),
+                          trailing: Text(
+                            _formatMoney(details.payments[index].amount),
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                        ),
+                        if (index != details.payments.length - 1)
+                          Divider(color: AppAdaptivePalette.border),
+                      ],
+                    ],
                   ),
                 ),
-              ],
+            ],
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _ExecutiveDetailMetric extends StatelessWidget {
+  final String label;
+  final String value;
+
+  const _ExecutiveDetailMetric({
+    required this.label,
+    required this.value,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 145,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: TextStyle(
+              color: AppAdaptivePalette.textMuted,
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            value,
+            style: TextStyle(
+              color: AppAdaptivePalette.textPrimary,
+              fontSize: 15,
+              fontWeight: FontWeight.w900,
             ),
           ),
         ],
@@ -983,9 +1611,14 @@ class _ExecutivePaymentCard extends StatelessWidget {
 
 class _ExecutiveMoneyCell extends StatelessWidget {
   final String label;
-  final double value;
+  final double? value;
+  final String? textValue;
 
-  const _ExecutiveMoneyCell({required this.label, required this.value});
+  const _ExecutiveMoneyCell({
+    required this.label,
+    this.value,
+    this.textValue,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -1002,7 +1635,7 @@ class _ExecutiveMoneyCell extends StatelessWidget {
         ),
         const SizedBox(height: 3),
         Text(
-          _formatMoney(value),
+          textValue ?? _formatMoney(value ?? 0),
           style: TextStyle(
             color: AppAdaptivePalette.textPrimary,
             fontSize: 16,
@@ -1059,6 +1692,30 @@ String _formatRange(DateTimeRange value) {
     return _formatDate(value.start);
   }
   return '${_formatDate(value.start)} — ${_formatDate(value.end)}';
+}
+
+String _formatShifts(num value) {
+  final number = value.toDouble();
+  if (number == number.roundToDouble()) return number.round().toString();
+  return number.toStringAsFixed(2).replaceFirst(RegExp(r'0+$'), '').replaceFirst(
+    RegExp(r'\\.$'),
+    '',
+  ).replaceAll('.', ',');
+}
+
+String _paymentTypeTitle(String value) {
+  switch (value) {
+    case 'advance':
+      return 'Аванс';
+    case 'salary':
+      return 'Зарплата';
+    case 'final':
+      return 'Окончательный расчёт';
+    case 'cash':
+      return 'Наличные';
+    default:
+      return value.trim().isEmpty ? 'Выплата' : value;
+  }
 }
 
 String _formatMoney(num value) {
