@@ -1698,7 +1698,34 @@ String _formatShifts(num value) {
   final number = value.toDouble();
   if (number == number.roundToDouble()) return number.round().toString();
   return number.toStringAsFixed(2).replaceFirst(RegExp(r'0+$'), '').replaceFirst(
-    RegExp(r'\\.$'),
+    RegExp(r'\.,
+    '',
+  ).replaceAll('.', ',');
+}
+
+String _paymentTypeTitle(String value) {
+  switch (value) {
+    case 'advance':
+      return 'Аванс';
+    case 'salary':
+      return 'Зарплата';
+    case 'final':
+      return 'Окончательный расчёт';
+    case 'cash':
+      return 'Наличные';
+    default:
+      return value.trim().isEmpty ? 'Выплата' : value;
+  }
+}
+
+String _formatMoney(num value) {
+  final rounded = value.round().toString();
+  return rounded.replaceAllMapped(
+    RegExp(r'\B(?=(\d{3})+(?!\d))'),
+    (_) => ' ',
+  );
+}
+),
     '',
   ).replaceAll('.', ',');
 }
