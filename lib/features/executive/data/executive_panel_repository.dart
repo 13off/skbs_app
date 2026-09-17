@@ -37,13 +37,19 @@ class ExecutiveTaskMessage {
 
 class ExecutivePaymentBalance {
   final String employeeName;
+  final List<String> employeeIds;
   final List<String> objectNames;
+  final bool isActive;
+  final double shifts;
   final double accrued;
   final double paid;
 
   const ExecutivePaymentBalance({
     required this.employeeName,
+    required this.employeeIds,
     required this.objectNames,
+    required this.isActive,
+    required this.shifts,
     required this.accrued,
     required this.paid,
   });
@@ -55,6 +61,43 @@ class ExecutivePaymentBalance {
     if (objectNames.length == 1) return objectNames.first;
     return objectNames.join(', ');
   }
+}
+
+class ExecutiveEmployeeShift {
+  final DateTime date;
+  final double shifts;
+
+  const ExecutiveEmployeeShift({required this.date, required this.shifts});
+}
+
+class ExecutiveEmployeePaymentDetails {
+  final String employeeName;
+  final DateTime? firstShiftDate;
+  final DateTime startDate;
+  final DateTime endDate;
+  final List<String> objectNames;
+  final bool isActive;
+  final double shifts;
+  final double accrued;
+  final double paid;
+  final List<ExecutiveEmployeeShift> attendance;
+  final List<PaymentRecord> payments;
+
+  const ExecutiveEmployeePaymentDetails({
+    required this.employeeName,
+    required this.firstShiftDate,
+    required this.startDate,
+    required this.endDate,
+    required this.objectNames,
+    required this.isActive,
+    required this.shifts,
+    required this.accrued,
+    required this.paid,
+    required this.attendance,
+    required this.payments,
+  });
+
+  double get balance => accrued - paid;
 }
 
 class ExecutivePaymentSummary {
@@ -274,6 +317,8 @@ class ExecutivePanelRepository {
       }
       final employeeObject = row.employee.objectName.trim();
       if (employeeObject.isNotEmpty) draft.objectNames.add(employeeObject);
+      draft.isActive = draft.isActive || row.employee.isActive;
+      draft.shifts += row.totalShifts;
       draft.accrued += row.accrued;
     }
 
@@ -302,6 +347,114 @@ class ExecutivePanelRepository {
       startDate: first,
       endDate: last,
       rows: balances,
+    );
+  }
+
+  static Future<ExecutiveEmployeePaymentDetails> fetchEmployeePaymentDetails({
+    required ExecutivePaymentBalance balance,
+    required DateTime startDate,
+    required DateTime endDate,
+    bool forceRefresh = false,
+  }) async {
+    final start = _cleanDate(startDate);
+    final end = _cleanDate(endDate);
+    final first = start.isAfter(end) ? end : start;
+    final last = start.isAfter(end) ? start : end;
+    final employeeIds = balance.employeeIds
+        .map((id) => id.trim())
+        .where((id) => id.isNotEmpty)
+        .toSet()
+        .toList(growable: false);
+
+    if (employeeIds.isEmpty) {
+      return ExecutiveEmployeePaymentDetails(
+        employeeName: balance.employeeName,
+        firstShiftDate: null,
+        startDate: first,
+        endDate: last,
+        objectNames: balance.objectNames,
+        isActive: balance.isActive,
+        shifts: balance.shifts,
+        accrued: balance.accrued,
+        paid: balance.paid,
+        attendance: const <ExecutiveEmployeeShift>[],
+        payments: const <PaymentRecord>[],
+      );
+    }
+
+    final results = await Future.wait<dynamic>([
+      _client
+          .from('attendance')
+          .select('work_date, shifts')
+          .inFilter('employee_id', employeeIds)
+          .gte('work_date', _dateKey(first))
+          .lte('work_date', _dateKey(last))
+          .order('work_date', ascending: true),
+      _client
+          .from('attendance')
+          .select('work_date, shifts')
+          .inFilter('employee_id', employeeIds)
+          .gt('shifts', 0)
+          .order('work_date', ascending: true)
+          .limit(1),
+      PaymentRepository.fetchPaymentsForEmployees(
+        employeeIds,
+        forceRefresh: forceRefresh,
+      ),
+    ]);
+
+    final shiftsByDate = <String, double>{};
+    for (final raw in results[0] as List<dynamic>) {
+      if (raw is! Map) continue;
+      final row = Map<String, dynamic>.from(raw);
+      final dateText = row['work_date']?.toString().trim() ?? '';
+      if (dateText.isEmpty) continue;
+      final value = row['shifts'];
+      final shifts = value is num
+          ? value.toDouble()
+          : double.tryParse(value?.toString() ?? '') ?? 0;
+      shiftsByDate[dateText] = (shiftsByDate[dateText] ?? 0) + shifts;
+    }
+    final attendance = shiftsByDate.entries
+        .map((entry) {
+          final date = DateTime.tryParse(entry.key);
+          if (date == null) return null;
+          return ExecutiveEmployeeShift(
+            date: _cleanDate(date),
+            shifts: entry.value,
+          );
+        })
+        .whereType<ExecutiveEmployeeShift>()
+        .toList(growable: false)
+      ..sort((a, b) => a.date.compareTo(b.date));
+
+    DateTime? firstShiftDate;
+    final firstShiftRows = results[1] as List<dynamic>;
+    if (firstShiftRows.isNotEmpty && firstShiftRows.first is Map) {
+      final row = Map<String, dynamic>.from(firstShiftRows.first as Map);
+      firstShiftDate = DateTime.tryParse(
+        row['work_date']?.toString().trim() ?? '',
+      );
+      if (firstShiftDate != null) firstShiftDate = _cleanDate(firstShiftDate);
+    }
+
+    final payments = (results[2] as List<PaymentRecord>)
+        .where((payment) => _paymentBelongsToPeriod(payment, first, last))
+        .toList(growable: false)
+      ..sort((a, b) => b.paymentDate.compareTo(a.paymentDate));
+
+    return ExecutiveEmployeePaymentDetails(
+      employeeName: balance.employeeName,
+      firstShiftDate: firstShiftDate,
+      startDate: first,
+      endDate: last,
+      objectNames: balance.objectNames,
+      isActive: balance.isActive,
+      shifts: attendance.fold<double>(0, (sum, row) => sum + row.shifts),
+      accrued: balance.accrued,
+      paid: payments.fold<double>(0, (sum, row) => sum + row.amount),
+      attendance: attendance,
+      payments: payments,
     );
   }
 
@@ -334,6 +487,8 @@ class _ExecutivePaymentDraft {
   final String employeeName;
   final Set<String> employeeIds = <String>{};
   final Set<String> objectNames = <String>{};
+  bool isActive = false;
+  double shifts = 0;
   double accrued = 0;
   double paid = 0;
 
@@ -341,9 +496,13 @@ class _ExecutivePaymentDraft {
 
   ExecutivePaymentBalance toBalance() {
     final objects = objectNames.toList()..sort();
+    final ids = employeeIds.toList()..sort();
     return ExecutivePaymentBalance(
       employeeName: employeeName,
+      employeeIds: ids,
       objectNames: objects,
+      isActive: isActive,
+      shifts: shifts,
       accrued: accrued,
       paid: paid,
     );
