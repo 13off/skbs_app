@@ -1697,10 +1697,14 @@ String _formatRange(DateTimeRange value) {
 String _formatShifts(num value) {
   final number = value.toDouble();
   if (number == number.roundToDouble()) return number.round().toString();
-  return number.toStringAsFixed(2).replaceFirst(RegExp(r'0+$'), '').replaceFirst(
-    RegExp(r'\.,
-    '',
-  ).replaceAll('.', ',');
+  var text = number.toStringAsFixed(2);
+  while (text.endsWith('0')) {
+    text = text.substring(0, text.length - 1);
+  }
+  if (text.endsWith('.')) {
+    text = text.substring(0, text.length - 1);
+  }
+  return text.replaceAll('.', ',');
 }
 
 String _paymentTypeTitle(String value) {
