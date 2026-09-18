@@ -163,6 +163,7 @@ class _ExecutiveChatScreenState extends State<_ExecutiveChatScreen> {
           !nextObjectNames.contains(selectedObjectName);
       setState(() {
         objectNames = nextObjectNames;
+        archivedObjectNames = nextArchivedObjectNames;
         if (objectSelectionBecameInvalid) selectedObjectName = null;
         messages = nextMessages;
       });
@@ -332,6 +333,7 @@ class _ExecutivePaymentsScreenState extends State<_ExecutivePaymentsScreen> {
   StreamSubscription<AppDataChange>? dataChanges;
   String? selectedObjectName;
   List<String> objectNames = const <String>[];
+  Set<String> archivedObjectNames = const <String>{};
   ExecutivePaymentSummary? summary;
   _ExecutiveEmploymentFilter employmentFilter =
       _ExecutiveEmploymentFilter.all;
@@ -555,9 +557,11 @@ class _ExecutivePaymentsScreenState extends State<_ExecutivePaymentsScreen> {
         ),
       ]);
       if (!mounted || generation != loadGeneration) return;
+      final nextArchivedObjectNames =
+          (result[1] as List<String>).toSet();
       final nextObjectNames = <String>{
         ...(result[0] as List<String>),
-        ...(result[1] as List<String>),
+        ...nextArchivedObjectNames,
       }.toList()
         ..sort();
       final nextSummary = result[2] as ExecutivePaymentSummary;
@@ -839,6 +843,7 @@ class _ExecutivePaymentsScreenState extends State<_ExecutivePaymentsScreen> {
             children: [
               _ExecutiveFilterBar(
                 objectNames: objectNames,
+                archivedObjectNames: archivedObjectNames,
                 selectedObjectName: selectedObjectName,
                 periodText: _formatRange(period),
                 onObjectChanged: _changeObject,
@@ -910,6 +915,7 @@ class _ExecutivePaymentsScreenState extends State<_ExecutivePaymentsScreen> {
 
 class _ExecutiveFilterBar extends StatelessWidget {
   final List<String> objectNames;
+  final Set<String> archivedObjectNames;
   final String? selectedObjectName;
   final String periodText;
   final ValueChanged<String?> onObjectChanged;
@@ -917,6 +923,7 @@ class _ExecutiveFilterBar extends StatelessWidget {
 
   const _ExecutiveFilterBar({
     required this.objectNames,
+    this.archivedObjectNames = const <String>{},
     required this.selectedObjectName,
     required this.periodText,
     required this.onObjectChanged,
@@ -933,6 +940,7 @@ class _ExecutiveFilterBar extends StatelessWidget {
           final compact = constraints.maxWidth < 540;
           final objectButton = _ExecutiveObjectSelector(
             objectNames: objectNames,
+            archivedObjectNames: archivedObjectNames,
             selectedObjectName: selectedObjectName,
             onChanged: onObjectChanged,
           );
@@ -968,11 +976,13 @@ class _ExecutiveObjectSelector extends StatelessWidget {
   static const String allObjectsValue = '__all__';
 
   final List<String> objectNames;
+  final Set<String> archivedObjectNames;
   final String? selectedObjectName;
   final ValueChanged<String?> onChanged;
 
   const _ExecutiveObjectSelector({
     required this.objectNames,
+    this.archivedObjectNames = const <String>{},
     required this.selectedObjectName,
     required this.onChanged,
   });
@@ -990,12 +1000,21 @@ class _ExecutiveObjectSelector extends StatelessWidget {
           child: Text('Все объекты'),
         ),
         for (final name in objectNames)
-          PopupMenuItem<String>(value: name, child: Text(name)),
+          PopupMenuItem<String>(
+            value: name,
+            child: Text(
+              archivedObjectNames.contains(name) ? '$name (архив)' : name,
+            ),
+          ),
       ],
       child: _ExecutiveFilterButton(
         icon: Icons.apartment_rounded,
         label: 'Объект',
-        value: selectedObjectName ?? 'Все объекты',
+        value: selectedObjectName == null
+            ? 'Все объекты'
+            : archivedObjectNames.contains(selectedObjectName)
+            ? '$selectedObjectName (архив)'
+            : selectedObjectName!,
       ),
     );
   }
