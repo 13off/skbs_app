@@ -650,6 +650,10 @@ class _CompanyMemberEditorScreenState extends State<CompanyMemberEditorScreen> {
                   value: 'estimator',
                   child: Text('Инженер-сметчик'),
                 ),
+                DropdownMenuItem(
+                  value: 'executive',
+                  child: Text('Повелитель'),
+                ),
                 DropdownMenuItem(value: 'hr', child: Text('HR-менеджер')),
                 DropdownMenuItem(
                   value: 'procurement',
