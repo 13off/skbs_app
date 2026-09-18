@@ -125,6 +125,19 @@ void main() {
     );
   });
 
+  test('executive is visible but protected in permission center', () {
+    final migration = File(migrationPath).readAsStringSync();
+    final matrixModel = File(
+      'lib/features/developer/models/role_permission_matrix.dart',
+    ).readAsStringSync();
+
+    expect(
+      migration,
+      contains("jsonb_build_object('code','executive','title','Повелитель')"),
+    );
+    expect(matrixModel, contains("roleCode == 'executive'"));
+  });
+
   test('share editing is local clipboard state only', () {
     final screen = File(
       'lib/features/executive/presentation/executive_main_screen.dart',
