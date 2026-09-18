@@ -1160,6 +1160,21 @@ class _ExecutiveTaskMessageCard extends StatelessWidget {
 
   const _ExecutiveTaskMessageCard({super.key, required this.message});
 
+  Future<void> _copyMessage(BuildContext context) async {
+    final lines = <String>[
+      if (message.objectName.trim().isNotEmpty) message.objectName.trim(),
+      '${_formatDate(message.date)} · ${_formatTime(message.createdAt)}',
+      if (message.creatorName.trim().isNotEmpty) message.creatorName.trim(),
+      '',
+      message.text.trim().isEmpty ? 'Задача без описания' : message.text.trim(),
+    ];
+    await Clipboard.setData(ClipboardData(text: lines.join('\n')));
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Задача скопирована')),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final metadata = <String>[
@@ -1195,14 +1210,27 @@ class _ExecutiveTaskMessageCard extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 10),
-              Text(
-                metadata,
-                style: TextStyle(
-                  color: AppAdaptivePalette.textMuted,
-                  fontSize: 11,
-                  height: 1.3,
-                  fontWeight: FontWeight.w700,
-                ),
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      metadata,
+                      style: TextStyle(
+                        color: AppAdaptivePalette.textMuted,
+                        fontSize: 11,
+                        height: 1.3,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  IconButton(
+                    tooltip: 'Скопировать задачу',
+                    visualDensity: VisualDensity.compact,
+                    onPressed: () => _copyMessage(context),
+                    icon: const Icon(Icons.copy_rounded, size: 19),
+                  ),
+                ],
               ),
             ],
           ),
