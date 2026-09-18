@@ -705,6 +705,30 @@ class _CompanyMemberEditorScreenState extends State<CompanyMemberEditorScreen> {
                     : (value) => setState(() => objectId = value),
               ),
             ],
+            if (role == 'executive') ...[
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: AppAdaptivePalette.surfaceSoft,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: AppAdaptivePalette.border),
+                ),
+                child: const Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(Icons.visibility_outlined, size: 19),
+                    SizedBox(width: 9),
+                    Expanded(
+                      child: Text(
+                        'Повелитель: только «Чат» и «Оплата», без права '
+                        'изменять задачи, табель, сотрудников или выплаты.',
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
             if (errorText != null) ...[
               const SizedBox(height: 14),
               Text(
