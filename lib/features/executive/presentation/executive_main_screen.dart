@@ -181,6 +181,48 @@ class _ExecutiveChatScreenState extends State<_ExecutiveChatScreen> {
     }
   }
 
+  bool _periodMatches(DateTime start, DateTime end) {
+    return _dateOnly(period.start) == _dateOnly(start) &&
+        _dateOnly(period.end) == _dateOnly(end);
+  }
+
+  Future<void> _applyQuickPeriod(DateTime start, DateTime end) async {
+    final nextStart = _dateOnly(start);
+    final nextEnd = _dateOnly(end);
+    if (_periodMatches(nextStart, nextEnd)) return;
+    setState(() {
+      period = DateTimeRange(start: nextStart, end: nextEnd);
+    });
+    await _load();
+  }
+
+  Widget _quickPeriods() {
+    final today = _dateOnly(DateTime.now());
+    final yesterday = today.subtract(const Duration(days: 1));
+    final weekStart = today.subtract(const Duration(days: 6));
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: [
+        ChoiceChip(
+          label: const Text('Сегодня'),
+          selected: _periodMatches(today, today),
+          onSelected: (_) => _applyQuickPeriod(today, today),
+        ),
+        ChoiceChip(
+          label: const Text('Вчера'),
+          selected: _periodMatches(yesterday, yesterday),
+          onSelected: (_) => _applyQuickPeriod(yesterday, yesterday),
+        ),
+        ChoiceChip(
+          label: const Text('7 дней'),
+          selected: _periodMatches(weekStart, today),
+          onSelected: (_) => _applyQuickPeriod(weekStart, today),
+        ),
+      ],
+    );
+  }
+
   Future<void> _pickPeriod() async {
     final picked = await showDateRangePicker(
       context: context,
@@ -235,6 +277,8 @@ class _ExecutiveChatScreenState extends State<_ExecutiveChatScreen> {
                 onObjectChanged: _changeObject,
                 onPickPeriod: _pickPeriod,
               ),
+              const SizedBox(height: 10),
+              _quickPeriods(),
               if (isLoading) ...[
                 const SizedBox(height: 12),
                 const LinearProgressIndicator(),
@@ -1017,6 +1061,7 @@ class _ExecutiveTaskMessageCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final metadata = <String>[
       _formatDate(message.date),
+      _formatTime(message.createdAt),
       if (message.objectName.trim().isNotEmpty) message.objectName.trim(),
       message.creatorName,
     ].join(' · ');
@@ -1811,6 +1856,12 @@ String _formatDate(DateTime value) {
   final day = value.day.toString().padLeft(2, '0');
   final month = value.month.toString().padLeft(2, '0');
   return '$day.$month.${value.year}';
+}
+
+String _formatTime(DateTime value) {
+  final hour = value.hour.toString().padLeft(2, '0');
+  final minute = value.minute.toString().padLeft(2, '0');
+  return '$hour:$minute';
 }
 
 String _formatRange(DateTimeRange value) {
