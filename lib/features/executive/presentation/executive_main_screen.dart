@@ -291,6 +291,7 @@ class _ExecutivePaymentsScreenState extends State<_ExecutivePaymentsScreen> {
   ExecutivePaymentSummary? summary;
   _ExecutiveEmploymentFilter employmentFilter =
       _ExecutiveEmploymentFilter.all;
+  bool onlyDue = true;
   bool editingForShare = false;
   bool isLoading = false;
   String? errorText;
@@ -343,6 +344,7 @@ class _ExecutivePaymentsScreenState extends State<_ExecutivePaymentsScreen> {
         _ExecutiveEmploymentFilter.fired => !row.isActive,
       };
       if (!employmentMatches) return false;
+      if (onlyDue && row.balance <= 0.005) return false;
       if (query.isEmpty) return true;
       return row.employeeName.toLowerCase().contains(query) ||
           row.objectTitle.toLowerCase().contains(query);
@@ -415,7 +417,12 @@ class _ExecutivePaymentsScreenState extends State<_ExecutivePaymentsScreen> {
           : (row.balance > 0 ? row.balance : 0);
       if (amount <= 0.005) continue;
       total += amount;
-      copyRows.add('${_formatMoney(amount)} — ${row.employeeName}');
+      final objectSuffix = selectedObjectName == null
+          ? ' — ${row.objectTitle}'
+          : '';
+      copyRows.add(
+        '${_formatMoney(amount)} — ${row.employeeName}$objectSuffix',
+      );
     }
     if (copyRows.isEmpty) {
       if (!mounted) return;
@@ -682,6 +689,20 @@ class _ExecutivePaymentsScreenState extends State<_ExecutivePaymentsScreen> {
                     _changeEmploymentFilter(_ExecutiveEmploymentFilter.fired),
               ),
             ],
+          ),
+          const SizedBox(height: 10),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: FilterChip(
+              label: const Text('Только к выплате'),
+              selected: onlyDue,
+              onSelected: (value) {
+                setState(() {
+                  onlyDue = value;
+                  _resetShareDraft();
+                });
+              },
+            ),
           ),
         ],
       ),
@@ -1364,7 +1385,7 @@ class _ExecutivePaymentCard extends StatelessWidget {
               onChanged: (_) => onShareAmountChanged?.call(),
               decoration: InputDecoration(
                 labelText: 'Сумма для отправки',
-                helperText: 'Только копия — данные системы не изменятся',
+                helperText: 'Только копия. 0 = убрать из отправки',
                 suffixText: '₽',
                 filled: true,
                 fillColor: AppAdaptivePalette.inputSurface,
