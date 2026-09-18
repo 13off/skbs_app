@@ -138,6 +138,15 @@ void main() {
     expect(matrixModel, contains("roleCode == 'executive'"));
   });
 
+  test('payment filters keep archived objects available', () {
+    final screen = File(
+      'lib/features/executive/presentation/executive_main_screen.dart',
+    ).readAsStringSync();
+
+    expect(screen, contains('fetchArchivedObjectNames'));
+    expect(screen, contains('(архив)'));
+  });
+
   test('share editing is local clipboard state only', () {
     final screen = File(
       'lib/features/executive/presentation/executive_main_screen.dart',
