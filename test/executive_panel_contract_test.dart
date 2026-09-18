@@ -148,6 +148,16 @@ void main() {
     expect(matrixModel, contains("roleCode == 'executive'"));
   });
 
+  test('executive chat task messages can be copied', () {
+    final screen = File(
+      'lib/features/executive/presentation/executive_main_screen.dart',
+    ).readAsStringSync();
+
+    expect(screen, contains('Скопировать задачу'));
+    expect(screen, contains('Задача скопирована'));
+    expect(screen, contains('_copyMessage'));
+  });
+
   test('executive chat includes read-only work volumes', () {
     final repository = File(
       'lib/features/executive/data/executive_panel_repository.dart',
