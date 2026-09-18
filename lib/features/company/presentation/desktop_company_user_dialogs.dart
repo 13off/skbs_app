@@ -124,6 +124,7 @@ class _DesktopCompanyMemberDialogState
       'lawyer',
       'accountant',
       'estimator',
+      'executive',
       'hr',
       'procurement',
     };
@@ -424,6 +425,10 @@ class _DesktopCompanyMemberDialogState
                           child: Text('Инженер-сметчик'),
                         ),
                         DropdownMenuItem(
+                          value: 'executive',
+                          child: Text('Повелитель'),
+                        ),
+                        DropdownMenuItem(
                           value: 'hr',
                           child: Text('HR-менеджер'),
                         ),
@@ -470,6 +475,30 @@ class _DesktopCompanyMemberDialogState
                   ],
                 ],
               ),
+              if (role == 'executive') ...[
+                const SizedBox(height: 12),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(14),
+                    color: specialistSoft,
+                    border: Border.all(color: specialistLine),
+                  ),
+                  child: const Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Icon(Icons.visibility_outlined, size: 19),
+                      SizedBox(width: 9),
+                      Expanded(
+                        child: Text(
+                          'Повелитель: только «Чат» и «Оплата», без права '
+                          'изменять задачи, табель, сотрудников или выплаты.',
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
               if (errorText != null) ...[
                 const SizedBox(height: 14),
                 Text(

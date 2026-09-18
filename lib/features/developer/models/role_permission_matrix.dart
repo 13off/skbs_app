@@ -263,7 +263,7 @@ class RolePermissionCenter {
   }
 
   bool canEditRole(String roleCode) {
-    if (roleCode == 'owner') return false;
+    if (roleCode == 'owner' || roleCode == 'executive') return false;
     if (actorRole == 'admin') {
       return roleCode != 'admin' && roleCode != 'developer';
     }

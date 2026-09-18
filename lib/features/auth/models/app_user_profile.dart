@@ -1,4 +1,7 @@
 class AppUserProfile {
+  static const String executiveRole = 'executive';
+  static const String executiveRoleTitle = 'Повелитель';
+
   final String id;
   final String email;
   final String fullName;
@@ -34,6 +37,7 @@ class AppUserProfile {
   bool get isHr => role == 'hr';
   bool get isProcurement => role == 'procurement';
   bool get isEstimator => role == 'estimator';
+  bool get isExecutive => role == executiveRole;
 
   bool get isRolePreview => role != actualRole;
   bool get canPreviewRoles =>
@@ -62,6 +66,8 @@ class AppUserProfile {
         return 'Снабженец';
       case 'estimator':
         return 'Инженер-сметчик';
+      case executiveRole:
+        return executiveRoleTitle;
       default:
         return role;
     }

@@ -88,6 +88,7 @@ void main() {
     expect(center.canEditRole('owner'), isFalse);
     expect(center.canEditRole('developer'), isFalse);
     expect(center.canEditRole('admin'), isFalse);
+    expect(center.canEditRole('executive'), isFalse);
     expect(center.canEditRole('foreman'), isTrue);
   });
 

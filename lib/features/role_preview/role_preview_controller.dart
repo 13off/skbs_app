@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 
+import '../../models/app_user_profile.dart';
 import '../../navigation/navigation_session.dart';
 
 class RolePreviewState {
@@ -26,6 +27,7 @@ class RolePreviewState {
   bool get isHrMode => role == 'hr';
   bool get isProcurementMode => role == 'procurement';
   bool get isEstimatorMode => role == 'estimator';
+  bool get isExecutiveMode => role == AppUserProfile.executiveRole;
 
   String get title {
     switch (role) {
@@ -45,6 +47,8 @@ class RolePreviewState {
         return 'Снабженец';
       case 'estimator':
         return 'Инженер-сметчик';
+      case AppUserProfile.executiveRole:
+        return AppUserProfile.executiveRoleTitle;
       default:
         return 'Руководитель';
     }
@@ -103,6 +107,10 @@ class RolePreviewController {
     }
     if (savedRole == 'estimator') {
       state.value = const RolePreviewState(role: 'estimator');
+      return;
+    }
+    if (savedRole == AppUserProfile.executiveRole) {
+      state.value = const RolePreviewState(role: AppUserProfile.executiveRole);
       return;
     }
 
@@ -168,6 +176,12 @@ class RolePreviewController {
 
   static void showEstimator() {
     setState(const RolePreviewState(role: 'estimator'));
+  }
+
+  static void showExecutive() {
+    setState(
+      const RolePreviewState(role: AppUserProfile.executiveRole),
+    );
   }
 
   static void reset({bool clearPersisted = true}) {
