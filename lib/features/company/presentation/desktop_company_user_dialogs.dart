@@ -124,6 +124,7 @@ class _DesktopCompanyMemberDialogState
       'lawyer',
       'accountant',
       'estimator',
+      'executive',
       'hr',
       'procurement',
     };
@@ -422,6 +423,10 @@ class _DesktopCompanyMemberDialogState
                         DropdownMenuItem(
                           value: 'estimator',
                           child: Text('Инженер-сметчик'),
+                        ),
+                        DropdownMenuItem(
+                          value: 'executive',
+                          child: Text('Повелитель'),
                         ),
                         DropdownMenuItem(
                           value: 'hr',
