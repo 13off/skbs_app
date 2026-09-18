@@ -1678,7 +1678,7 @@ class _ExecutiveEmployeeDetailsSheetState
                 ),
               const SizedBox(height: 20),
               Text(
-                'Выплаты за период',
+                'Выплаты расчётного периода',
                 style: TextStyle(
                   color: AppAdaptivePalette.textPrimary,
                   fontSize: 18,
@@ -1715,7 +1715,13 @@ class _ExecutiveEmployeeDetailsSheetState
                           ),
                           subtitle: Text(
                             <String>[
-                              _formatDate(details.payments[index].paymentDate),
+                              'Расчёт: ${_formatYearMonth(
+                                details.payments[index].periodYear,
+                                details.payments[index].periodMonth,
+                              )}',
+                              'Выплачено: ${_formatDate(
+                                details.payments[index].paymentDate,
+                              )}',
                               if (details.payments[index].comment.trim().isNotEmpty)
                                 details.payments[index].comment.trim(),
                             ].join(' · '),
@@ -1856,6 +1862,11 @@ String _formatDate(DateTime value) {
   final day = value.day.toString().padLeft(2, '0');
   final month = value.month.toString().padLeft(2, '0');
   return '$day.$month.${value.year}';
+}
+
+String _formatYearMonth(int year, int month) {
+  if (year <= 0 || month < 1 || month > 12) return 'не указан';
+  return '${month.toString().padLeft(2, '0')}.$year';
 }
 
 String _formatTime(DateTime value) {
