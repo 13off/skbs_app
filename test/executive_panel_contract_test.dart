@@ -138,6 +138,27 @@ void main() {
     expect(matrixModel, contains("roleCode == 'executive'"));
   });
 
+  test('executive chat includes read-only work volumes', () {
+    final repository = File(
+      'lib/features/executive/data/executive_panel_repository.dart',
+    ).readAsStringSync();
+    final migration = File(
+      'supabase/migrations/20260918154500_allow_executive_read_work_orders.sql',
+    ).readAsStringSync();
+
+    expect(repository, contains("from('task_work_plans')"));
+    expect(repository, contains("from('task_work_days')"));
+    expect(repository, contains('Плановый объём'));
+    expect(repository, contains('Фактический объём'));
+    expect(repository, contains('Выполнение плана'));
+    expect(repository, contains('Без объёма'));
+    expect(migration, contains("'executive'"));
+    expect(migration, contains('for select'));
+    expect(migration, isNot(contains('for insert')));
+    expect(migration, isNot(contains('for update')));
+    expect(migration, isNot(contains('for delete')));
+  });
+
   test('payment filters keep archived objects available', () {
     final screen = File(
       'lib/features/executive/presentation/executive_main_screen.dart',
