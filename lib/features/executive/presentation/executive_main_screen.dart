@@ -336,7 +336,7 @@ class _ExecutivePaymentsScreenState extends State<_ExecutivePaymentsScreen> {
   List<ExecutivePaymentBalance> _visibleRows(ExecutivePaymentSummary? current) {
     if (current == null) return const <ExecutivePaymentBalance>[];
     final query = searchController.text.trim().toLowerCase();
-    return current.rows.where((row) {
+    final rows = current.rows.where((row) {
       final employmentMatches = switch (employmentFilter) {
         _ExecutiveEmploymentFilter.all => true,
         _ExecutiveEmploymentFilter.active => row.isActive,
@@ -346,7 +346,13 @@ class _ExecutivePaymentsScreenState extends State<_ExecutivePaymentsScreen> {
       if (query.isEmpty) return true;
       return row.employeeName.toLowerCase().contains(query) ||
           row.objectTitle.toLowerCase().contains(query);
-    }).toList(growable: false);
+    }).toList();
+    rows.sort((first, second) {
+      final balanceCompare = second.balance.compareTo(first.balance);
+      if (balanceCompare != 0) return balanceCompare;
+      return first.employeeName.compareTo(second.employeeName);
+    });
+    return rows;
   }
 
   double _actualTotal(Iterable<ExecutivePaymentBalance> rows) {
@@ -516,6 +522,28 @@ class _ExecutivePaymentsScreenState extends State<_ExecutivePaymentsScreen> {
     }
   }
 
+  Future<void> _applyPeriodPreset(int monthsBack) async {
+    final now = DateTime.now();
+    final end = DateTime(now.year, now.month + 1, 0);
+    final start = DateTime(now.year, now.month - monthsBack, 1);
+    setState(() {
+      period = DateTimeRange(start: start, end: end);
+      _resetShareDraft();
+    });
+    await _load(forceRefresh: true);
+  }
+
+  Future<void> _applyPreviousMonth() async {
+    final now = DateTime.now();
+    final start = DateTime(now.year, now.month - 1, 1);
+    final end = DateTime(now.year, now.month, 0);
+    setState(() {
+      period = DateTimeRange(start: start, end: end);
+      _resetShareDraft();
+    });
+    await _load(forceRefresh: true);
+  }
+
   Future<void> _pickPeriod() async {
     final picked = await showDateRangePicker(
       context: context,
@@ -592,6 +620,43 @@ class _ExecutivePaymentsScreenState extends State<_ExecutivePaymentsScreen> {
             ),
           ),
           const SizedBox(height: 12),
+          Text(
+            'Быстрый период',
+            style: TextStyle(
+              color: AppAdaptivePalette.textMuted,
+              fontSize: 12,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              ActionChip(
+                label: const Text('Этот месяц'),
+                onPressed: () => _applyPeriodPreset(0),
+              ),
+              ActionChip(
+                label: const Text('Прошлый месяц'),
+                onPressed: _applyPreviousMonth,
+              ),
+              ActionChip(
+                label: const Text('3 месяца'),
+                onPressed: () => _applyPeriodPreset(2),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          Text(
+            'Сотрудники',
+            style: TextStyle(
+              color: AppAdaptivePalette.textMuted,
+              fontSize: 12,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 8),
           Wrap(
             spacing: 8,
             runSpacing: 8,
@@ -1374,6 +1439,30 @@ class _ExecutiveEmployeeDetailsSheetState
     );
   }
 
+  Future<void> _copyEmployeeCalculation(
+    ExecutiveEmployeePaymentDetails details,
+  ) async {
+    final status = details.isActive ? 'Действующий' : 'Уволен';
+    final objectTitle = details.objectNames.isEmpty
+        ? 'Все объекты'
+        : details.objectNames.join(', ');
+    final balanceLabel = details.balance >= 0 ? 'Остаток' : 'Переплата';
+    final text = <String>[
+      details.employeeName,
+      '$status · $objectTitle',
+      'Период: ${_formatRange(widget.period)}',
+      'Смены: ${_formatShifts(details.shifts)}',
+      'Начислено: ${_formatMoney(details.accrued)}',
+      'Выплачено: ${_formatMoney(details.paid)}',
+      '$balanceLabel: ${_formatMoney(details.balance.abs())}',
+    ].join('\n');
+    await Clipboard.setData(ClipboardData(text: text));
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Расчёт сотрудника скопирован')),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final height = MediaQuery.sizeOf(context).height * 0.9;
@@ -1461,6 +1550,15 @@ class _ExecutiveEmployeeDetailsSheetState
                       value: _formatMoney(details.balance.abs()),
                     ),
                   ],
+                ),
+              ),
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: () => _copyEmployeeCalculation(details),
+                  icon: const Icon(Icons.copy_rounded),
+                  label: const Text('Скопировать расчёт сотрудника'),
                 ),
               ),
               const SizedBox(height: 20),
