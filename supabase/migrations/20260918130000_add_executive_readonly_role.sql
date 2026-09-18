@@ -139,6 +139,77 @@ alter table public.notification_role_preferences
     ]
   );
 
+-- Normalize every currently supported specialist explicitly. In particular,
+-- executive must never fall through to the legacy admin fallback.
+create or replace function public.normalize_notification_role(p_role text)
+returns text
+language sql
+immutable
+as $function$
+  select case lower(btrim(coalesce(p_role, '')))
+    when 'owner' then 'admin'
+    when 'developer' then 'admin'
+    when 'accounting' then 'accountant'
+    when 'accountant' then 'accountant'
+    when 'admin' then 'admin'
+    when 'foreman' then 'foreman'
+    when 'hr' then 'hr'
+    when 'lawyer' then 'lawyer'
+    when 'procurement' then 'procurement'
+    when 'estimator' then 'estimator'
+    when 'executive' then 'executive'
+    else 'admin'
+  end;
+$function$;
+
+-- Keep direct membership policies aligned with the RPC/edge-function whitelist.
+drop policy if exists company_memberships_insert_admins
+  on public.company_memberships;
+create policy company_memberships_insert_admins
+on public.company_memberships
+for insert
+to authenticated
+with check (
+  (select public.is_company_admin(company_id))
+  and role in (
+    'admin',
+    'developer',
+    'foreman',
+    'lawyer',
+    'accountant',
+    'hr',
+    'procurement',
+    'estimator',
+    'executive'
+  )
+  and public.company_can_add_member(company_id)
+);
+
+drop policy if exists company_memberships_update_admins
+  on public.company_memberships;
+create policy company_memberships_update_admins
+on public.company_memberships
+for update
+to authenticated
+using (
+  (select public.is_company_admin(company_id))
+  and role <> 'owner'
+)
+with check (
+  (select public.is_company_admin(company_id))
+  and role in (
+    'admin',
+    'developer',
+    'foreman',
+    'lawyer',
+    'accountant',
+    'hr',
+    'procurement',
+    'estimator',
+    'executive'
+  )
+);
+
 -- Executive is company-wide, like estimator. The permission matrix below
 -- still decides what can actually be read or changed.
 create or replace function public.current_user_has_object_scope(p_object_id uuid)
