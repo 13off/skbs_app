@@ -517,3 +517,122 @@ revoke all on function public.update_company_member_access(
 grant execute on function public.update_company_member_access(
   uuid, uuid, text, text, uuid
 ) to authenticated;
+
+
+-- Expose the protected executive role in the existing role-permission center.
+-- The save RPC intentionally continues to reject executive overrides, and the
+-- client also marks this role as non-editable.
+create or replace function public.get_role_permission_center()
+returns jsonb
+language plpgsql
+stable
+security definer
+set search_path = public, pg_temp
+as $function$
+declare
+  v_company_id uuid := public.current_user_company_id();
+  v_role text := public.current_user_role();
+begin
+  if v_company_id is null or not public.can_manage_role_permissions() then
+    raise exception 'Недостаточно прав для управления матрицей ролей';
+  end if;
+
+  return jsonb_build_object(
+    'actor_role', v_role,
+    'roles', jsonb_build_array(
+      jsonb_build_object('code','owner','title','Владелец'),
+      jsonb_build_object('code','admin','title','Администратор'),
+      jsonb_build_object('code','developer','title','Разработчик'),
+      jsonb_build_object('code','foreman','title','Прораб'),
+      jsonb_build_object('code','hr','title','HR-менеджер'),
+      jsonb_build_object('code','accountant','title','Бухгалтер'),
+      jsonb_build_object('code','lawyer','title','Юрист'),
+      jsonb_build_object('code','executive','title','Повелитель')
+    ),
+    'permissions', coalesce((
+      select jsonb_agg(jsonb_build_object(
+        'code', item.permission_code,
+        'category', item.category,
+        'title', item.title,
+        'description', item.description,
+        'supports_object_scope', item.supports_object_scope,
+        'sort_order', item.sort_order
+      ) order by item.sort_order, item.permission_code)
+      from public.permission_catalog item
+    ), '[]'::jsonb),
+    'defaults', coalesce((
+      select jsonb_agg(jsonb_build_object(
+        'role_code', item.role_code,
+        'permission_code', item.permission_code
+      ))
+      from public.role_permissions item
+      where item.role_code in (
+        'owner',
+        'admin',
+        'developer',
+        'foreman',
+        'hr',
+        'accountant',
+        'lawyer',
+        'executive'
+      )
+    ), '[]'::jsonb),
+    'company_overrides', coalesce((
+      select jsonb_agg(jsonb_build_object(
+        'role_code', item.role_code,
+        'permission_code', item.permission_code,
+        'is_allowed', item.is_allowed,
+        'updated_at', item.updated_at
+      ))
+      from public.company_role_permission_overrides item
+      where item.company_id = v_company_id
+    ), '[]'::jsonb),
+    'objects', coalesce((
+      select jsonb_agg(jsonb_build_object(
+        'id', item.id,
+        'name', item.name,
+        'is_active', item.is_active
+      ) order by item.is_active desc, lower(item.name))
+      from public.objects item
+      where item.company_id = v_company_id
+    ), '[]'::jsonb),
+    'object_overrides', coalesce((
+      select jsonb_agg(jsonb_build_object(
+        'object_id', item.object_id,
+        'role_code', item.role_code,
+        'permission_code', item.permission_code,
+        'is_allowed', item.is_allowed,
+        'updated_at', item.updated_at
+      ))
+      from public.object_role_permission_overrides item
+      where item.company_id = v_company_id
+    ), '[]'::jsonb),
+    'audit', coalesce((
+      select jsonb_agg(jsonb_build_object(
+        'id', item.id,
+        'object_id', item.object_id,
+        'scope', item.scope,
+        'role_code', item.role_code,
+        'permission_code', item.permission_code,
+        'action', item.action,
+        'before_allowed', item.before_allowed,
+        'after_allowed', item.after_allowed,
+        'actor_name', item.actor_name,
+        'created_at', item.created_at
+      ) order by item.created_at desc)
+      from (
+        select *
+        from public.role_permission_audit
+        where company_id = v_company_id
+        order by created_at desc
+        limit 80
+      ) item
+    ), '[]'::jsonb)
+  );
+end;
+$function$;
+
+revoke all on function public.get_role_permission_center()
+  from public, anon;
+grant execute on function public.get_role_permission_center()
+  to authenticated;
