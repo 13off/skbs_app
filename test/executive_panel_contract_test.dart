@@ -32,7 +32,7 @@ void main() {
       isNot(
         matches(
           RegExp(
-            r"\\.from\\([^)]*\\)\\s*\\.update\\(",
+            r"\.from\([^)]*\)\s*\.update\(",
             multiLine: true,
           ),
         ),
