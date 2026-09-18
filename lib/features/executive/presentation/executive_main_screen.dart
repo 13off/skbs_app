@@ -325,8 +325,15 @@ class _ExecutivePaymentsScreenState extends State<_ExecutivePaymentsScreen> {
   }
 
   void _resetShareDraft() {
-    _disposeShareControllers();
+    final staleControllers = shareAmountControllers.values.toList();
+    shareAmountControllers.clear();
     editingForShare = false;
+    if (staleControllers.isEmpty) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      for (final controller in staleControllers) {
+        controller.dispose();
+      }
+    });
   }
 
   String _rowKey(ExecutivePaymentBalance row) {
