@@ -178,6 +178,20 @@ void main() {
     expect(screen, contains('(архив)'));
   });
 
+  test('first shift uses all employee records for the same person', () {
+    final repository = File(
+      'lib/features/executive/data/executive_panel_repository.dart',
+    ).readAsStringSync();
+
+    expect(repository, contains('final String personId;'));
+    expect(repository, contains("eq('person_id', personId)"));
+    expect(repository, contains('firstShiftEmployeeIds'));
+    expect(
+      repository,
+      contains("inFilter('employee_id', employeeIds)"),
+    );
+  });
+
   test('payment list can be copied grouped by object', () {
     final screen = File(
       'lib/features/executive/presentation/executive_main_screen.dart',
