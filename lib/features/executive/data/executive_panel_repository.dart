@@ -37,6 +37,7 @@ class ExecutiveTaskMessage {
 
 class ExecutivePaymentBalance {
   final String employeeName;
+  final String personId;
   final List<String> employeeIds;
   final List<String> objectNames;
   final bool isActive;
@@ -46,6 +47,7 @@ class ExecutivePaymentBalance {
 
   const ExecutivePaymentBalance({
     required this.employeeName,
+    this.personId = '',
     required this.employeeIds,
     required this.objectNames,
     required this.isActive,
@@ -411,7 +413,7 @@ class ExecutivePanelRepository {
           : 'name:${_normalizedEmployeeKey(name)}';
       final draft = drafts.putIfAbsent(
         key,
-        () => _ExecutivePaymentDraft(name),
+        () => _ExecutivePaymentDraft(name, personId: personId),
       );
       final employeeId = row.employee.id?.trim() ?? '';
       if (employeeId.isNotEmpty) {
@@ -486,6 +488,19 @@ class ExecutivePanelRepository {
       );
     }
 
+    final firstShiftEmployeeIds = <String>{...employeeIds};
+    final personId = balance.personId.trim();
+    if (personId.isNotEmpty) {
+      final personEmployeeRows = await _client
+          .from('employees')
+          .select('id')
+          .eq('person_id', personId);
+      for (final raw in personEmployeeRows) {
+        final id = raw['id']?.toString().trim() ?? '';
+        if (id.isNotEmpty) firstShiftEmployeeIds.add(id);
+      }
+    }
+
     final results = await Future.wait<dynamic>([
       _client
           .from('attendance')
@@ -497,7 +512,10 @@ class ExecutivePanelRepository {
       _client
           .from('attendance')
           .select('work_date, shifts')
-          .inFilter('employee_id', employeeIds)
+          .inFilter(
+            'employee_id',
+            firstShiftEmployeeIds.toList(growable: false),
+          )
           .gt('shifts', 0)
           .order('work_date', ascending: true)
           .limit(1),
@@ -589,6 +607,7 @@ class ExecutivePanelRepository {
 
 class _ExecutivePaymentDraft {
   final String employeeName;
+  final String personId;
   final Set<String> employeeIds = <String>{};
   final Set<String> objectNames = <String>{};
   bool isActive = false;
@@ -596,13 +615,14 @@ class _ExecutivePaymentDraft {
   double accrued = 0;
   double paid = 0;
 
-  _ExecutivePaymentDraft(this.employeeName);
+  _ExecutivePaymentDraft(this.employeeName, {this.personId = ''});
 
   ExecutivePaymentBalance toBalance() {
     final objects = objectNames.toList()..sort();
     final ids = employeeIds.toList()..sort();
     return ExecutivePaymentBalance(
       employeeName: employeeName,
+      personId: personId,
       employeeIds: ids,
       objectNames: objects,
       isActive: isActive,
