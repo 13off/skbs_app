@@ -472,8 +472,11 @@ class _ExecutivePaymentsScreenState extends State<_ExecutivePaymentsScreen> {
     _ExecutiveEmploymentFilter.fired => 'Уволенные',
   };
 
-  Future<void> _copyForShare(List<ExecutivePaymentBalance> rows) async {
-    final copyRows = <String>[];
+  Future<void> _copyForShare(
+    List<ExecutivePaymentBalance> rows, {
+    bool groupByObject = false,
+  }) async {
+    final entries = <({ExecutivePaymentBalance row, double amount})>[];
     var total = 0.0;
     for (final row in rows) {
       final amount = editingForShare
@@ -481,14 +484,9 @@ class _ExecutivePaymentsScreenState extends State<_ExecutivePaymentsScreen> {
           : (row.balance > 0 ? row.balance : 0);
       if (amount <= 0.005) continue;
       total += amount;
-      final objectSuffix = selectedObjectName == null
-          ? ' — ${row.objectTitle}'
-          : '';
-      copyRows.add(
-        '${_formatMoney(amount)} — ${row.employeeName}$objectSuffix',
-      );
+      entries.add((row: row, amount: amount));
     }
-    if (copyRows.isEmpty) {
+    if (entries.isEmpty) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Нет сумм для отправки')),
@@ -499,17 +497,61 @@ class _ExecutivePaymentsScreenState extends State<_ExecutivePaymentsScreen> {
     final header =
         'Остатки · ${selectedObjectName ?? 'Все объекты'} · '
         '$_employmentTitle · ${_formatRange(period)}';
-    final text = <String>[
-      header,
-      '',
-      ...copyRows,
-      '',
-      'Итого: ${_formatMoney(total)}',
-    ].join('\n');
-    await Clipboard.setData(ClipboardData(text: text));
+    final lines = <String>[header, ''];
+
+    if (groupByObject && selectedObjectName == null) {
+      final groups =
+          <String, List<({ExecutivePaymentBalance row, double amount})>>{};
+      for (final entry in entries) {
+        final objectTitle = entry.row.objectTitle.trim().isEmpty
+            ? 'Без объекта'
+            : entry.row.objectTitle.trim();
+        groups.putIfAbsent(objectTitle, () => []).add(entry);
+      }
+      final objectTitles = groups.keys.toList()
+        ..sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
+      for (var index = 0; index < objectTitles.length; index++) {
+        final objectTitle = objectTitles[index];
+        final group = groups[objectTitle]!;
+        final objectTotal = group.fold<double>(
+          0,
+          (sum, entry) => sum + entry.amount,
+        );
+        lines.add(objectTitle);
+        for (final entry in group) {
+          lines.add(
+            '${_formatMoney(entry.amount)} — ${entry.row.employeeName}',
+          );
+        }
+        lines.add('Итого по объекту: ${_formatMoney(objectTotal)}');
+        if (index != objectTitles.length - 1) lines.add('');
+      }
+    } else {
+      for (final entry in entries) {
+        final objectSuffix = selectedObjectName == null
+            ? ' — ${entry.row.objectTitle}'
+            : '';
+        lines.add(
+          '${_formatMoney(entry.amount)} — '
+          '${entry.row.employeeName}$objectSuffix',
+        );
+      }
+    }
+
+    lines
+      ..add('')
+      ..add('Итого: ${_formatMoney(total)}');
+
+    await Clipboard.setData(ClipboardData(text: lines.join('\n')));
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Список скопирован')),
+      SnackBar(
+        content: Text(
+          groupByObject && selectedObjectName == null
+              ? 'Список по объектам скопирован'
+              : 'Список скопирован',
+        ),
+      ),
     );
   }
 
@@ -876,6 +918,18 @@ class _ExecutivePaymentsScreenState extends State<_ExecutivePaymentsScreen> {
               ] else if (current != null) ...[
                 const SizedBox(height: 14),
                 _shareActions(rows),
+                if (selectedObjectName == null && rows.isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: TextButton.icon(
+                      onPressed: () =>
+                          _copyForShare(rows, groupByObject: true),
+                      icon: const Icon(Icons.account_tree_outlined),
+                      label: const Text('Скопировать по объектам'),
+                    ),
+                  ),
+                ],
                 if (editingForShare) ...[
                   const SizedBox(height: 8),
                   Text(
