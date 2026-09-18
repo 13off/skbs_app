@@ -712,6 +712,17 @@ class _ExecutivePaymentsScreenState extends State<_ExecutivePaymentsScreen> {
               ),
             ],
           ),
+          const SizedBox(height: 8),
+          Text(
+            'Остаток считается по сменам выбранного периода и выплатам, '
+            'привязанным к его расчётным месяцам.',
+            style: TextStyle(
+              color: AppAdaptivePalette.textMuted,
+              fontSize: 11,
+              height: 1.35,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
           const SizedBox(height: 14),
           Text(
             'Сотрудники',
