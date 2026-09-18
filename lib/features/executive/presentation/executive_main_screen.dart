@@ -544,6 +544,9 @@ class _ExecutivePaymentsScreenState extends State<_ExecutivePaymentsScreen> {
     try {
       final result = await Future.wait<dynamic>([
         ObjectRepository.fetchObjectNames(forceRefresh: forceObjects),
+        ObjectRepository.fetchArchivedObjectNames(
+          forceRefresh: forceObjects,
+        ),
         ExecutivePanelRepository.fetchPaymentSummary(
           startDate: period.start,
           endDate: period.end,
@@ -552,8 +555,12 @@ class _ExecutivePaymentsScreenState extends State<_ExecutivePaymentsScreen> {
         ),
       ]);
       if (!mounted || generation != loadGeneration) return;
-      final nextObjectNames = result[0] as List<String>;
-      final nextSummary = result[1] as ExecutivePaymentSummary;
+      final nextObjectNames = <String>{
+        ...(result[0] as List<String>),
+        ...(result[1] as List<String>),
+      }.toList()
+        ..sort();
+      final nextSummary = result[2] as ExecutivePaymentSummary;
       final objectSelectionBecameInvalid =
           selectedObjectName != null &&
           !nextObjectNames.contains(selectedObjectName);
