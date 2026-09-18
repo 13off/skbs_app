@@ -107,6 +107,7 @@ class _ExecutiveChatScreenState extends State<_ExecutiveChatScreen> {
   StreamSubscription<AppDataChange>? dataChanges;
   String? selectedObjectName;
   List<String> objectNames = const <String>[];
+  Set<String> archivedObjectNames = const <String>{};
   List<ExecutiveTaskMessage> messages = const <ExecutiveTaskMessage>[];
   bool isLoading = false;
   String? errorText;
@@ -148,6 +149,9 @@ class _ExecutiveChatScreenState extends State<_ExecutiveChatScreen> {
     try {
       final result = await Future.wait<dynamic>([
         ObjectRepository.fetchObjectNames(forceRefresh: forceObjects),
+        ObjectRepository.fetchArchivedObjectNames(
+          forceRefresh: forceObjects,
+        ),
         ExecutivePanelRepository.fetchTaskMessages(
           companyId: widget.companyId,
           startDate: period.start,
@@ -156,13 +160,20 @@ class _ExecutiveChatScreenState extends State<_ExecutiveChatScreen> {
         ),
       ]);
       if (!mounted || generation != loadGeneration) return;
-      final nextObjectNames = result[0] as List<String>;
-      final nextMessages = result[1] as List<ExecutiveTaskMessage>;
+      final nextArchivedObjectNames =
+          (result[1] as List<String>).toSet();
+      final nextObjectNames = <String>{
+        ...(result[0] as List<String>),
+        ...nextArchivedObjectNames,
+      }.toList()
+        ..sort();
+      final nextMessages = result[2] as List<ExecutiveTaskMessage>;
       final objectSelectionBecameInvalid =
           selectedObjectName != null &&
           !nextObjectNames.contains(selectedObjectName);
       setState(() {
         objectNames = nextObjectNames;
+        archivedObjectNames = nextArchivedObjectNames;
         if (objectSelectionBecameInvalid) selectedObjectName = null;
         messages = nextMessages;
       });
@@ -272,6 +283,7 @@ class _ExecutiveChatScreenState extends State<_ExecutiveChatScreen> {
             children: [
               _ExecutiveFilterBar(
                 objectNames: objectNames,
+                archivedObjectNames: archivedObjectNames,
                 selectedObjectName: selectedObjectName,
                 periodText: _formatRange(period),
                 onObjectChanged: _changeObject,
