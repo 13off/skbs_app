@@ -357,6 +357,7 @@ class _CompanyMemberEditorScreenState extends State<CompanyMemberEditorScreen> {
       'lawyer',
       'accountant',
       'estimator',
+      'executive',
       'hr',
       'procurement',
     };
