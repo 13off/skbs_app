@@ -304,7 +304,10 @@ class ExecutivePanelRepository {
     for (final row in periodRows) {
       final name = row.employee.name.trim();
       if (name.isEmpty) continue;
-      final key = _normalizedEmployeeKey(name);
+      final personId = row.employee.personId?.trim() ?? '';
+      final key = personId.isNotEmpty
+          ? 'person:$personId'
+          : 'name:${_normalizedEmployeeKey(name)}';
       final draft = drafts.putIfAbsent(
         key,
         () => _ExecutivePaymentDraft(name),
