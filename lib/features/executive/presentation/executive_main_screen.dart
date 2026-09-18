@@ -163,7 +163,6 @@ class _ExecutiveChatScreenState extends State<_ExecutiveChatScreen> {
           !nextObjectNames.contains(selectedObjectName);
       setState(() {
         objectNames = nextObjectNames;
-        archivedObjectNames = nextArchivedObjectNames;
         if (objectSelectionBecameInvalid) selectedObjectName = null;
         messages = nextMessages;
       });
@@ -570,6 +569,7 @@ class _ExecutivePaymentsScreenState extends State<_ExecutivePaymentsScreen> {
           !nextObjectNames.contains(selectedObjectName);
       setState(() {
         objectNames = nextObjectNames;
+        archivedObjectNames = nextArchivedObjectNames;
         if (objectSelectionBecameInvalid) selectedObjectName = null;
         summary = nextSummary;
         _resetShareDraft();
