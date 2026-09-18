@@ -481,8 +481,8 @@ class _DesktopCompanyMemberDialogState
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(14),
-                    color: specialistSurfaceMuted,
-                    border: Border.all(color: specialistBorder),
+                    color: specialistSoft,
+                    border: Border.all(color: specialistLine),
                   ),
                   child: const Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
