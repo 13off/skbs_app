@@ -141,6 +141,35 @@ class ExecutivePanelRepository {
     return value.trim().toLowerCase().replaceAll(RegExp(r'\s+'), ' ');
   }
 
+  static String _formatTaskQuantity(num value) {
+    final fixed = value.toDouble().toStringAsFixed(3);
+    var normalized = fixed;
+    while (normalized.contains('.') && normalized.endsWith('0')) {
+      normalized = normalized.substring(0, normalized.length - 1);
+    }
+    if (normalized.endsWith('.')) {
+      normalized = normalized.substring(0, normalized.length - 1);
+    }
+    final parts = normalized.split('.');
+    final integerPart = parts.first.replaceAllMapped(
+      RegExp(r'\B(?=(\d{3})+(?!\d))'),
+      (_) => ' ',
+    );
+    if (parts.length == 1) return integerPart;
+    return '$integerPart,${parts[1]}';
+  }
+
+  static double? _taskCompletionPercent(double? planned, double actual) {
+    if (planned == null ||
+        !planned.isFinite ||
+        planned <= 0 ||
+        !actual.isFinite ||
+        actual < 0) {
+      return null;
+    }
+    return (actual / planned * 1000).round() / 10;
+  }
+
   static Future<List<ExecutiveTaskMessage>> fetchTaskMessages({
     required String companyId,
     required DateTime startDate,
@@ -192,6 +221,14 @@ class ExecutivePanelRepository {
           )
           .inFilter('task_id', taskIds)
           .order('created_at', ascending: true),
+      _client
+          .from('task_work_plans')
+          .select('task_id, planned_quantity, unit, without_volume')
+          .inFilter('task_id', taskIds),
+      _client
+          .from('task_work_days')
+          .select('task_id, quantity, unit')
+          .inFilter('task_id', taskIds),
     ]);
 
     final assigneesByTask = <String, List<TaskAssigneeData>>{};
@@ -215,6 +252,34 @@ class ExecutivePanelRepository {
       photosByTask
           .putIfAbsent(photo.taskId, () => <TaskPhotoData>[])
           .add(photo);
+    }
+
+    final workPlanByTask = <String, Map<String, dynamic>>{};
+    for (final raw in detailResults[2] as List<dynamic>) {
+      if (raw is! Map) continue;
+      final row = Map<String, dynamic>.from(raw);
+      final taskId = row['task_id']?.toString().trim() ?? '';
+      if (taskId.isEmpty) continue;
+      workPlanByTask[taskId] = row;
+    }
+
+    final actualVolumeByTask = <String, double>{};
+    final actualUnitByTask = <String, String>{};
+    for (final raw in detailResults[3] as List<dynamic>) {
+      if (raw is! Map) continue;
+      final row = Map<String, dynamic>.from(raw);
+      final taskId = row['task_id']?.toString().trim() ?? '';
+      if (taskId.isEmpty) continue;
+      final quantity = (row['quantity'] as num?)?.toDouble();
+      if (quantity != null && quantity.isFinite) {
+        actualVolumeByTask.update(
+          taskId,
+          (value) => value + quantity,
+          ifAbsent: () => quantity,
+        );
+      }
+      final unit = row['unit']?.toString().trim() ?? '';
+      if (unit.isNotEmpty) actualUnitByTask.putIfAbsent(taskId, () => unit);
     }
 
     final signedPhotosByTask = <String, List<ExecutiveTaskPhoto>>{};
@@ -260,6 +325,42 @@ class ExecutivePanelRepository {
       if (assigneeNames.isNotEmpty) {
         sections.add("Исполнители\n${assigneeNames.join('\n')}");
       }
+
+      final plan = workPlanByTask[id];
+      final withoutVolume = plan?['without_volume'] == true;
+      final planned = (plan?['planned_quantity'] as num?)?.toDouble();
+      final actual = actualVolumeByTask[id];
+      final unit = (plan?['unit']?.toString().trim().isNotEmpty ?? false)
+          ? plan!['unit'].toString().trim()
+          : (actualUnitByTask[id] ?? '');
+      if (withoutVolume) {
+        sections.add('Объём\nБез объёма');
+      } else {
+        if (planned != null && planned.isFinite) {
+          sections.add(
+            'Плановый объём\n'
+            '${_formatTaskQuantity(planned)}'
+            '${unit.isEmpty ? '' : ' $unit'}',
+          );
+        }
+        if (actual != null && actual.isFinite) {
+          sections.add(
+            'Фактический объём\n'
+            '${_formatTaskQuantity(actual)}'
+            '${unit.isEmpty ? '' : ' $unit'}',
+          );
+        }
+        if (actual != null) {
+          final completion = _taskCompletionPercent(planned, actual);
+          if (completion != null) {
+            sections.add(
+              'Выполнение плана\n'
+              '${_formatTaskQuantity(completion)}%',
+            );
+          }
+        }
+      }
+
       if (status.isNotEmpty) sections.add('Статус\n$status');
       if (comment.isNotEmpty) sections.add('Комментарий\n$comment');
 
