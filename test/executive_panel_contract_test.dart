@@ -147,6 +147,16 @@ void main() {
     expect(screen, contains('(архив)'));
   });
 
+  test('payment list can be copied grouped by object', () {
+    final screen = File(
+      'lib/features/executive/presentation/executive_main_screen.dart',
+    ).readAsStringSync();
+
+    expect(screen, contains('Скопировать по объектам'));
+    expect(screen, contains('Итого по объекту:'));
+    expect(screen, contains('groupByObject'));
+  });
+
   test('share editing is local clipboard state only', () {
     final screen = File(
       'lib/features/executive/presentation/executive_main_screen.dart',
