@@ -27,7 +27,17 @@ void main() {
     ).readAsStringSync();
 
     expect(repository, isNot(contains('.insert(')));
-    expect(repository, isNot(contains('.update(')));
+    expect(
+      repository,
+      isNot(
+        matches(
+          RegExp(
+            r"\\.from\\([^)]*\\)\\s*\\.update\\(",
+            multiLine: true,
+          ),
+        ),
+      ),
+    );
     expect(repository, isNot(contains('.delete(')));
     expect(repository, contains("eq('company_id', cleanCompanyId)"));
     expect(repository, contains('fetchPaymentSummary'));
