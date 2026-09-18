@@ -118,6 +118,7 @@ Deno.serve(async (request: Request) => {
       "hr",
       "procurement",
       "estimator",
+      "executive",
     ]);
 
     if (!companyId || !email || !email.includes("@")) {
