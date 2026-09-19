@@ -19,7 +19,11 @@ void main() {
     expect(method, contains('final data = await Future.wait<dynamic>(['));
     expect(method, contains('EmployeeRepository.fetchEmployees('));
     expect(method, contains('_fetchAttendanceRows('));
-    expect(method, contains('final employees = data[0] as List<Employee>;'));
+    expect(
+      method,
+      contains("final employees = (data[0] as List<Employee>)"),
+    );
+    expect(method, contains('!employee.timesheetExcluded'));
     expect(
       method,
       contains('final rows = data[1] as List<Map<String, dynamic>>;'),
@@ -45,7 +49,11 @@ void main() {
       expect(method, contains('EmployeeRepository.fetchEmployees('));
       expect(method, contains('_fetchAttendanceRows('));
       expect(method, contains(".from('payments')"));
-      expect(method, contains('final employees = data[0] as List<Employee>;'));
+      expect(
+      method,
+      contains("final employees = (data[0] as List<Employee>)"),
+    );
+    expect(method, contains('!employee.timesheetExcluded'));
       expect(
         method,
         contains(
