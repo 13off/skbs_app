@@ -34,6 +34,8 @@ class _EmployeePrivateDataScreenState extends State<EmployeePrivateDataScreen> {
   final clothesSizeController = TextEditingController();
   final shoeSizeController = TextEditingController();
   final bankNameController = TextEditingController();
+  final bankTransferPhoneController = TextEditingController();
+  final bankRecipientNameController = TextEditingController();
   final bankCardController = TextEditingController();
   final bankAccountController = TextEditingController();
   final bankBikController = TextEditingController();
@@ -85,6 +87,8 @@ class _EmployeePrivateDataScreenState extends State<EmployeePrivateDataScreen> {
     clothesSizeController.dispose();
     shoeSizeController.dispose();
     bankNameController.dispose();
+    bankTransferPhoneController.dispose();
+    bankRecipientNameController.dispose();
     bankCardController.dispose();
     bankAccountController.dispose();
     bankBikController.dispose();
@@ -120,6 +124,8 @@ class _EmployeePrivateDataScreenState extends State<EmployeePrivateDataScreen> {
       clothesSizeController,
       shoeSizeController,
       bankNameController,
+      bankTransferPhoneController,
+      bankRecipientNameController,
       bankCardController,
       bankAccountController,
       bankBikController,
@@ -232,6 +238,10 @@ class _EmployeePrivateDataScreenState extends State<EmployeePrivateDataScreen> {
     clothesSizeController.text = data.clothesSize;
     shoeSizeController.text = data.shoeSize;
     bankNameController.text = data.bankName;
+    bankTransferPhoneController.text = formatRussianPhone(
+      data.bankTransferPhone,
+    );
+    bankRecipientNameController.text = data.bankRecipientName;
     bankCardController.text = data.bankCard;
     bankAccountController.text = data.bankAccount;
     bankBikController.text = data.bankBik;
@@ -269,6 +279,10 @@ class _EmployeePrivateDataScreenState extends State<EmployeePrivateDataScreen> {
       clothesSize: clothesSizeController.text.trim(),
       shoeSize: shoeSizeController.text.trim(),
       bankName: bankNameController.text.trim(),
+      bankTransferPhone: cleanPhoneForSave(
+        bankTransferPhoneController.text,
+      ),
+      bankRecipientName: bankRecipientNameController.text.trim(),
       bankCard: bankCardController.text.trim(),
       bankAccount: bankAccountController.text.trim(),
       bankBik: bankBikController.text.trim(),
@@ -299,6 +313,10 @@ class _EmployeePrivateDataScreenState extends State<EmployeePrivateDataScreen> {
         6,
       ),
       validatePhone('Телефон', phoneController.text),
+      validatePhone(
+        'Телефон для перевода',
+        bankTransferPhoneController.text,
+      ),
       validateExactDigits('БИК', bankBikController.text, 9),
       validateExactDigits('Номер счёта', bankAccountController.text, 20),
       validateExactDigits('Корр. счёт', bankCorrAccountController.text, 20),
@@ -678,7 +696,18 @@ class _EmployeePrivateDataScreenState extends State<EmployeePrivateDataScreen> {
           ),
 
           buildSectionTitle('Банковские реквизиты'),
+          buildField(
+            'Телефон для перевода',
+            bankTransferPhoneController,
+            hint: '+7 (999) 999-99-99',
+            keyboardType: TextInputType.phone,
+            inputFormatters: AppInputFormatters.russianPhone,
+          ),
           buildField('Банк получателя', bankNameController),
+          buildField(
+            'Получатель / владелец карты',
+            bankRecipientNameController,
+          ),
           buildField(
             'Номер карты',
             bankCardController,
