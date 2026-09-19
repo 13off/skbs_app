@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../models/employee_private_data.dart';
+import 'app_data_sync.dart';
 import 'app_session_scope.dart';
 
 class EmployeePrivateDataRepository {
@@ -224,6 +225,13 @@ class EmployeePrivateDataRepository {
         .from('employee_private_data')
         .upsert(data.toSupabaseMap(), onConflict: 'employee_id');
     clearCache();
+    AppDataSync.notifyLocal(
+      const <AppDataDomain>{AppDataDomain.employees},
+      context: <String, dynamic>{
+        'table': 'employee_private_data',
+        'employee_id': data.employeeId,
+      },
+    );
   }
 }
 
