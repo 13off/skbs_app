@@ -652,7 +652,7 @@ class _ExecutivePaymentsScreenState extends State<_ExecutivePaymentsScreen> {
         return;
       }
 
-      final lines = <String>[${row.employeeName}];
+      final lines = <String>[row.employeeName];
       if (requisites.transferPhone.trim().isNotEmpty) {
         lines.add('Телефон: ${requisites.transferPhone.trim()}');
       }
