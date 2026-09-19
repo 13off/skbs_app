@@ -148,6 +148,18 @@ void main() {
     expect(matrixModel, contains("roleCode == 'executive'"));
   });
 
+  test('executive chat stays compact with unfinished filter and copy all', () {
+    final screen = File(
+      'lib/features/executive/presentation/executive_main_screen.dart',
+    ).readAsStringSync();
+
+    expect(screen, contains('Незавершённые'));
+    expect(screen, contains('Скопировать все задачи'));
+    expect(screen, contains('Все задачи скопированы'));
+    expect(screen, contains('_visibleMessages'));
+    expect(screen, contains('_copyAllMessages'));
+  });
+
   test('executive chat task messages can be copied', () {
     final screen = File(
       'lib/features/executive/presentation/executive_main_screen.dart',
