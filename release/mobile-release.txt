@@ -1,11 +1,11 @@
-AppСтрой release
+AppСтрой mobile release
 version: 1.3.9+23
 previous mobile release: 1.3.9+23
 release date: 2026-09-19
-release attempt: 9
+release attempt: 10
 accepted application commit: e164bed62efda3acb599b93f1890ffd13812e649
-release trigger commit: pending
 features: release current AppСтрой main for Android APK, unsigned iOS IPA, and Windows installer/portable ZIP through the stable GitHub Release
-web: do not trigger a new PWA release from this marker
-platforms: Android, iOS, Windows
+web: keep the accepted PWA deployment current
+mobile: build Android release APK and unsigned verification iOS IPA from current main and upload stable release assets
+windows: build Windows installer and portable ZIP from current main and upload stable release assets
 quality gates: Android and iOS manual release workflows run regression tests/analyzer; Windows runs analyzer, native build and startup smoke; all release assets must publish successfully
