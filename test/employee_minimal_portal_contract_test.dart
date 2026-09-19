@@ -33,7 +33,9 @@ void main() {
     expect(workScreen, contains("'Работа идёт'"));
     expect(
       main,
-      contains('if (profile.isEmployee) return workVisualScope(content);'),
+      contains(
+        'if (profile.isEmployee || profile.isExecutive) {',
+      ),
     );
   });
 
