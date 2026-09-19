@@ -54,7 +54,9 @@ void main() {
     expect(work, contains("label: 'Начать выполнение'"));
     expect(
       main,
-      contains('if (profile.isEmployee) return workVisualScope(content);'),
+      contains(
+        'if (profile.isEmployee || profile.isExecutive) {',
+      ),
     );
   });
 }
