@@ -214,6 +214,33 @@ void main() {
     );
   });
 
+  test('executive balances stay synced with managed payments', () {
+    final sync = File('lib/data/app_data_sync.dart').readAsStringSync();
+    final payments = File('lib/data/payment_repository.dart').readAsStringSync();
+    final screen = File(
+      'lib/features/executive/presentation/executive_main_screen.dart',
+    ).readAsStringSync();
+    final broadcastMigration = File(
+      'supabase/migrations/20260713090000_add_company_data_broadcast.sql',
+    ).readAsStringSync();
+
+    expect(sync, contains("case 'payments':"));
+    expect(sync, contains('AppDataDomain.payments'));
+    expect(payments, contains('AppDataSync.notifyLocal'));
+    expect(payments, contains("from('payments').insert"));
+    expect(payments, contains("from('payments').delete"));
+    expect(
+      broadcastMigration,
+      contains("'payments'"),
+    );
+    expect(
+      broadcastMigration,
+      contains('after insert or update or delete'),
+    );
+    expect(screen, contains('AppDataDomain.payments'));
+    expect(screen, contains('forceRefresh: true'));
+  });
+
   test('payment list can be copied grouped by object', () {
     final screen = File(
       'lib/features/executive/presentation/executive_main_screen.dart',
