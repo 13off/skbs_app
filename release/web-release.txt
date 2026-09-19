@@ -1,0 +1,6 @@
+AppStroy Web/PWA release
+Date: 2026-09-19
+Scope: executive "Повелитель" panel, realtime payment balances, express payout summary, payout requisites.
+Target: Web/PWA only.
+Android: not released.
+iOS: not released.
