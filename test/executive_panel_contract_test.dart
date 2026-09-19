@@ -227,8 +227,24 @@ void main() {
     expect(sync, contains("case 'payments':"));
     expect(sync, contains('AppDataDomain.payments'));
     expect(payments, contains('AppDataSync.notifyLocal'));
-    expect(payments, contains("from('payments').insert"));
-    expect(payments, contains("from('payments').delete"));
+    expect(
+      payments,
+      matches(
+        RegExp(
+          r"\.from\('payments'\)\s*\.insert\(",
+          multiLine: true,
+        ),
+      ),
+    );
+    expect(
+      payments,
+      matches(
+        RegExp(
+          r"\.from\('payments'\)\s*\.delete\(",
+          multiLine: true,
+        ),
+      ),
+    );
     expect(
       broadcastMigration,
       contains("'payments'"),
