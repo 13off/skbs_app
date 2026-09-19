@@ -228,7 +228,6 @@ class EmployeeRepository {
     required String objectName,
     int? monthlySalary,
     @Deprecated('Use monthlySalary') int? dailyRate,
-    bool ignoreTimesheet = false,
     required String comment,
   }) async {
     final cleanObjectName = objectName.trim();
@@ -254,7 +253,6 @@ class EmployeeRepository {
           'phone': phone.trim(),
           'object_name': cleanObjectName,
           ..._salaryPayload(salary),
-          'ignore_timesheet': ignoreTimesheet,
           'is_active': true,
           'comment': comment.trim(),
           'updated_at': DateTime.now().toUtc().toIso8601String(),
@@ -289,7 +287,6 @@ class EmployeeRepository {
     required String objectName,
     int? monthlySalary,
     @Deprecated('Use monthlySalary') int? dailyRate,
-    bool? ignoreTimesheet,
     required String comment,
   }) async {
     final cleanObjectName = objectName.trim();
@@ -315,7 +312,6 @@ class EmployeeRepository {
           'phone': phone.trim(),
           'object_name': cleanObjectName,
           ..._salaryPayload(salary),
-          'ignore_timesheet': ?ignoreTimesheet,
           'comment': comment.trim(),
           'updated_at': DateTime.now().toUtc().toIso8601String(),
         })
@@ -352,7 +348,7 @@ class EmployeeRepository {
     }
 
     const fields =
-        'id, person_id, object_id, fio, position, phone, object_name, monthly_salary, daily_rate, ignore_timesheet, is_active, comment';
+        'id, person_id, object_id, fio, position, phone, object_name, monthly_salary, daily_rate, timesheet_excluded, automatic_salary_start_date, is_active, comment';
 
     final sourceRow = await _client
         .from('employees')
@@ -369,8 +365,11 @@ class EmployeeRepository {
         (sourceRow['monthly_salary'] as num?)?.round() ??
         (sourceRow['daily_rate'] as num?)?.round() ??
         employee.monthlySalary;
-    final sourceIgnoreTimesheet =
-        sourceRow['ignore_timesheet'] as bool? ?? employee.ignoreTimesheet;
+    final sourceTimesheetExcluded =
+        sourceRow['timesheet_excluded'] as bool? ??
+        employee.timesheetExcluded;
+    final sourceAutomaticSalaryStartDate =
+        sourceRow['automatic_salary_start_date']?.toString().trim() ?? '';
 
     final existingDuplicate = await _client
         .from('employees')
@@ -399,7 +398,9 @@ class EmployeeRepository {
               sourceRow['phone']?.toString().trim() ?? employee.phone.trim(),
           'object_name': cleanTargetObjectName,
           ..._salaryPayload(sourceSalary),
-          'ignore_timesheet': sourceIgnoreTimesheet,
+          'timesheet_excluded': sourceTimesheetExcluded,
+          if (sourceAutomaticSalaryStartDate.isNotEmpty)
+            'automatic_salary_start_date': sourceAutomaticSalaryStartDate,
           'is_active': true,
           'comment':
               sourceRow['comment']?.toString().trim() ??

@@ -73,6 +73,7 @@ class ExecutivePaymentBalance {
   final List<String> employeeIds;
   final List<String> objectNames;
   final bool isActive;
+  final bool automaticSalary;
   final double shifts;
   final double accrued;
   final double paid;
@@ -83,6 +84,7 @@ class ExecutivePaymentBalance {
     required this.employeeIds,
     required this.objectNames,
     required this.isActive,
+    this.automaticSalary = false,
     required this.shifts,
     required this.accrued,
     required this.paid,
@@ -111,6 +113,7 @@ class ExecutiveEmployeePaymentDetails {
   final DateTime endDate;
   final List<String> objectNames;
   final bool isActive;
+  final bool automaticSalary;
   final double shifts;
   final double accrued;
   final double paid;
@@ -124,6 +127,7 @@ class ExecutiveEmployeePaymentDetails {
     required this.endDate,
     required this.objectNames,
     required this.isActive,
+    this.automaticSalary = false,
     required this.shifts,
     required this.accrued,
     required this.paid,
@@ -509,6 +513,7 @@ class ExecutivePanelRepository {
           employeeIds: strings(row['employee_ids']),
           objectNames: strings(row['object_names']),
           isActive: row['is_active'] as bool? ?? false,
+          automaticSalary: row['automatic_salary'] as bool? ?? false,
           shifts: number(row['shifts']),
           accrued: number(row['accrued']),
           paid: number(row['paid']),
@@ -553,7 +558,8 @@ class ExecutivePanelRepository {
         endDate: last,
         objectNames: balance.objectNames,
         isActive: balance.isActive,
-        shifts: balance.shifts,
+        automaticSalary: balance.automaticSalary,
+        shifts: balance.automaticSalary ? 0 : balance.shifts,
         accrued: balance.accrued,
         paid: balance.paid,
         attendance: const <ExecutiveEmployeeShift>[],
@@ -640,15 +646,20 @@ class ExecutivePanelRepository {
 
     return ExecutiveEmployeePaymentDetails(
       employeeName: balance.employeeName,
-      firstShiftDate: firstShiftDate,
+      firstShiftDate: balance.automaticSalary ? null : firstShiftDate,
       startDate: first,
       endDate: last,
       objectNames: balance.objectNames,
       isActive: balance.isActive,
-      shifts: attendance.fold<double>(0, (sum, row) => sum + row.shifts),
+      automaticSalary: balance.automaticSalary,
+      shifts: balance.automaticSalary
+          ? 0
+          : attendance.fold<double>(0, (sum, row) => sum + row.shifts),
       accrued: balance.accrued,
       paid: payments.fold<double>(0, (sum, row) => sum + row.amount),
-      attendance: attendance,
+      attendance: balance.automaticSalary
+          ? const <ExecutiveEmployeeShift>[]
+          : attendance,
       payments: payments,
     );
   }

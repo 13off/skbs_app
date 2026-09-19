@@ -243,6 +243,7 @@ class _DesktopTimesheetScreenState extends State<DesktopTimesheetScreen> {
           : OfflineEmployeeRepository.fetchEmployees(
               objectName: requestedObject,
               forceRefresh: forceRefresh,
+              forTimesheet: true,
             );
       final groupFuture = attendanceOnly
           ? Future<List<TimesheetGroup>>.value(timesheetGroups)

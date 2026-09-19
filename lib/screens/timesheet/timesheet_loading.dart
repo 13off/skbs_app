@@ -9,6 +9,7 @@ extension _TimesheetLoading on _TimesheetScreenState {
     employeesFuture = OfflineEmployeeRepository.fetchEmployees(
       objectName: widget.selectedObjectName,
       forceRefresh: forceRefresh,
+      forTimesheet: true,
     );
   }
 

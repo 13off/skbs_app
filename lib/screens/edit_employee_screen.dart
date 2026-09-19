@@ -24,8 +24,6 @@ class _EditEmployeeScreenState extends State<EditEmployeeScreen> {
   final commentController = TextEditingController();
 
   late String selectedObjectName;
-  late bool ignoreTimesheet;
-
   bool isSaving = false;
   String? errorText;
 
@@ -42,8 +40,6 @@ class _EditEmployeeScreenState extends State<EditEmployeeScreen> {
           )
         : '';
     commentController.text = widget.employee.comment;
-    ignoreTimesheet = widget.employee.ignoreTimesheet;
-
     final objectName = widget.employee.objectName.trim();
     selectedObjectName = objectName.isEmpty
         ? EmployeeRepository.baseObjects.first
@@ -113,7 +109,6 @@ class _EditEmployeeScreenState extends State<EditEmployeeScreen> {
         phone: cleanPhoneForSave(phoneController.text),
         objectName: selectedObjectName,
         monthlySalary: monthlySalary,
-        ignoreTimesheet: ignoreTimesheet,
         comment: commentController.text,
       );
 
@@ -129,7 +124,7 @@ class _EditEmployeeScreenState extends State<EditEmployeeScreen> {
         phone: cleanPhoneForSave(phoneController.text),
         objectName: selectedObjectName,
         monthlySalary: monthlySalary,
-        ignoreTimesheet: ignoreTimesheet,
+        timesheetExcluded: widget.employee.timesheetExcluded,
         isActive: widget.employee.isActive,
         comment: commentController.text.trim(),
       );
@@ -291,9 +286,7 @@ class _EditEmployeeScreenState extends State<EditEmployeeScreen> {
                   decoration: InputDecoration(
                     labelText: 'Зарплата в месяц, ₽',
                     hintText: 'Например: 180000',
-                    helperText: ignoreTimesheet
-                        ? 'Полная месячная ставка: табель не влияет на начисление'
-                        : 'Начисление: месячная ставка / 30 × учтённые смены',
+                    helperText: 'Начисление: месячная ставка / 30 × учтённые смены',
                     border: const OutlineInputBorder(),
                     prefixIcon: const Icon(Icons.payments_outlined),
                   ),
@@ -312,22 +305,6 @@ class _EditEmployeeScreenState extends State<EditEmployeeScreen> {
 
                     return null;
                   },
-                ),
-                const SizedBox(height: 8),
-                SwitchListTile.adaptive(
-                  contentPadding: EdgeInsets.zero,
-                  title: const Text('Не учитывать табель'),
-                  subtitle: const Text(
-                    'При включении сотруднику начисляется полная месячная ставка независимо от количества смен.',
-                  ),
-                  value: ignoreTimesheet,
-                  onChanged: isSaving
-                      ? null
-                      : (value) {
-                          setState(() {
-                            ignoreTimesheet = value;
-                          });
-                        },
                 ),
                 const SizedBox(height: 14),
                 TextFormField(

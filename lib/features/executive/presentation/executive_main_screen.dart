@@ -1020,8 +1020,8 @@ class _ExecutivePaymentsScreenState extends State<_ExecutivePaymentsScreen> {
           ),
           const SizedBox(height: 8),
           Text(
-            'Остаток считается по сменам выбранного периода и выплатам, '
-            'привязанным к его расчётным месяцам.',
+            'Остаток считается по табелю и выплатам. '
+            'Служебные исключения без табеля рассчитываются автоматически.',
             style: TextStyle(
               color: AppAdaptivePalette.textMuted,
               fontSize: 11,
@@ -1803,7 +1803,7 @@ class _ExecutivePaymentCard extends StatelessWidget {
               Expanded(
                 child: _ExecutiveMoneyCell(
                   label: 'Смены',
-                  textValue: _formatShifts(row.shifts),
+                  textValue: row.automaticSalary ? '—' : _formatShifts(row.shifts),
                 ),
               ),
               const SizedBox(width: 10),
@@ -1920,7 +1920,10 @@ class _ExecutiveEmployeeDetailsSheetState
       details.employeeName,
       '$status · $objectTitle',
       'Период: ${_formatRange(widget.period)}',
-      'Смены: ${_formatShifts(details.shifts)}',
+      if (details.automaticSalary)
+        'Расчёт: без табеля'
+      else
+        'Смены: ${_formatShifts(details.shifts)}',
       'Начислено: ${_formatMoney(details.accrued)}',
       'Выплачено: ${_formatMoney(details.paid)}',
       '$balanceLabel: ${_formatMoney(details.balance.abs())}',
@@ -1993,10 +1996,14 @@ class _ExecutiveEmployeeDetailsSheetState
                   runSpacing: 16,
                   children: [
                     _ExecutiveDetailMetric(
-                      label: 'Первая смена в системе',
-                      value: details.firstShiftDate == null
-                          ? 'Нет данных'
-                          : _formatDate(details.firstShiftDate!),
+                      label: details.automaticSalary
+                          ? 'Расчёт'
+                          : 'Первая смена в системе',
+                      value: details.automaticSalary
+                          ? 'Без табеля'
+                          : details.firstShiftDate == null
+                              ? 'Нет данных'
+                              : _formatDate(details.firstShiftDate!),
                     ),
                     _ExecutiveDetailMetric(
                       label: 'Период',
@@ -2004,7 +2011,9 @@ class _ExecutiveEmployeeDetailsSheetState
                     ),
                     _ExecutiveDetailMetric(
                       label: 'Смены',
-                      value: _formatShifts(details.shifts),
+                      value: details.automaticSalary
+                          ? '—'
+                          : _formatShifts(details.shifts),
                     ),
                     _ExecutiveDetailMetric(
                       label: 'Начислено',
@@ -2041,9 +2050,11 @@ class _ExecutiveEmployeeDetailsSheetState
               ),
               const SizedBox(height: 10),
               if (attendance.isEmpty)
-                const _ExecutiveMessageState(
+                _ExecutiveMessageState(
                   icon: Icons.event_busy_outlined,
-                  text: 'В выбранном периоде смен нет',
+                  text: details.automaticSalary
+                      ? 'Для сотрудника табель не ведётся. Начисление рассчитывается автоматически.'
+                      : 'В выбранном периоде смен нет',
                 )
               else
                 PremiumWorkCard(

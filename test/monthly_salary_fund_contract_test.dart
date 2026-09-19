@@ -9,12 +9,12 @@ import 'package:skbs_app/models/period_timesheet_row.dart';
 String source(String path) => File(path).readAsStringSync();
 
 void main() {
-  test('employee prefers monthly salary and keeps compatibility fallback', () {
+  test('employee prefers monthly salary and reads hidden timesheet exclusion', () {
     final monthly = Employee.fromSupabase(<String, dynamic>{
       'fio': 'Иванов Иван',
       'monthly_salary': 180000,
       'daily_rate': 180000,
-      'ignore_timesheet': true,
+      'timesheet_excluded': true,
     });
     final legacy = Employee.fromSupabase(<String, dynamic>{
       'fio': 'Петров Пётр',
@@ -22,9 +22,9 @@ void main() {
     });
 
     expect(monthly.monthlySalary, 180000);
-    expect(monthly.ignoreTimesheet, isTrue);
+    expect(monthly.timesheetExcluded, isTrue);
     expect(legacy.monthlySalary, 160000);
-    expect(legacy.ignoreTimesheet, isFalse);
+    expect(legacy.timesheetExcluded, isFalse);
   });
 
   test('monthly salary uses a 30-shift norm', () {
@@ -62,33 +62,7 @@ void main() {
     expect(accrued, isNot(closeTo(2688000, 0.001)));
   });
 
-  test('ignore timesheet keeps full monthly salary', () {
-    const employee = Employee(
-      'Иванов Иван',
-      'Мастер',
-      'не отмечен',
-      monthlySalary: 160000,
-      ignoreTimesheet: true,
-    );
-    const period = PeriodTimesheetRow(
-      employee: employee,
-      shiftsByDate: <String, double>{
-        '2026-09-01': 1,
-        '2026-09-02': 1,
-      },
-    );
-    const month = MonthlyTimesheetRow(
-      employee: employee,
-      shiftsByDay: <int, double>{1: 1, 2: 1},
-      paid: 50000,
-    );
-
-    expect(period.accrued, 160000);
-    expect(month.accrued, 160000);
-    expect(month.balance, 110000);
-  });
-
-  test('timesheet rows prorate ordinary monthly salary', () {
+  test('all ordinary timesheet rows are prorated from actual shifts', () {
     const employee = Employee(
       'Иванов Иван',
       'Мастер',
@@ -99,13 +73,19 @@ void main() {
       for (var day = 1; day <= 25; day++)
         '2026-09-${day.toString().padLeft(2, '0')}': 1,
     };
-    final row = PeriodTimesheetRow(employee: employee, shiftsByDate: shifts);
+    final period = PeriodTimesheetRow(employee: employee, shiftsByDate: shifts);
+    const month = MonthlyTimesheetRow(
+      employee: employee,
+      shiftsByDay: <int, double>{1: 1, 2: 1},
+      paid: 50000,
+    );
 
-    expect(row.totalShifts, 25);
-    expect(row.accrued, closeTo(133333.333333, 0.001));
+    expect(period.totalShifts, 25);
+    expect(period.accrued, closeTo(133333.333333, 0.001));
+    expect(month.accrued, closeTo(10666.666666, 0.001));
   });
 
-  test('employee forms use monthly salary wording and timesheet switch', () {
+  test('employee forms no longer expose ignore-timesheet control', () {
     final add = source(
       'lib/features/employees/presentation/screens/add_employee_screen.dart',
     );
@@ -114,17 +94,31 @@ void main() {
       'lib/features/ai/presentation/ai_employee_draft_screen.dart',
     );
     final repository = source('lib/data/employee_repository.dart');
+    final calculator = source('lib/models/monthly_salary_calculator.dart');
 
     for (final value in <String>[add, edit, ai]) {
       expect(value, contains('Зарплата в месяц'));
       expect(value, isNot(contains('Ставка за смену')));
+      expect(value, isNot(contains('Не учитывать табель')));
+      expect(value, isNot(contains('ignoreTimesheet')));
     }
-    expect(add, contains('Не учитывать табель'));
-    expect(edit, contains('Не учитывать табель'));
-    expect(add, contains('ignoreTimesheet: ignoreTimesheet'));
-    expect(edit, contains('ignoreTimesheet: ignoreTimesheet'));
-    expect(repository, contains("'monthly_salary': monthlySalary"));
-    expect(repository, contains("'ignore_timesheet': ignoreTimesheet"));
+    expect(repository, isNot(contains("'ignore_timesheet':")));
+    expect(calculator, isNot(contains('ignoreTimesheet')));
+  });
+
+  test('system-only timesheet exclusion is not editable through employee CRUD', () {
+    final repository = source('lib/data/employee_repository.dart');
+    final employee = source('lib/models/employee.dart');
+    final offline = source('lib/data/offline_master_repository.dart');
+    final attendance = source('lib/data/attendance_repository.dart');
+
+    expect(employee, contains('final bool timesheetExcluded;'));
+    expect(employee, contains("json['timesheet_excluded']"));
+    expect(repository, isNot(contains('bool timesheetExcluded =')));
+    expect(repository, isNot(contains('bool? timesheetExcluded')));
+    expect(offline, contains('forTimesheet'));
+    expect(offline, contains('!employee.timesheetExcluded'));
+    expect(attendance, contains('employee.timesheetExcluded'));
   });
 
   test('developer restriction uses server attendance permission', () {
@@ -135,17 +129,5 @@ void main() {
     expect(panel, contains("_attendanceEditPermission = 'attendance.edit'"));
     expect(panel, contains('RolePermissionRepository.saveOverride'));
     expect(panel, contains('Разрешить прорабу редактировать табель'));
-  });
-
-  test('database migration prorates monthly salary and stores override flag', () {
-    final migration = source(
-      'supabase/migrations/20260906160000_prorate_monthly_salary_by_timesheet.sql',
-    );
-
-    expect(migration, contains('add column if not exists monthly_salary'));
-    expect(migration, contains('add column if not exists ignore_timesheet'));
-    expect(migration, contains('employee.monthly_salary / 30.0'));
-    expect(migration, contains('when employee.ignore_timesheet then'));
-    expect(migration, contains('daily_rate = monthly_salary'));
   });
 }

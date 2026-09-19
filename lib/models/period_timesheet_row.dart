@@ -21,6 +21,5 @@ class PeriodTimesheetRow {
   double get accrued => calculateMonthlySalaryAccrued(
     monthlySalary: employee.monthlySalary,
     countedShifts: totalShifts,
-    ignoreTimesheet: employee.ignoreTimesheet,
   );
 }

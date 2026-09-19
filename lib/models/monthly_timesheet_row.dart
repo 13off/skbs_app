@@ -23,7 +23,6 @@ class MonthlyTimesheetRow {
   double get accrued => calculateMonthlySalaryAccrued(
     monthlySalary: employee.monthlySalary,
     countedShifts: totalShifts,
-    ignoreTimesheet: employee.ignoreTimesheet,
   );
 
   double get balance {

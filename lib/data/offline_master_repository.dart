@@ -22,6 +22,7 @@ class OfflineEmployeeRepository {
     String? objectName,
     bool includeFired = false,
     bool forceRefresh = false,
+    bool forTimesheet = false,
   }) async {
     final key = _key(objectName, includeFired);
     try {
@@ -35,17 +36,28 @@ class OfflineEmployeeRepository {
         rows.map(_serializeEmployee).toList(growable: false),
       );
       await OfflineSyncService.markSynced();
-      return rows;
+      return _filterForTimesheet(rows, forTimesheet);
     } catch (error) {
       if (!OfflineSyncService.isNetworkFailure(error)) rethrow;
       final cached = await OfflineSyncService.readSnapshot(key);
       if (cached is! List) rethrow;
-      return cached
+      final rows = cached
           .whereType<Map>()
           .map((row) => Employee.fromSupabase(Map<String, dynamic>.from(row)))
           .toList(growable: false)
         ..sort((a, b) => a.name.compareTo(b.name));
+      return _filterForTimesheet(rows, forTimesheet);
     }
+  }
+
+  static List<Employee> _filterForTimesheet(
+    List<Employee> rows,
+    bool forTimesheet,
+  ) {
+    if (!forTimesheet) return rows;
+    return rows
+        .where((employee) => !employee.timesheetExcluded)
+        .toList(growable: false);
   }
 
   static Map<String, dynamic> _serializeEmployee(Employee employee) {
@@ -58,6 +70,7 @@ class OfflineEmployeeRepository {
       'phone': employee.phone,
       'object_name': employee.objectName,
       'daily_rate': employee.dailyRate,
+      'timesheet_excluded': employee.timesheetExcluded,
       'is_active': employee.isActive,
       'comment': employee.comment,
     };

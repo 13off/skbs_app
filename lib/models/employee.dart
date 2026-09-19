@@ -8,7 +8,7 @@ class Employee {
   final String phone;
   final String objectName;
   final int monthlySalary;
-  final bool ignoreTimesheet;
+  final bool timesheetExcluded;
   final bool isActive;
   final String comment;
 
@@ -23,7 +23,7 @@ class Employee {
     this.objectName = 'Мурманск',
     int? monthlySalary,
     int? dailyRate,
-    this.ignoreTimesheet = false,
+    this.timesheetExcluded = false,
     this.isActive = true,
     this.comment = '',
   }) : monthlySalary = monthlySalary ?? dailyRate ?? 0;
@@ -72,7 +72,7 @@ class Employee {
       phone: phone.trim(),
       objectName: json['object_name'] as String? ?? 'Мурманск',
       monthlySalary: monthlySalary,
-      ignoreTimesheet: json['ignore_timesheet'] as bool? ?? false,
+      timesheetExcluded: json['timesheet_excluded'] as bool? ?? false,
       isActive: json['is_active'] as bool? ?? true,
       comment: json['comment'] as String? ?? '',
     );

@@ -347,7 +347,7 @@ class AttendanceRepository {
     for (final employee in employees) {
       final employeeId = employee.id;
 
-      if (employeeId == null) continue;
+      if (employeeId == null || employee.timesheetExcluded) continue;
 
       final shifts = shiftValuesByEmployeeId[employeeId] ?? 0.0;
 
@@ -470,7 +470,9 @@ class AttendanceRepository {
         workedOnly: true,
       ),
     ]);
-    final employees = data[0] as List<Employee>;
+    final employees = (data[0] as List<Employee>)
+        .where((employee) => !employee.timesheetExcluded)
+        .toList(growable: false);
     final rows = data[1] as List<Map<String, dynamic>>;
 
     final employeesById = <String, Employee>{};
@@ -598,7 +600,9 @@ class AttendanceRepository {
           .eq('period_year', year)
           .eq('period_month', month),
     ]);
-    final employees = data[0] as List<Employee>;
+    final employees = (data[0] as List<Employee>)
+        .where((employee) => !employee.timesheetExcluded)
+        .toList(growable: false);
     final attendanceRows = data[1] as List<Map<String, dynamic>>;
     final paymentRows = data[2] as List<dynamic>;
 
@@ -901,7 +905,9 @@ class AttendanceRepository {
         objectName: cleanObject,
       ),
     ]);
-    final employees = data[0] as List<Employee>;
+    final employees = (data[0] as List<Employee>)
+        .where((employee) => !employee.timesheetExcluded)
+        .toList(growable: false);
     final rows = data[1] as List<Map<String, dynamic>>;
 
     final shiftsByEmployeeId = <String, Map<String, double>>{};
