@@ -109,6 +109,7 @@ class _ExecutiveChatScreenState extends State<_ExecutiveChatScreen> {
   List<String> objectNames = const <String>[];
   Set<String> archivedObjectNames = const <String>{};
   List<ExecutiveTaskMessage> messages = const <ExecutiveTaskMessage>[];
+  bool onlyUnfinished = false;
   bool isLoading = false;
   String? errorText;
   int loadGeneration = 0;
@@ -192,6 +193,53 @@ class _ExecutiveChatScreenState extends State<_ExecutiveChatScreen> {
     }
   }
 
+  bool _isCompleted(ExecutiveTaskMessage message) =>
+      message.status.trim().toLowerCase() == 'выполнено';
+
+  List<ExecutiveTaskMessage> get _visibleMessages {
+    if (!onlyUnfinished) return messages;
+    return messages
+        .where((message) => !_isCompleted(message))
+        .toList(growable: false);
+  }
+
+  Future<void> _copyAllMessages(
+    List<ExecutiveTaskMessage> visibleMessages,
+  ) async {
+    if (visibleMessages.isEmpty) return;
+    final lines = <String>[
+      'Задачи · ${selectedObjectName ?? 'Все объекты'} · ${_formatRange(period)}',
+      '',
+    ];
+    for (var index = 0; index < visibleMessages.length; index++) {
+      final message = visibleMessages[index];
+      final metadata = <String>[
+        _formatDate(message.date),
+        _formatTime(message.createdAt),
+        if (selectedObjectName == null && message.objectName.trim().isNotEmpty)
+          message.objectName.trim(),
+        if (message.creatorName.trim().isNotEmpty) message.creatorName.trim(),
+      ].join(' · ');
+      lines
+        ..add(metadata)
+        ..add(
+          message.text.trim().isEmpty
+              ? 'Задача без описания'
+              : message.text.trim(),
+        );
+      if (message.photos.isNotEmpty) {
+        lines.add('Фото: ${message.photos.length}');
+      }
+      if (index != visibleMessages.length - 1) lines.add('');
+    }
+
+    await Clipboard.setData(ClipboardData(text: lines.join('\n')));
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Все задачи скопированы')),
+    );
+  }
+
   bool _periodMatches(DateTime start, DateTime end) {
     return _dateOnly(period.start) == _dateOnly(start) &&
         _dateOnly(period.end) == _dateOnly(end);
@@ -230,6 +278,11 @@ class _ExecutiveChatScreenState extends State<_ExecutiveChatScreen> {
           selected: _periodMatches(weekStart, today),
           onSelected: (_) => _applyQuickPeriod(weekStart, today),
         ),
+        FilterChip(
+          label: const Text('Незавершённые'),
+          selected: onlyUnfinished,
+          onSelected: (value) => setState(() => onlyUnfinished = value),
+        ),
       ],
     );
   }
@@ -267,12 +320,22 @@ class _ExecutiveChatScreenState extends State<_ExecutiveChatScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final visibleMessages = _visibleMessages;
     return Scaffold(
       backgroundColor: Colors.transparent,
       appBar: AppBar(
         automaticallyImplyLeading: false,
         backgroundColor: Colors.transparent,
         title: const Text('Чат'),
+        actions: [
+          IconButton(
+            tooltip: 'Скопировать все задачи',
+            onPressed: visibleMessages.isEmpty
+                ? null
+                : () => _copyAllMessages(visibleMessages),
+            icon: const Icon(Icons.copy_all_rounded),
+          ),
+        ],
       ),
       body: PremiumWorkBackdrop(
         child: RefreshIndicator(
@@ -301,15 +364,17 @@ class _ExecutiveChatScreenState extends State<_ExecutiveChatScreen> {
                   icon: Icons.error_outline_rounded,
                   text: errorText!,
                 ),
-              ] else if (!isLoading && messages.isEmpty) ...[
+              ] else if (!isLoading && visibleMessages.isEmpty) ...[
                 const SizedBox(height: 14),
-                const _ExecutiveMessageState(
+                _ExecutiveMessageState(
                   icon: Icons.forum_outlined,
-                  text: 'За выбранный период задач нет',
+                  text: onlyUnfinished && messages.isNotEmpty
+                      ? 'Незавершённых задач нет'
+                      : 'За выбранный период задач нет',
                 ),
               ] else ...[
                 const SizedBox(height: 14),
-                for (final message in messages) ...[
+                for (final message in visibleMessages) ...[
                   _ExecutiveTaskMessageCard(
                     key: ValueKey<String>(message.id),
                     message: message,
