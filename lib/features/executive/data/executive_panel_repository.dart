@@ -35,6 +35,39 @@ class ExecutiveTaskMessage {
   });
 }
 
+class ExecutivePaymentRequisites {
+  final String transferPhone;
+  final String bankName;
+  final String recipientName;
+  final String bankCard;
+
+  const ExecutivePaymentRequisites({
+    this.transferPhone = '',
+    this.bankName = '',
+    this.recipientName = '',
+    this.bankCard = '',
+  });
+
+  bool get hasAny =>
+      transferPhone.trim().isNotEmpty ||
+      bankName.trim().isNotEmpty ||
+      recipientName.trim().isNotEmpty ||
+      bankCard.trim().isNotEmpty;
+
+  ExecutivePaymentRequisites merge(ExecutivePaymentRequisites other) {
+    return ExecutivePaymentRequisites(
+      transferPhone: transferPhone.trim().isNotEmpty
+          ? transferPhone
+          : other.transferPhone,
+      bankName: bankName.trim().isNotEmpty ? bankName : other.bankName,
+      recipientName: recipientName.trim().isNotEmpty
+          ? recipientName
+          : other.recipientName,
+      bankCard: bankCard.trim().isNotEmpty ? bankCard : other.bankCard,
+    );
+  }
+}
+
 class ExecutivePaymentBalance {
   final String employeeName;
   final String personId;
@@ -379,6 +412,56 @@ class ExecutivePanelRepository {
             signedPhotosByTask[id] ?? const <ExecutiveTaskPhoto>[],
       );
     }).toList(growable: false);
+  }
+
+  static Future<Map<String, ExecutivePaymentRequisites>>
+  fetchPaymentRequisites(
+    List<String> employeeIds,
+  ) async {
+    final ids = employeeIds
+        .map((id) => id.trim())
+        .where((id) => id.isNotEmpty)
+        .toSet()
+        .toList(growable: false);
+    if (ids.isEmpty) return const <String, ExecutivePaymentRequisites>{};
+
+    final dynamic response = await _client.rpc<dynamic>(
+      'get_executive_payment_requisites',
+      params: <String, dynamic>{'p_employee_ids': ids},
+    );
+    if (response is! List) {
+      return const <String, ExecutivePaymentRequisites>{};
+    }
+
+    final result = <String, ExecutivePaymentRequisites>{};
+    for (final raw in response) {
+      if (raw is! Map) continue;
+      final row = Map<String, dynamic>.from(raw);
+      final employeeId = row['employee_id']?.toString().trim() ?? '';
+      if (employeeId.isEmpty) continue;
+      result[employeeId] = ExecutivePaymentRequisites(
+        transferPhone:
+            row['bank_transfer_phone']?.toString().trim() ?? '',
+        bankName: row['bank_name']?.toString().trim() ?? '',
+        recipientName:
+            row['bank_recipient_name']?.toString().trim() ?? '',
+        bankCard: row['bank_card']?.toString().trim() ?? '',
+      );
+    }
+    return result;
+  }
+
+  static ExecutivePaymentRequisites requisitesForBalance(
+    ExecutivePaymentBalance balance,
+    Map<String, ExecutivePaymentRequisites> byEmployeeId,
+  ) {
+    var result = const ExecutivePaymentRequisites();
+    for (final employeeId in balance.employeeIds) {
+      final requisites = byEmployeeId[employeeId];
+      if (requisites == null) continue;
+      result = result.merge(requisites);
+    }
+    return result;
   }
 
   static Future<ExecutivePaymentSummary> fetchPaymentSummary({
