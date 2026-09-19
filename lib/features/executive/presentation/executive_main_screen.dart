@@ -490,7 +490,7 @@ class _ExecutivePaymentsScreenState extends State<_ExecutivePaymentsScreen> {
   double _actualTotal(Iterable<ExecutivePaymentBalance> rows) {
     return rows.fold<double>(
       0,
-      (sum, row) => sum + (row.balance > 0 ? row.balance : 0),
+      (sum, row) => sum + (row.balance > 0 ? row.balance : 0.0),
     );
   }
 
@@ -504,14 +504,14 @@ class _ExecutivePaymentsScreenState extends State<_ExecutivePaymentsScreen> {
 
   double _shareAmountFor(ExecutivePaymentBalance row) {
     final controller = shareAmountControllers[_rowKey(row)];
-    if (controller == null) return row.balance > 0 ? row.balance : 0;
+    if (controller == null) return row.balance > 0 ? row.balance : 0.0;
     return _parseShareAmount(controller.text);
   }
 
   double _shareTotal(Iterable<ExecutivePaymentBalance> rows) {
     return rows.fold<double>(0, (sum, row) {
       final amount = _shareAmountFor(row);
-      return sum + (amount > 0 ? amount : 0);
+      return sum + (amount > 0 ? amount : 0.0);
     });
   }
 
@@ -547,7 +547,7 @@ class _ExecutivePaymentsScreenState extends State<_ExecutivePaymentsScreen> {
     for (final row in rows) {
       final amount = editingForShare
           ? _shareAmountFor(row)
-          : (row.balance > 0 ? row.balance : 0);
+          : (row.balance > 0 ? row.balance : 0.0);
       if (amount <= 0.005) continue;
       total += amount;
       entries.add((row: row, amount: amount));
@@ -690,7 +690,7 @@ class _ExecutivePaymentsScreenState extends State<_ExecutivePaymentsScreen> {
       );
       final amount = editingForShare
           ? _shareAmountFor(row)
-          : (row.balance > 0 ? row.balance : 0);
+          : (row.balance > 0 ? row.balance : 0.0);
       return ExecutiveExpressSummaryRow(
         employeeName: row.employeeName,
         objectTitle: row.objectTitle,
@@ -699,7 +699,7 @@ class _ExecutivePaymentsScreenState extends State<_ExecutivePaymentsScreen> {
         accrued: row.accrued,
         paid: row.paid,
         systemBalance: row.balance,
-        amountToPay: amount > 0 ? amount : 0,
+        amountToPay: amount > 0 ? amount : 0.0,
         transferPhone: requisites.transferPhone,
         bankName: requisites.bankName,
         recipientName: requisites.recipientName,
