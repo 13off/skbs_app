@@ -11,6 +11,7 @@ import '../../../models/app_user_profile.dart';
 import '../../../widgets/premium_ui.dart';
 import '../../shell/presentation/persistent_tab_shell.dart';
 import '../data/executive_panel_repository.dart';
+import '../data/executive_payment_summary_exporter.dart';
 
 class ExecutiveMainScreen extends StatefulWidget {
   final AppUserProfile profile;
@@ -618,6 +619,152 @@ class _ExecutivePaymentsScreenState extends State<_ExecutivePaymentsScreen> {
         ),
       ),
     );
+  }
+
+  Future<Map<String, ExecutivePaymentRequisites>>
+  _loadPaymentRequisites(List<ExecutivePaymentBalance> rows) async {
+    final employeeIds = rows
+        .expand((row) => row.employeeIds)
+        .map((id) => id.trim())
+        .where((id) => id.isNotEmpty)
+        .toSet()
+        .toList(growable: false);
+    if (employeeIds.isEmpty) {
+      return const <String, ExecutivePaymentRequisites>{};
+    }
+    return ExecutivePanelRepository.fetchPaymentRequisites(employeeIds);
+  }
+
+  Future<void> _copyPaymentRequisites(
+    ExecutivePaymentBalance row,
+  ) async {
+    try {
+      final byEmployeeId = await _loadPaymentRequisites([row]);
+      final requisites = ExecutivePanelRepository.requisitesForBalance(
+        row,
+        byEmployeeId,
+      );
+      if (!requisites.hasAny) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Реквизиты не заполнены')),
+        );
+        return;
+      }
+
+      final lines = <String>[${row.employeeName}];
+      if (requisites.transferPhone.trim().isNotEmpty) {
+        lines.add('Телефон: ${requisites.transferPhone.trim()}');
+      }
+      if (requisites.bankName.trim().isNotEmpty) {
+        lines.add('Банк: ${requisites.bankName.trim()}');
+      }
+      if (requisites.recipientName.trim().isNotEmpty) {
+        lines.add('Получатель: ${requisites.recipientName.trim()}');
+      }
+      if (requisites.bankCard.trim().isNotEmpty) {
+        lines.add('Карта: ${requisites.bankCard.trim()}');
+      }
+
+      await Clipboard.setData(ClipboardData(text: lines.join('\n')));
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Реквизиты скопированы')),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Не удалось загрузить реквизиты: $error')),
+      );
+    }
+  }
+
+  Future<List<ExecutiveExpressSummaryRow>> _buildExpressSummaryRows(
+    List<ExecutivePaymentBalance> rows,
+  ) async {
+    final requisitesByEmployeeId = await _loadPaymentRequisites(rows);
+    return rows.map((row) {
+      final requisites = ExecutivePanelRepository.requisitesForBalance(
+        row,
+        requisitesByEmployeeId,
+      );
+      final amount = editingForShare
+          ? _shareAmountFor(row)
+          : (row.balance > 0 ? row.balance : 0);
+      return ExecutiveExpressSummaryRow(
+        employeeName: row.employeeName,
+        objectTitle: row.objectTitle,
+        status: row.isActive ? 'Действующий' : 'Уволен',
+        shifts: row.shifts,
+        accrued: row.accrued,
+        paid: row.paid,
+        systemBalance: row.balance,
+        amountToPay: amount > 0 ? amount : 0,
+        transferPhone: requisites.transferPhone,
+        bankName: requisites.bankName,
+        recipientName: requisites.recipientName,
+        bankCard: requisites.bankCard,
+      );
+    }).toList(growable: false);
+  }
+
+  Future<void> _exportExpressSummary(
+    String action,
+    List<ExecutivePaymentBalance> rows,
+  ) async {
+    if (rows.isEmpty) return;
+    try {
+      final exportRows = await _buildExpressSummaryRows(rows);
+      final objectTitle = selectedObjectName ?? 'Все объекты';
+      final periodTitle = _formatRange(period);
+
+      if (action == 'copy') {
+        final text = ExecutivePaymentSummaryExporter.buildText(
+          objectTitle: objectTitle,
+          periodTitle: periodTitle,
+          employeeFilterTitle: _employmentTitle,
+          rows: exportRows,
+        );
+        await Clipboard.setData(ClipboardData(text: text));
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Экспресс-сводка скопирована')),
+        );
+        return;
+      }
+
+      if (action == 'txt') {
+        await ExecutivePaymentSummaryExporter.saveText(
+          objectTitle: objectTitle,
+          periodTitle: periodTitle,
+          employeeFilterTitle: _employmentTitle,
+          rows: exportRows,
+        );
+      } else if (action == 'xlsx') {
+        await ExecutivePaymentSummaryExporter.saveXlsx(
+          objectTitle: objectTitle,
+          periodTitle: periodTitle,
+          employeeFilterTitle: _employmentTitle,
+          rows: exportRows,
+        );
+      }
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            action == 'xlsx'
+                ? 'Таблица экспресс-сводки сохранена'
+                : 'Текст экспресс-сводки сохранён',
+          ),
+        ),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Не удалось сформировать сводку: $error')),
+      );
+    }
   }
 
   Future<void> _openDetails(ExecutivePaymentBalance row) async {
