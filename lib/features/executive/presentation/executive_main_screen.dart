@@ -767,6 +767,42 @@ class _ExecutivePaymentsScreenState extends State<_ExecutivePaymentsScreen> {
     }
   }
 
+  Future<void> _showExpressSummaryActions(
+    List<ExecutivePaymentBalance> rows,
+  ) async {
+    if (rows.isEmpty) return;
+    final action = await showModalBottomSheet<String>(
+      context: context,
+      useSafeArea: true,
+      backgroundColor: AppAdaptivePalette.background,
+      builder: (sheetContext) => Padding(
+        padding: const EdgeInsets.fromLTRB(12, 12, 12, 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.copy_all_rounded),
+              title: const Text('Скопировать текст'),
+              onTap: () => Navigator.pop(sheetContext, 'copy'),
+            ),
+            ListTile(
+              leading: const Icon(Icons.description_outlined),
+              title: const Text('Скачать TXT'),
+              onTap: () => Navigator.pop(sheetContext, 'txt'),
+            ),
+            ListTile(
+              leading: const Icon(Icons.table_view_outlined),
+              title: const Text('Скачать XLSX'),
+              onTap: () => Navigator.pop(sheetContext, 'xlsx'),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (action == null || !mounted) return;
+    await _exportExpressSummary(action, rows);
+  }
+
   Future<void> _openDetails(ExecutivePaymentBalance row) async {
     await showModalBottomSheet<void>(
       context: context,
@@ -1130,16 +1166,25 @@ class _ExecutivePaymentsScreenState extends State<_ExecutivePaymentsScreen> {
               ] else if (current != null) ...[
                 const SizedBox(height: 14),
                 _shareActions(rows),
-                if (selectedObjectName == null && rows.isNotEmpty) ...[
+                if (rows.isNotEmpty) ...[
                   const SizedBox(height: 8),
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: TextButton.icon(
-                      onPressed: () =>
-                          _copyForShare(rows, groupByObject: true),
-                      icon: const Icon(Icons.account_tree_outlined),
-                      label: const Text('Скопировать по объектам'),
-                    ),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 4,
+                    children: [
+                      TextButton.icon(
+                        onPressed: () => _showExpressSummaryActions(rows),
+                        icon: const Icon(Icons.bolt_rounded),
+                        label: const Text('Экспресс-сводка'),
+                      ),
+                      if (selectedObjectName == null)
+                        TextButton.icon(
+                          onPressed: () =>
+                              _copyForShare(rows, groupByObject: true),
+                          icon: const Icon(Icons.account_tree_outlined),
+                          label: const Text('Скопировать по объектам'),
+                        ),
+                    ],
                   ),
                 ],
                 if (editingForShare) ...[
@@ -1173,6 +1218,7 @@ class _ExecutivePaymentsScreenState extends State<_ExecutivePaymentsScreen> {
                       row: row,
                       period: period,
                       onInfo: () => _openDetails(row),
+                      onCopyRequisites: () => _copyPaymentRequisites(row),
                       shareAmountController: editingForShare
                           ? shareAmountControllers[_rowKey(row)]
                           : null,
@@ -1688,6 +1734,7 @@ class _ExecutivePaymentCard extends StatelessWidget {
   final ExecutivePaymentBalance row;
   final DateTimeRange period;
   final VoidCallback onInfo;
+  final VoidCallback onCopyRequisites;
   final TextEditingController? shareAmountController;
   final VoidCallback? onShareAmountChanged;
 
@@ -1695,6 +1742,7 @@ class _ExecutivePaymentCard extends StatelessWidget {
     required this.row,
     required this.period,
     required this.onInfo,
+    required this.onCopyRequisites,
     this.shareAmountController,
     this.onShareAmountChanged,
   });
@@ -1737,6 +1785,11 @@ class _ExecutivePaymentCard extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 8),
+              IconButton(
+                tooltip: 'Скопировать реквизиты',
+                onPressed: onCopyRequisites,
+                icon: const Icon(Icons.content_copy_rounded),
+              ),
               IconButton.filledTonal(
                 tooltip: 'Информация о сотруднике',
                 onPressed: onInfo,
