@@ -277,4 +277,34 @@ void main() {
     expect(screen, contains('Clipboard.setData'));
     expect(screen, contains('Выплаты и начисления в системе не меняются.'));
   });
+
+  test('executive payment summary is one authoritative server snapshot', () {
+    final repository = File(
+      'lib/features/executive/data/executive_panel_repository.dart',
+    ).readAsStringSync();
+    final migration = File(
+      'supabase/migrations/20260919173500_fix_executive_payment_summary.sql',
+    ).readAsStringSync();
+
+    expect(repository, contains("'get_executive_payment_summary'"));
+    expect(repository, contains("'p_start_date': _dateKey(first)"));
+    expect(repository, contains("'p_end_date': _dateKey(last)"));
+    expect(
+      repository,
+      isNot(contains('AttendanceRepository.fetchPeriodTimesheet')),
+    );
+    expect(
+      migration,
+      contains(
+        'create or replace function public.get_executive_payment_summary',
+      ),
+    );
+    expect(migration, contains("accounting.directory.view"));
+    expect(migration, contains("accounting.attendance.view"));
+    expect(migration, contains("accounting.payments.view"));
+    expect(migration, contains('sum(attendance_row.shifts)'));
+    expect(migration, contains('sum(payment_row.amount)'));
+    expect(migration, contains('grouped_employee_ids'));
+  });
+
 }

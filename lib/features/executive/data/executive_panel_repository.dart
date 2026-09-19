@@ -1,6 +1,5 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-import '../../../data/attendance_repository.dart';
 import '../../../data/payment_repository.dart';
 import '../../../data/task_assignee_repository.dart';
 import '../../../data/task_photo_models.dart';
@@ -170,10 +169,6 @@ class ExecutivePanelRepository {
   static String? _cleanObjectName(String? value) {
     final clean = value?.trim();
     return clean == null || clean.isEmpty ? null : clean;
-  }
-
-  static String _normalizedEmployeeKey(String value) {
-    return value.trim().toLowerCase().replaceAll(RegExp(r'\s+'), ' ');
   }
 
   static String _formatTaskQuantity(num value) {
@@ -476,61 +471,56 @@ class ExecutivePanelRepository {
     final last = start.isAfter(end) ? start : end;
     final cleanObject = _cleanObjectName(objectName);
 
-    final periodRows = await AttendanceRepository.fetchPeriodTimesheet(
-      startDate: first,
-      endDate: last,
-      objectName: cleanObject,
-      includeFired: true,
-      forceRefresh: forceRefresh,
+    // The executive summary must be one authoritative server-side snapshot.
+    // Keeping employee, attendance and payment reads inside one RPC prevents
+    // independent client caches from producing a partial payout list.
+    final dynamic response = await _client.rpc<dynamic>(
+      'get_executive_payment_summary',
+      params: <String, dynamic>{
+        'p_start_date': _dateKey(first),
+        'p_end_date': _dateKey(last),
+        'p_object_name': cleanObject,
+      },
     );
 
-    final drafts = <String, _ExecutivePaymentDraft>{};
-    final draftByEmployeeId = <String, _ExecutivePaymentDraft>{};
-    final employeeIds = <String>{};
-    for (final row in periodRows) {
-      final name = row.employee.name.trim();
-      if (name.isEmpty) continue;
-      final personId = row.employee.personId?.trim() ?? '';
-      final key = personId.isNotEmpty
-          ? 'person:$personId'
-          : 'name:${_normalizedEmployeeKey(name)}';
-      final draft = drafts.putIfAbsent(
-        key,
-        () => _ExecutivePaymentDraft(name, personId: personId),
-      );
-      final employeeId = row.employee.id?.trim() ?? '';
-      if (employeeId.isNotEmpty) {
-        employeeIds.add(employeeId);
-        draft.employeeIds.add(employeeId);
-        draftByEmployeeId[employeeId] = draft;
-      }
-      final employeeObject = row.employee.objectName.trim();
-      if (employeeObject.isNotEmpty) draft.objectNames.add(employeeObject);
-      draft.isActive = draft.isActive || row.employee.isActive;
-      draft.shifts += row.totalShifts;
-      draft.accrued += row.accrued;
-    }
+    final balances = <ExecutivePaymentBalance>[];
+    if (response is List) {
+      for (final raw in response.whereType<Map>()) {
+        final row = Map<String, dynamic>.from(raw);
+        final employeeName = row['employee_name']?.toString().trim() ?? '';
+        if (employeeName.isEmpty) continue;
 
-    if (employeeIds.isNotEmpty) {
-      final payments = await PaymentRepository.fetchPaymentsForEmployees(
-        employeeIds.toList(growable: false),
-        forceRefresh: forceRefresh,
-      );
-      for (final payment in payments) {
-        if (!_paymentBelongsToPeriod(payment, first, last)) continue;
-        final draft = draftByEmployeeId[payment.employeeId];
-        if (draft != null) draft.paid += payment.amount;
+        double number(dynamic value) {
+          if (value is num) return value.toDouble();
+          return double.tryParse(value?.toString() ?? '') ?? 0.0;
+        }
+
+        List<String> strings(dynamic value) {
+          if (value is! List) return const <String>[];
+          return value
+              .map((item) => item?.toString().trim() ?? '')
+              .where((item) => item.isNotEmpty)
+              .toList(growable: false);
+        }
+
+        final balance = ExecutivePaymentBalance(
+          employeeName: employeeName,
+          personId: row['person_id']?.toString().trim() ?? '',
+          employeeIds: strings(row['employee_ids']),
+          objectNames: strings(row['object_names']),
+          isActive: row['is_active'] as bool? ?? false,
+          shifts: number(row['shifts']),
+          accrued: number(row['accrued']),
+          paid: number(row['paid']),
+        );
+        if (balance.balance.abs() > 0.005) balances.add(balance);
       }
     }
 
-    final balances = drafts.values
-        .map((draft) => draft.toBalance())
-        .where((row) => row.balance.abs() > 0.005)
-        .toList(growable: false)
-      ..sort(
-        (firstRow, secondRow) =>
-            firstRow.employeeName.compareTo(secondRow.employeeName),
-      );
+    balances.sort(
+      (firstRow, secondRow) =>
+          firstRow.employeeName.compareTo(secondRow.employeeName),
+    );
 
     return ExecutivePaymentSummary(
       startDate: first,
@@ -685,33 +675,5 @@ class ExecutivePanelRepository {
     );
     return !paymentPeriodEnd.isBefore(startDate) &&
         !paymentPeriodStart.isAfter(endDate);
-  }
-}
-
-class _ExecutivePaymentDraft {
-  final String employeeName;
-  final String personId;
-  final Set<String> employeeIds = <String>{};
-  final Set<String> objectNames = <String>{};
-  bool isActive = false;
-  double shifts = 0;
-  double accrued = 0;
-  double paid = 0;
-
-  _ExecutivePaymentDraft(this.employeeName, {this.personId = ''});
-
-  ExecutivePaymentBalance toBalance() {
-    final objects = objectNames.toList()..sort();
-    final ids = employeeIds.toList()..sort();
-    return ExecutivePaymentBalance(
-      employeeName: employeeName,
-      personId: personId,
-      employeeIds: ids,
-      objectNames: objects,
-      isActive: isActive,
-      shifts: shifts,
-      accrued: accrued,
-      paid: paid,
-    );
   }
 }
