@@ -15,6 +15,8 @@ class EmployeePrivateData {
   final String clothesSize;
   final String shoeSize;
   final String bankName;
+  final String bankTransferPhone;
+  final String bankRecipientName;
   final String bankCard;
   final String bankAccount;
   final String bankBik;
@@ -48,6 +50,8 @@ class EmployeePrivateData {
     this.clothesSize = '',
     this.shoeSize = '',
     this.bankName = '',
+    this.bankTransferPhone = '',
+    this.bankRecipientName = '',
     this.bankCard = '',
     this.bankAccount = '',
     this.bankBik = '',
@@ -87,6 +91,8 @@ class EmployeePrivateData {
       clothesSize: map['clothes_size']?.toString() ?? '',
       shoeSize: map['shoe_size']?.toString() ?? '',
       bankName: map['bank_name']?.toString() ?? '',
+      bankTransferPhone: map['bank_transfer_phone']?.toString() ?? '',
+      bankRecipientName: map['bank_recipient_name']?.toString() ?? '',
       bankCard: map['bank_card']?.toString() ?? '',
       bankAccount: map['bank_account']?.toString() ?? '',
       bankBik: map['bank_bik']?.toString() ?? '',
@@ -123,6 +129,8 @@ class EmployeePrivateData {
       'clothes_size': clothesSize.trim(),
       'shoe_size': shoeSize.trim(),
       'bank_name': bankName.trim(),
+      'bank_transfer_phone': bankTransferPhone.trim(),
+      'bank_recipient_name': bankRecipientName.trim(),
       'bank_card': bankCard.trim(),
       'bank_account': bankAccount.trim(),
       'bank_bik': bankBik.trim(),
