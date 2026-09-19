@@ -16,7 +16,7 @@ jobs:
   dispatch-mobile-builds:
     runs-on: ubuntu-latest
     steps:
-      - name: Start Android and iOS builds
+      - name: Start Android, iOS and Windows builds
         uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
         with:
           script: |
@@ -25,6 +25,7 @@ jobs:
             for (const workflow_id of [
               'build-android-apk.yml',
               'build-ios-ipa.yml',
+              'build-windows-desktop.yml',
             ]) {
               await github.rest.actions.createWorkflowDispatch({
                 owner,
