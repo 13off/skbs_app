@@ -35,7 +35,7 @@ class TaskPhotoRepository {
     final rows = await _client
         .from('task_photos')
         .select(
-          'id, task_id, storage_path, original_name, photo_stage, created_at',
+          'id, task_id, storage_path, original_name, photo_stage, media_type, content_type, duration_seconds, size_bytes, created_at',
         )
         .eq('task_id', taskId)
         .order('created_at', ascending: false);
@@ -131,11 +131,15 @@ class TaskPhotoRepository {
 
       final rowsToInsert = uploadItems
           .map(
-            (item) => <String, String>{
+            (item) => <String, dynamic>{
               'task_id': taskId,
               'storage_path': item.path,
               'original_name': item.photo.originalName,
               'photo_stage': photoStage,
+              'media_type': item.photo.mediaType,
+              'content_type': item.photo.contentType,
+              'duration_seconds': item.photo.durationSeconds,
+              'size_bytes': item.photo.bytes.length,
             },
           )
           .toList();
@@ -144,7 +148,7 @@ class TaskPhotoRepository {
           .from('task_photos')
           .insert(rowsToInsert)
           .select(
-            'id, task_id, storage_path, original_name, photo_stage, created_at',
+            'id, task_id, storage_path, original_name, photo_stage, media_type, content_type, duration_seconds, size_bytes, created_at',
           );
 
       return rows
@@ -221,7 +225,7 @@ class TaskPhotoRepository {
       }
     }
 
-    throw lastError ?? Exception('Не удалось загрузить фотографию');
+    throw lastError ?? Exception('Не удалось загрузить медиафайл');
   }
 
   static bool _isRetryableWebUploadError(Object error) {
@@ -281,7 +285,7 @@ class TaskPhotoRepository {
         if (completer.isCompleted) return;
         completer.completeError(
           TimeoutException(
-            'Передача фотографии остановилась. Повторяем загрузку.',
+            'Передача медиафайла остановилась. Повторяем загрузку.',
           ),
         );
         request.abort();
@@ -336,7 +340,7 @@ class TaskPhotoRepository {
       if (!completer.isCompleted) {
         completer.completeError(
           const _TaskPhotoNetworkException(
-            'Сеть прервала загрузку фотографии. Повторяем загрузку.',
+            'Сеть прервала загрузку медиафайла. Повторяем загрузку.',
           ),
         );
       }
@@ -346,7 +350,7 @@ class TaskPhotoRepository {
       if (!completer.isCompleted) {
         completer.completeError(
           TimeoutException(
-            'Фотография загружается слишком долго. Повторяем загрузку.',
+            'Медиафайл загружается слишком долго. Повторяем загрузку.',
           ),
         );
       }
