@@ -77,11 +77,142 @@ extension _TaskDetailsPhotoActions on _TaskDetailsScreenState {
               'storage_path': photo.storagePath,
               'original_name': photo.originalName,
               'photo_stage': photo.photoStage,
+              'media_type': photo.mediaType,
+              'content_type': photo.contentType,
+              'duration_seconds': photo.durationSeconds,
+              'size_bytes': photo.sizeBytes,
               'created_at': photo.createdAt.toUtc().toIso8601String(),
             },
           )
           .toList(growable: false),
     );
+  }
+
+  Future<void> showAddMediaPicker(String photoStage) async {
+    if (!canEdit || pickingPhotoStage != null) return;
+
+    final mode = await showModalBottomSheet<String>(
+      context: context,
+      showDragHandle: true,
+      builder: (context) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(12, 0, 12, 14),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                ListTile(
+                  leading: const Icon(Icons.photo_library_outlined),
+                  title: const Text('Добавить фото'),
+                  subtitle: const Text('Можно выбрать несколько сразу'),
+                  onTap: () => Navigator.pop(context, 'photo'),
+                ),
+                ListTile(
+                  leading: const Icon(Icons.video_library_outlined),
+                  title: const Text('Добавить видео'),
+                  subtitle: const Text(
+                    'До 1 минуты · можно выбрать несколько · Android/iOS сжимает автоматически',
+                  ),
+                  onTap: () => Navigator.pop(context, 'video'),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+
+    if (!mounted || mode == null) return;
+    if (mode == 'video') {
+      await addVideosFast(photoStage);
+      return;
+    }
+    await addPhotosFast(photoStage);
+  }
+
+  Future<void> addVideosFast(String photoStage) async {
+    if (!canEdit || pickingPhotoStage != null) return;
+    if (photoStage != 'before' && photoStage != 'after') {
+      throw ArgumentError.value(photoStage, 'photoStage');
+    }
+
+    final taskId = widget.task.id;
+    if (taskId == null || taskId.isEmpty) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Сначала сохраните задачу')));
+      return;
+    }
+
+    setState(() {
+      pickingPhotoStage = photoStage;
+      preparingPhotoCompleted = 0;
+      preparingPhotoTotal = 0;
+      photoUploadProgress = null;
+      lastRenderedUploadPercent = -1;
+      errorText = null;
+    });
+
+    try {
+      final pickedVideos = await TaskVideoBrowserService.pickVideoFiles(
+        onPrepareProgress: (completed, total) {
+          if (!mounted || pickingPhotoStage != photoStage) return;
+          setState(() {
+            preparingPhotoCompleted = completed;
+            preparingPhotoTotal = total;
+          });
+        },
+      );
+      if (pickedVideos.isEmpty) return;
+
+      final uploadedVideos = await TaskRepository.uploadPhotosForTask(
+        taskId: taskId,
+        photos: pickedVideos,
+        photoStage: photoStage,
+        onProgress: (progress) {
+          if (!mounted || pickingPhotoStage != photoStage) return;
+          final previous = photoUploadProgress;
+          final percentChanged = progress.percent != lastRenderedUploadPercent;
+          final completedChanged =
+              previous == null ||
+              previous.completedFiles != progress.completedFiles;
+          if (!percentChanged && !completedChanged) return;
+
+          setState(() {
+            photoUploadProgress = progress;
+            lastRenderedUploadPercent = progress.percent;
+          });
+        },
+      );
+      if (!mounted) return;
+
+      final nextPhotos = <TaskPhotoData>[...uploadedVideos, ...photos];
+      await _savePhotosSnapshot(taskId, nextPhotos);
+      if (!mounted) return;
+      setState(() => photos = nextPhotos);
+
+      final count = uploadedVideos.length;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            count == 1 ? 'Видео добавлено' : 'Добавлено видео: $count',
+          ),
+        ),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      setState(() => errorText = 'Ошибка загрузки видео: $error');
+    } finally {
+      if (mounted && pickingPhotoStage == photoStage) {
+        setState(() {
+          pickingPhotoStage = null;
+          preparingPhotoCompleted = 0;
+          preparingPhotoTotal = 0;
+          photoUploadProgress = null;
+          lastRenderedUploadPercent = -1;
+        });
+      }
+    }
   }
 
   Future<void> addPhotosFast(String photoStage) async {
@@ -207,8 +338,8 @@ extension _TaskDetailsPhotoActions on _TaskDetailsScreenState {
         return 'Подготовка $preparingPhotoCompleted/$preparingPhotoTotal';
       }
       return stagePhotos.isEmpty
-          ? 'Добавить фотографии'
-          : 'Добавить ещё фотографии';
+          ? 'Добавить фото или видео'
+          : 'Добавить ещё фото или видео';
     }
 
     return Container(
@@ -260,7 +391,7 @@ extension _TaskDetailsPhotoActions on _TaskDetailsScreenState {
             child: OutlinedButton.icon(
               onPressed: pickingPhotoStage != null || !canEdit
                   ? null
-                  : () => addPhotosFast(photoStage),
+                  : () => showAddMediaPicker(photoStage),
               icon: isPreparing
                   ? const SizedBox(
                       width: 18,
@@ -269,7 +400,7 @@ extension _TaskDetailsPhotoActions on _TaskDetailsScreenState {
                     )
                   : progress != null
                   ? const Icon(Icons.cloud_upload_outlined)
-                  : const Icon(Icons.add_photo_alternate_outlined),
+                  : const Icon(Icons.add_to_photos_outlined),
               label: Text(buttonLabel()),
             ),
           ),
