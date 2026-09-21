@@ -39,7 +39,7 @@ void main() {
       ),
     );
     expect(repository, isNot(contains('.delete(')));
-    expect(repository, contains("eq('company_id', cleanCompanyId)"));
+    expect(repository, contains("'get_executive_task_feed'"));
     expect(repository, contains('fetchPaymentSummary'));
     expect(repository, contains('fetchEmployeePaymentDetails'));
   });
@@ -174,21 +174,48 @@ void main() {
     final repository = File(
       'lib/features/executive/data/executive_panel_repository.dart',
     ).readAsStringSync();
-    final migration = File(
+    final accessMigration = File(
       'supabase/migrations/20260918154500_allow_executive_read_work_orders.sql',
     ).readAsStringSync();
+    final feedMigration = File(
+      'supabase/migrations/20260921121000_speed_up_executive_chat.sql',
+    ).readAsStringSync();
 
-    expect(repository, contains("from('task_work_plans')"));
-    expect(repository, contains("from('task_work_days')"));
-    expect(repository, contains('Плановый объём'));
-    expect(repository, contains('Фактический объём'));
-    expect(repository, contains('Выполнение плана'));
-    expect(repository, contains('Без объёма'));
-    expect(migration, contains("'executive'"));
-    expect(migration, contains('for select'));
-    expect(migration, isNot(contains('for insert')));
-    expect(migration, isNot(contains('for update')));
-    expect(migration, isNot(contains('for delete')));
+    expect(repository, contains("'get_executive_task_feed'"));
+    expect(feedMigration, contains('task_work_plans'));
+    expect(feedMigration, contains('task_work_days'));
+    expect(feedMigration, contains('Плановый объём'));
+    expect(feedMigration, contains('Фактический объём'));
+    expect(feedMigration, contains('Выполнение плана'));
+    expect(feedMigration, contains('Без объёма'));
+    expect(accessMigration, contains("'executive'"));
+    expect(accessMigration, contains('for select'));
+    expect(accessMigration, isNot(contains('for insert')));
+    expect(accessMigration, isNot(contains('for update')));
+    expect(accessMigration, isNot(contains('for delete')));
+  });
+
+  test('executive chat uses precomputed feed and lazy media', () {
+    final repository = File(
+      'lib/features/executive/data/executive_panel_repository.dart',
+    ).readAsStringSync();
+    final screen = File(
+      'lib/features/executive/presentation/executive_main_screen.dart',
+    ).readAsStringSync();
+    final sync = File('lib/data/app_data_sync.dart').readAsStringSync();
+    final migration = File(
+      'supabase/migrations/20260921121000_speed_up_executive_chat.sql',
+    ).readAsStringSync();
+
+    expect(repository, contains("'get_executive_task_feed'"));
+    expect(repository, contains('fetchTaskMedia'));
+    expect(repository, isNot(contains("from('task_assignees')")));
+    expect(screen, contains('Фото/видео:'));
+    expect(screen, contains('FutureBuilder<List<ExecutiveTaskPhoto>>'));
+    expect(sync, contains("case 'executive_task_feed':"));
+    expect(migration, contains('executive_task_feed'));
+    expect(migration, contains('refresh_executive_task_feed'));
+    expect(migration, contains('app_data_broadcast_after_change'));
   });
 
   test('payment filters keep archived objects available', () {
