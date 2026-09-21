@@ -3,11 +3,13 @@ import Flutter
 import PhotosUI
 import Speech
 import UIKit
+import UniformTypeIdentifiers
 
 @main
 @objc class AppDelegate: FlutterAppDelegate, FlutterImplicitEngineDelegate {
   private let taskVoiceChannelName = "ru.appstroy.skbs/task_voice"
   private let taskPhotoChannelName = "ru.appstroy.skbs/task_photos"
+  private let taskVideoChannelName = "ru.appstroy.skbs/task_videos"
   private let audioEngine = AVAudioEngine()
   private var speechRecognizer: SFSpeechRecognizer?
   private var recognitionRequest: SFSpeechAudioBufferRecognitionRequest?
@@ -93,6 +95,34 @@ import UIKit
         result: result
       )
     }
+
+    let videoChannel = FlutterMethodChannel(
+      name: taskVideoChannelName,
+      binaryMessenger: registrar.messenger()
+    )
+    videoChannel.setMethodCallHandler { [weak self] call, result in
+      guard call.method == "pickVideos" else {
+        result(FlutterMethodNotImplemented)
+        return
+      }
+      let arguments = call.arguments as? [String: Any]
+      let maxDurationMs = min(
+        60_000,
+        max(1_000, (arguments?["maxDurationMs"] as? NSNumber)?.intValue ?? 60_000)
+      )
+      let targetBytes = min(
+        8 * 1024 * 1024,
+        max(
+          1 * 1024 * 1024,
+          (arguments?["targetBytes"] as? NSNumber)?.intValue ?? 6 * 1024 * 1024
+        )
+      )
+      self?.presentTaskVideoPicker(
+        maxDurationMs: maxDurationMs,
+        targetBytes: targetBytes,
+        result: result
+      )
+    }
   }
 
   private func presentTaskPhotoPicker(
@@ -156,6 +186,74 @@ import UIKit
 
     var configuration = PHPickerConfiguration(photoLibrary: .shared())
     configuration.filter = .images
+    configuration.selectionLimit = 0
+    configuration.preferredAssetRepresentationMode = .current
+    let picker = PHPickerViewController(configuration: configuration)
+    picker.delegate = delegate
+    presenter.present(picker, animated: true)
+  }
+
+  private func presentTaskVideoPicker(
+    maxDurationMs: Int,
+    targetBytes: Int,
+    result: @escaping FlutterResult
+  ) {
+    if !Thread.isMainThread {
+      DispatchQueue.main.async { [weak self] in
+        self?.presentTaskVideoPicker(
+          maxDurationMs: maxDurationMs,
+          targetBytes: targetBytes,
+          result: result
+        )
+      }
+      return
+    }
+
+    guard photoPickerDelegate == nil else {
+      result(FlutterError(code: "video_busy", message: "Выбор медиа уже открыт.", details: nil))
+      return
+    }
+
+    guard #available(iOS 14.0, *) else {
+      result(
+        FlutterError(
+          code: "video_picker_unavailable",
+          message: "Для выбора нескольких видео требуется iOS 14 или новее.",
+          details: nil
+        )
+      )
+      return
+    }
+
+    guard let presenter = topViewController() else {
+      result(FlutterError(code: "video_picker_failed", message: "Не удалось открыть медиатеку.", details: nil))
+      return
+    }
+
+    let delegate = TaskVideoPickerDelegate(
+      maxDurationMs: maxDurationMs,
+      targetBytes: targetBytes
+    ) { [weak self] pickerResult in
+      DispatchQueue.main.async {
+        self?.photoPickerDelegate = nil
+        switch pickerResult {
+        case .success(let rows):
+          result(rows)
+        case .failure(let error):
+          result(
+            FlutterError(
+              code: "video_prepare_failed",
+              message: error.localizedDescription,
+              details: nil
+            )
+          )
+        }
+      }
+    }
+    photoPickerDelegate = delegate
+
+    var configuration = PHPickerConfiguration(photoLibrary: .shared())
+    configuration.filter = .videos
     configuration.selectionLimit = 0
     configuration.preferredAssetRepresentationMode = .current
     let picker = PHPickerViewController(configuration: configuration)
@@ -470,6 +568,201 @@ private final class TaskPhotoPickerDelegate: NSObject, PHPickerViewControllerDel
     guard !finished else { return }
     finished = true
     completion(result)
+  }
+}
+
+@available(iOS 14.0, *)
+private final class TaskVideoPickerDelegate: NSObject, PHPickerViewControllerDelegate {
+  private let maxDurationMs: Int
+  private let targetBytes: Int
+  private let completion: (Result<[[String: Any]], Error>) -> Void
+  private var finished = false
+
+  init(
+    maxDurationMs: Int,
+    targetBytes: Int,
+    completion: @escaping (Result<[[String: Any]], Error>) -> Void
+  ) {
+    self.maxDurationMs = maxDurationMs
+    self.targetBytes = targetBytes
+    self.completion = completion
+  }
+
+  func picker(_ picker: PHPickerViewController, didFinishPicking results: [PHPickerResult]) {
+    picker.dismiss(animated: true)
+    guard !results.isEmpty else {
+      finish(.success([]))
+      return
+    }
+    process(results: results, index: 0, rows: [])
+  }
+
+  private func process(
+    results: [PHPickerResult],
+    index: Int,
+    rows: [[String: Any]]
+  ) {
+    if index >= results.count {
+      finish(.success(rows))
+      return
+    }
+
+    let provider = results[index].itemProvider
+    guard provider.hasItemConformingToTypeIdentifier(UTType.movie.identifier) else {
+      finish(.failure(TaskVideoPickerError.unreadable))
+      return
+    }
+
+    provider.loadFileRepresentation(forTypeIdentifier: UTType.movie.identifier) {
+      [weak self] sourceURL, error in
+      guard let self, !self.finished else { return }
+      if let error {
+        self.finish(.failure(error))
+        return
+      }
+      guard let sourceURL else {
+        self.finish(.failure(TaskVideoPickerError.unreadable))
+        return
+      }
+
+      let inputURL = FileManager.default.temporaryDirectory
+        .appendingPathComponent("task_video_input_\(UUID().uuidString)")
+        .appendingPathExtension(sourceURL.pathExtension.isEmpty ? "mov" : sourceURL.pathExtension)
+      do {
+        try? FileManager.default.removeItem(at: inputURL)
+        try FileManager.default.copyItem(at: sourceURL, to: inputURL)
+      } catch {
+        self.finish(.failure(error))
+        return
+      }
+
+      self.compress(
+        inputURL: inputURL,
+        suggestedName: provider.suggestedName,
+        index: index
+      ) { result in
+        try? FileManager.default.removeItem(at: inputURL)
+        guard !self.finished else { return }
+        switch result {
+        case .failure(let error):
+          self.finish(.failure(error))
+        case .success(let row):
+          var updatedRows = rows
+          updatedRows.append(row)
+          self.process(results: results, index: index + 1, rows: updatedRows)
+        }
+      }
+    }
+  }
+
+  private func compress(
+    inputURL: URL,
+    suggestedName: String?,
+    index: Int,
+    completion: @escaping (Result<[String: Any], Error>) -> Void
+  ) {
+    let asset = AVURLAsset(url: inputURL)
+    let seconds = CMTimeGetSeconds(asset.duration)
+    guard seconds.isFinite, seconds > 0 else {
+      completion(.failure(TaskVideoPickerError.durationUnavailable))
+      return
+    }
+    guard seconds * 1000 <= Double(maxDurationMs) + 250 else {
+      completion(.failure(TaskVideoPickerError.tooLong))
+      return
+    }
+
+    let presets = AVAssetExportSession.exportPresets(compatibleWith: asset)
+    let preset = presets.contains(AVAssetExportPreset960x540)
+      ? AVAssetExportPreset960x540
+      : AVAssetExportPresetMediumQuality
+    guard let export = AVAssetExportSession(asset: asset, presetName: preset) else {
+      completion(.failure(TaskVideoPickerError.encodeFailed))
+      return
+    }
+
+    let outputURL = FileManager.default.temporaryDirectory
+      .appendingPathComponent("task_video_\(UUID().uuidString)")
+      .appendingPathExtension("mp4")
+    try? FileManager.default.removeItem(at: outputURL)
+
+    export.outputURL = outputURL
+    export.outputFileType = export.supportedFileTypes.contains(.mp4)
+      ? .mp4
+      : export.supportedFileTypes.first
+    export.shouldOptimizeForNetworkUse = true
+    export.fileLengthLimit = Int64(targetBytes)
+
+    export.exportAsynchronously {
+      defer { try? FileManager.default.removeItem(at: outputURL) }
+      switch export.status {
+      case .completed:
+        do {
+          let data = try Data(contentsOf: outputURL)
+          guard !data.isEmpty else {
+            completion(.failure(TaskVideoPickerError.encodeFailed))
+            return
+          }
+          guard data.count <= 8 * 1024 * 1024 else {
+            completion(.failure(TaskVideoPickerError.tooLarge))
+            return
+          }
+          let cleanSuggested = suggestedName?
+            .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+          let sourceName = cleanSuggested.isEmpty ? "video_\(index + 1)" : cleanSuggested
+          let baseName = (sourceName as NSString).deletingPathExtension
+          completion(
+            .success([
+              "name": "\(baseName.isEmpty ? "video_\(index + 1)" : baseName).mp4",
+              "contentType": "video/mp4",
+              "extension": "mp4",
+              "durationSeconds": Int(ceil(seconds)),
+              "bytes": FlutterStandardTypedData(bytes: data),
+            ])
+          )
+        } catch {
+          completion(.failure(error))
+        }
+      case .failed:
+        completion(.failure(export.error ?? TaskVideoPickerError.encodeFailed))
+      case .cancelled:
+        completion(.failure(TaskVideoPickerError.cancelled))
+      default:
+        completion(.failure(TaskVideoPickerError.encodeFailed))
+      }
+    }
+  }
+
+  private func finish(_ result: Result<[[String: Any]], Error>) {
+    guard !finished else { return }
+    finished = true
+    completion(result)
+  }
+}
+
+private enum TaskVideoPickerError: LocalizedError {
+  case unreadable
+  case durationUnavailable
+  case tooLong
+  case tooLarge
+  case encodeFailed
+  case cancelled
+
+  var errorDescription: String? {
+    switch self {
+    case .unreadable:
+      return "Не удалось открыть выбранное видео."
+    case .durationUnavailable:
+      return "Не удалось определить длительность видео."
+    case .tooLong:
+      return "Видео должно быть не длиннее 1 минуты."
+    case .tooLarge:
+      return "После сжатия видео всё ещё слишком большое."
+    case .encodeFailed:
+      return "Не удалось сжать видео для загрузки."
+    case .cancelled:
+      return "Сжатие видео отменено."
+    }
   }
 }
 
