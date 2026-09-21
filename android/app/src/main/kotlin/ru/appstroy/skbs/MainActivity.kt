@@ -8,6 +8,7 @@ import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.ImageDecoder
+import android.media.MediaMetadataRetriever
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -15,18 +16,34 @@ import android.provider.OpenableColumns
 import android.speech.RecognitionListener
 import android.speech.RecognizerIntent
 import android.speech.SpeechRecognizer
+import androidx.media3.common.MediaItem
+import androidx.media3.common.MimeTypes
+import androidx.media3.common.util.UnstableApi
+import androidx.media3.effect.Presentation
+import androidx.media3.transformer.AudioEncoderSettings
+import androidx.media3.transformer.Composition
+import androidx.media3.transformer.DefaultEncoderFactory
+import androidx.media3.transformer.EditedMediaItem
+import androidx.media3.transformer.Effects
+import androidx.media3.transformer.ExportException
+import androidx.media3.transformer.ExportResult
+import androidx.media3.transformer.Transformer
+import androidx.media3.transformer.VideoEncoderSettings
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
 import java.io.ByteArrayOutputStream
+import java.io.File
 
 class MainActivity : FlutterActivity() {
     companion object {
         private const val THEME_CHANNEL = "ru.appstroy.skbs/theme"
         private const val TASK_VOICE_CHANNEL = "ru.appstroy.skbs/task_voice"
         private const val TASK_PHOTO_CHANNEL = "ru.appstroy.skbs/task_photos"
+        private const val TASK_VIDEO_CHANNEL = "ru.appstroy.skbs/task_videos"
         private const val TASK_VOICE_PERMISSION_REQUEST = 7401
         private const val TASK_PHOTO_PICK_REQUEST = 7402
+        private const val TASK_VIDEO_PICK_REQUEST = 7403
         private const val PREFERENCES_FILE = "FlutterSharedPreferences"
         private const val THEME_PREFERENCE = "flutter.app_theme_mode"
         private const val LIGHT_LAUNCHER = "ru.appstroy.skbs.LauncherLight"
@@ -39,6 +56,11 @@ class MainActivity : FlutterActivity() {
     private var photoPickerResult: MethodChannel.Result? = null
     private var photoMaxDimension = 1440
     private var photoJpegQuality = 78
+    private var videoPickerResult: MethodChannel.Result? = null
+    private var videoMaxDurationMs = 60_000L
+    private var videoTargetBytes = 6L * 1024L * 1024L
+    private var videoMaxWidth = 960
+    private var videoMaxHeight = 960
 
     override fun onCreate(savedInstanceState: Bundle?) {
         val dark = storedThemeIsDark()
@@ -84,6 +106,32 @@ class MainActivity : FlutterActivity() {
                 val jpegQuality = call.argument<Int>("jpegQuality") ?: 78
                 requestTaskPhotos(maxDimension, jpegQuality, result)
             }
+
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, TASK_VIDEO_CHANNEL)
+            .setMethodCallHandler { call, result ->
+                if (call.method != "pickVideos") {
+                    result.notImplemented()
+                    return@setMethodCallHandler
+                }
+                val maxDurationMs =
+                    (call.argument<Number>("maxDurationMs")?.toLong() ?: 60_000L)
+                        .coerceIn(1_000L, 60_000L)
+                val targetBytes =
+                    (call.argument<Number>("targetBytes")?.toLong()
+                        ?: 6L * 1024L * 1024L)
+                        .coerceIn(1L * 1024L * 1024L, 8L * 1024L * 1024L)
+                val maxWidth = (call.argument<Int>("maxWidth") ?: 960)
+                    .coerceIn(320, 1920)
+                val maxHeight = (call.argument<Int>("maxHeight") ?: 960)
+                    .coerceIn(320, 1920)
+                requestTaskVideos(
+                    maxDurationMs,
+                    targetBytes,
+                    maxWidth,
+                    maxHeight,
+                    result,
+                )
+            }
     }
 
     private fun requestTaskPhotos(
@@ -91,8 +139,8 @@ class MainActivity : FlutterActivity() {
         jpegQuality: Int,
         result: MethodChannel.Result,
     ) {
-        if (photoPickerResult != null) {
-            result.error("photo_busy", "Выбор фотографий уже открыт.", null)
+        if (photoPickerResult != null || videoPickerResult != null) {
+            result.error("photo_busy", "Выбор медиа уже открыт.", null)
             return
         }
 
@@ -111,10 +159,44 @@ class MainActivity : FlutterActivity() {
         )
     }
 
+    private fun requestTaskVideos(
+        maxDurationMs: Long,
+        targetBytes: Long,
+        maxWidth: Int,
+        maxHeight: Int,
+        result: MethodChannel.Result,
+    ) {
+        if (photoPickerResult != null || videoPickerResult != null) {
+            result.error("video_busy", "Выбор медиа уже открыт.", null)
+            return
+        }
+
+        videoPickerResult = result
+        videoMaxDurationMs = maxDurationMs
+        videoTargetBytes = targetBytes
+        videoMaxWidth = maxWidth
+        videoMaxHeight = maxHeight
+
+        val intent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
+            addCategory(Intent.CATEGORY_OPENABLE)
+            type = "video/*"
+            putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true)
+        }
+        startActivityForResult(
+            Intent.createChooser(intent, "Выберите видео"),
+            TASK_VIDEO_PICK_REQUEST,
+        )
+    }
+
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
-        if (requestCode != TASK_PHOTO_PICK_REQUEST) return
+        when (requestCode) {
+            TASK_PHOTO_PICK_REQUEST -> handleTaskPhotoPickerResult(resultCode, data)
+            TASK_VIDEO_PICK_REQUEST -> handleTaskVideoPickerResult(resultCode, data)
+        }
+    }
 
+    private fun handleTaskPhotoPickerResult(resultCode: Int, data: Intent?) {
         val callback = photoPickerResult ?: return
         if (resultCode != Activity.RESULT_OK || data == null) {
             photoPickerResult = null
@@ -122,18 +204,7 @@ class MainActivity : FlutterActivity() {
             return
         }
 
-        val uris = mutableListOf<Uri>()
-        val clipData = data.clipData
-        if (clipData != null) {
-            for (index in 0 until clipData.itemCount) {
-                val uri = clipData.getItemAt(index).uri
-                if (!uris.contains(uri)) uris.add(uri)
-            }
-        }
-        data.data?.let { uri ->
-            if (!uris.contains(uri)) uris.add(uri)
-        }
-
+        val uris = collectUris(data)
         if (uris.isEmpty()) {
             photoPickerResult = null
             callback.success(emptyList<Map<String, Any>>())
@@ -164,6 +235,209 @@ class MainActivity : FlutterActivity() {
                 }
             }
         }.start()
+    }
+
+    private fun handleTaskVideoPickerResult(resultCode: Int, data: Intent?) {
+        val callback = videoPickerResult ?: return
+        if (resultCode != Activity.RESULT_OK || data == null) {
+            videoPickerResult = null
+            callback.success(emptyList<Map<String, Any>>())
+            return
+        }
+
+        val uris = collectUris(data)
+        if (uris.isEmpty()) {
+            videoPickerResult = null
+            callback.success(emptyList<Map<String, Any>>())
+            return
+        }
+
+        val prepared = mutableListOf<Map<String, Any>>()
+        prepareTaskVideo(
+            uris = uris,
+            index = 0,
+            prepared = prepared,
+            onDone = {
+                val current = videoPickerResult ?: return@prepareTaskVideo
+                videoPickerResult = null
+                current.success(prepared)
+            },
+            onError = { error ->
+                val current = videoPickerResult ?: return@prepareTaskVideo
+                videoPickerResult = null
+                current.error(
+                    "video_prepare_failed",
+                    error.message ?: "Не удалось подготовить видео.",
+                    null,
+                )
+            },
+        )
+    }
+
+    private fun collectUris(data: Intent): List<Uri> {
+        val uris = mutableListOf<Uri>()
+        val clipData = data.clipData
+        if (clipData != null) {
+            for (index in 0 until clipData.itemCount) {
+                val uri = clipData.getItemAt(index).uri
+                if (!uris.contains(uri)) uris.add(uri)
+            }
+        }
+        data.data?.let { uri ->
+            if (!uris.contains(uri)) uris.add(uri)
+        }
+        return uris
+    }
+
+    @androidx.annotation.OptIn(UnstableApi::class)
+    private fun prepareTaskVideo(
+        uris: List<Uri>,
+        index: Int,
+        prepared: MutableList<Map<String, Any>>,
+        onDone: () -> Unit,
+        onError: (Throwable) -> Unit,
+    ) {
+        if (index >= uris.size) {
+            onDone()
+            return
+        }
+
+        val uri = uris[index]
+        val metadata = MediaMetadataRetriever()
+        val durationMs: Long
+        try {
+            metadata.setDataSource(this, uri)
+            durationMs = metadata
+                .extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)
+                ?.toLongOrNull()
+                ?: throw IllegalStateException("Не удалось определить длительность видео.")
+        } catch (error: Throwable) {
+            metadata.release()
+            onError(error)
+            return
+        } finally {
+            try {
+                metadata.release()
+            } catch (_: Throwable) {
+                // ignore
+            }
+        }
+
+        if (durationMs <= 0L || durationMs > videoMaxDurationMs) {
+            onError(IllegalArgumentException("Видео должно быть не длиннее 1 минуты."))
+            return
+        }
+
+        val durationSeconds = durationMs / 1000.0
+        val audioBitrate = 96_000
+        val targetTotalBitrate =
+            ((videoTargetBytes.toDouble() * 8.0) / durationSeconds).toInt()
+        val videoBitrate =
+            (targetTotalBitrate - audioBitrate).coerceIn(450_000, 1_800_000)
+
+        val outputFile = File(
+            cacheDir,
+            "task_video_${System.currentTimeMillis()}_${index + 1}.mp4",
+        )
+        if (outputFile.exists()) outputFile.delete()
+
+        val presentation = Presentation.createForWidthAndHeight(
+            videoMaxWidth,
+            videoMaxHeight,
+            Presentation.LAYOUT_SCALE_TO_FIT,
+        )
+        val mediaItem = MediaItem.fromUri(uri)
+        val editedMediaItem = EditedMediaItem.Builder(mediaItem)
+            .setEffects(Effects(emptyList(), listOf(presentation)))
+            .build()
+
+        val encoderFactory = DefaultEncoderFactory.Builder(this)
+            .setRequestedVideoEncoderSettings(
+                VideoEncoderSettings.Builder()
+                    .setBitrate(videoBitrate)
+                    .build(),
+            )
+            .setRequestedAudioEncoderSettings(
+                AudioEncoderSettings.Builder()
+                    .setBitrate(audioBitrate)
+                    .build(),
+            )
+            .build()
+
+        val transformer = Transformer.Builder(this)
+            .setVideoMimeType(MimeTypes.VIDEO_H264)
+            .setAudioMimeType(MimeTypes.AUDIO_AAC)
+            .setEncoderFactory(encoderFactory)
+            .addListener(
+                object : Transformer.Listener {
+                    override fun onCompleted(
+                        composition: Composition,
+                        exportResult: ExportResult,
+                    ) {
+                        Thread {
+                            try {
+                                val bytes = outputFile.readBytes()
+                                if (bytes.isEmpty()) {
+                                    throw IllegalStateException(
+                                        "После сжатия видео получилось пустым.",
+                                    )
+                                }
+                                if (bytes.size > 8 * 1024 * 1024) {
+                                    throw IllegalStateException(
+                                        "После сжатия видео всё ещё больше 8 МБ.",
+                                    )
+                                }
+                                val sourceName = displayName(uri)
+                                    .ifBlank { "video_${index + 1}" }
+                                val baseName = sourceName.substringBeforeLast(
+                                    '.',
+                                    sourceName,
+                                )
+                                prepared.add(
+                                    mapOf(
+                                        "name" to "$baseName.mp4",
+                                        "contentType" to "video/mp4",
+                                        "extension" to "mp4",
+                                        "durationSeconds" to
+                                            kotlin.math.ceil(durationSeconds).toInt(),
+                                        "bytes" to bytes,
+                                    ),
+                                )
+                                outputFile.delete()
+                                runOnUiThread {
+                                    prepareTaskVideo(
+                                        uris,
+                                        index + 1,
+                                        prepared,
+                                        onDone,
+                                        onError,
+                                    )
+                                }
+                            } catch (error: Throwable) {
+                                outputFile.delete()
+                                runOnUiThread { onError(error) }
+                            }
+                        }.start()
+                    }
+
+                    override fun onError(
+                        composition: Composition,
+                        exportResult: ExportResult,
+                        exportException: ExportException,
+                    ) {
+                        outputFile.delete()
+                        onError(exportException)
+                    }
+                },
+            )
+            .build()
+
+        try {
+            transformer.start(editedMediaItem, outputFile.absolutePath)
+        } catch (error: Throwable) {
+            outputFile.delete()
+            onError(error)
+        }
     }
 
     private fun normalizePhoto(
@@ -391,6 +665,12 @@ class MainActivity : FlutterActivity() {
             null,
         )
         photoPickerResult = null
+        videoPickerResult?.error(
+            "video_cancelled",
+            "Выбор видео остановлен.",
+            null,
+        )
+        videoPickerResult = null
         speechRecognizer?.cancel()
         speechRecognizer?.destroy()
         speechRecognizer = null
