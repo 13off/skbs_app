@@ -168,7 +168,7 @@ select jsonb_build_object(
   'unfilled_items', coalesce(unfilled_payload.items, '[]'::jsonb)
 )
 from attendance_summary, absent_payload, unfilled_payload;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION private.populate_manager_absence_todos()
@@ -366,7 +366,7 @@ begin
     where public.manager_todos.status = 'open';
   end loop;
 end;
-$function$
+$function$;
 
 
 
