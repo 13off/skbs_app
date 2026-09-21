@@ -228,8 +228,8 @@ class _ExecutiveChatScreenState extends State<_ExecutiveChatScreen> {
               ? 'Задача без описания'
               : message.text.trim(),
         );
-      if (message.photos.isNotEmpty) {
-        lines.add('Фото: ${message.photos.length}');
+      if (message.mediaCount > 0) {
+        lines.add('Фото/видео: ${message.mediaCount}');
       }
       if (index != visibleMessages.length - 1) lines.add('');
     }
@@ -1425,11 +1425,80 @@ class _ExecutiveTaskMessageCard extends StatelessWidget {
       if (message.creatorName.trim().isNotEmpty) message.creatorName.trim(),
       '',
       message.text.trim().isEmpty ? 'Задача без описания' : message.text.trim(),
+      if (message.mediaCount > 0) '',
+      if (message.mediaCount > 0) 'Фото/видео: ${message.mediaCount}',
     ];
     await Clipboard.setData(ClipboardData(text: lines.join('\n')));
     if (!context.mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Задача скопирована')),
+    );
+  }
+
+  Future<void> _openMedia(BuildContext context) async {
+    await showModalBottomSheet<void>(
+      context: context,
+      useSafeArea: true,
+      isScrollControlled: true,
+      backgroundColor: AppAdaptivePalette.background,
+      builder: (sheetContext) {
+        return FractionallySizedBox(
+          heightFactor: 0.78,
+          child: FutureBuilder<List<ExecutiveTaskPhoto>>(
+            future: ExecutivePanelRepository.fetchTaskMedia(message.id),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState != ConnectionState.done) {
+                return const Center(child: CircularProgressIndicator());
+              }
+              if (snapshot.hasError) {
+                return Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: Text(
+                      'Не удалось загрузить фото/видео: ${snapshot.error}',
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                );
+              }
+
+              final media =
+                  snapshot.data ?? const <ExecutiveTaskPhoto>[];
+              if (media.isEmpty) {
+                return const Center(
+                  child: Text('Фото/видео для этой задачи не найдены'),
+                );
+              }
+
+              return ListView(
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          'Фото/видео · ${media.length}',
+                          style: const TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                      ),
+                      IconButton(
+                        tooltip: 'Закрыть',
+                        onPressed: () => Navigator.pop(sheetContext),
+                        icon: const Icon(Icons.close_rounded),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  _ExecutivePhotoGrid(photos: media),
+                ],
+              );
+            },
+          ),
+        );
+      },
     );
   }
 
@@ -1452,10 +1521,6 @@ class _ExecutiveTaskMessageCard extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              if (message.photos.isNotEmpty) ...[
-                _ExecutivePhotoGrid(photos: message.photos),
-                const SizedBox(height: 12),
-              ],
               SelectableText(
                 message.text.trim().isEmpty
                     ? 'Задача без описания'
@@ -1467,6 +1532,14 @@ class _ExecutiveTaskMessageCard extends StatelessWidget {
                   fontWeight: FontWeight.w600,
                 ),
               ),
+              if (message.mediaCount > 0) ...[
+                const SizedBox(height: 8),
+                TextButton.icon(
+                  onPressed: () => _openMedia(context),
+                  icon: const Icon(Icons.photo_library_outlined),
+                  label: Text('Фото/видео: ${message.mediaCount}'),
+                ),
+              ],
               const SizedBox(height: 10),
               Row(
                 children: [
