@@ -20,6 +20,7 @@ class ExecutiveTaskMessage {
   final String creatorName;
   final String status;
   final String text;
+  final int mediaCount;
   final List<ExecutiveTaskPhoto> photos;
 
   const ExecutiveTaskMessage({
@@ -30,7 +31,8 @@ class ExecutiveTaskMessage {
     required this.creatorName,
     required this.status,
     required this.text,
-    required this.photos,
+    this.mediaCount = 0,
+    this.photos = const <ExecutiveTaskPhoto>[],
   });
 }
 
@@ -219,198 +221,81 @@ class ExecutivePanelRepository {
     final last = start.isAfter(end) ? start : end;
     final cleanObject = _cleanObjectName(objectName);
 
-    var query = _client
-        .from('tasks')
-        .select(
-          'id, task_date, object_name, axes, work, status, not_done_comment, created_by, created_at',
-        )
-        .eq('company_id', cleanCompanyId)
-        .eq('is_draft', false)
-        .gte('task_date', _dateKey(first))
-        .lte('task_date', _dateKey(last));
-    if (cleanObject != null) {
-      query = query.eq('object_name', cleanObject);
-    }
-
-    final rawRows = await query
-        .order('task_date', ascending: false)
-        .order('created_at', ascending: false);
-    final rows = rawRows
-        .where((row) => row['id']?.toString().trim().isNotEmpty == true)
-        .toList(growable: false);
-    if (rows.isEmpty) return const <ExecutiveTaskMessage>[];
-
-    final taskIds = rows
-        .map((row) => row['id']!.toString())
-        .toList(growable: false);
-    final detailResults = await Future.wait<dynamic>([
-      _client
-          .from('task_assignees')
-          .select('task_id, employee_id, employees(fio, position)')
-          .inFilter('task_id', taskIds),
-      _client
-          .from('task_photos')
-          .select(
-            'id, task_id, storage_path, original_name, photo_stage, created_at',
-          )
-          .inFilter('task_id', taskIds)
-          .order('created_at', ascending: true),
-      _client
-          .from('task_work_plans')
-          .select('task_id, planned_quantity, unit, without_volume')
-          .inFilter('task_id', taskIds),
-      _client
-          .from('task_work_days')
-          .select('task_id, quantity, unit')
-          .inFilter('task_id', taskIds),
-    ]);
-
-    final assigneesByTask = <String, List<TaskAssigneeData>>{};
-    for (final raw in detailResults[0] as List<dynamic>) {
-      if (raw is! Map) continue;
-      final row = Map<String, dynamic>.from(raw);
-      final taskId = row['task_id']?.toString().trim() ?? '';
-      if (taskId.isEmpty) continue;
-      assigneesByTask
-          .putIfAbsent(taskId, () => <TaskAssigneeData>[])
-          .add(TaskAssigneeData.fromSupabase(row));
-    }
-
-    final photosByTask = <String, List<TaskPhotoData>>{};
-    for (final raw in detailResults[1] as List<dynamic>) {
-      if (raw is! Map) continue;
-      final photo = TaskPhotoData.fromSupabase(Map<String, dynamic>.from(raw));
-      if (photo.taskId.trim().isEmpty || photo.storagePath.trim().isEmpty) {
-        continue;
-      }
-      photosByTask
-          .putIfAbsent(photo.taskId, () => <TaskPhotoData>[])
-          .add(photo);
-    }
-
-    final workPlanByTask = <String, Map<String, dynamic>>{};
-    for (final raw in detailResults[2] as List<dynamic>) {
-      if (raw is! Map) continue;
-      final row = Map<String, dynamic>.from(raw);
-      final taskId = row['task_id']?.toString().trim() ?? '';
-      if (taskId.isEmpty) continue;
-      workPlanByTask[taskId] = row;
-    }
-
-    final actualVolumeByTask = <String, double>{};
-    final actualUnitByTask = <String, String>{};
-    for (final raw in detailResults[3] as List<dynamic>) {
-      if (raw is! Map) continue;
-      final row = Map<String, dynamic>.from(raw);
-      final taskId = row['task_id']?.toString().trim() ?? '';
-      if (taskId.isEmpty) continue;
-      final quantity = (row['quantity'] as num?)?.toDouble();
-      if (quantity != null && quantity.isFinite) {
-        actualVolumeByTask.update(
-          taskId,
-          (value) => value + quantity,
-          ifAbsent: () => quantity,
-        );
-      }
-      final unit = row['unit']?.toString().trim() ?? '';
-      if (unit.isNotEmpty) actualUnitByTask.putIfAbsent(taskId, () => unit);
-    }
-
-    final signedPhotosByTask = <String, List<ExecutiveTaskPhoto>>{};
-    await Future.wait(
-      photosByTask.entries.map((entry) async {
-        final signed = await Future.wait<ExecutiveTaskPhoto?>(
-          entry.value.map((photo) async {
-            try {
-              final url = await TaskPhotoRepository.createSignedUrl(photo);
-              if (url.trim().isEmpty) return null;
-              return ExecutiveTaskPhoto(photo: photo, signedUrl: url);
-            } catch (_) {
-              return null;
-            }
-          }),
-        );
-        signedPhotosByTask[entry.key] = signed
-            .whereType<ExecutiveTaskPhoto>()
-            .toList(growable: false);
-      }),
+    // The executive chat reads one server-maintained, preformatted feed row
+    // per task. Assignees, work volumes and media counts are folded into that
+    // feed by database triggers when task data changes, so opening the chat no
+    // longer waits for several joins and signed Storage URLs.
+    final dynamic response = await _client.rpc<dynamic>(
+      'get_executive_task_feed',
+      params: <String, dynamic>{
+        'p_start_date': _dateKey(first),
+        'p_end_date': _dateKey(last),
+        'p_object_name': cleanObject,
+      },
     );
 
-    return rows.map((row) {
-      final id = row['id']!.toString();
-      final date =
-          DateTime.tryParse(row['task_date']?.toString() ?? '') ?? first;
-      final createdAt =
-          DateTime.tryParse(row['created_at']?.toString() ?? '')?.toLocal() ??
-          date;
-      final assignees = assigneesByTask[id] ?? const <TaskAssigneeData>[];
-      final sections = <String>[];
-      final axes = row['axes']?.toString().trim() ?? '';
-      final work = row['work']?.toString().trim() ?? '';
-      final status = row['status']?.toString().trim() ?? '';
-      final comment = row['not_done_comment']?.toString().trim() ?? '';
-      final assigneeNames = assignees
-          .map((item) => item.employeeName.trim())
-          .where((name) => name.isNotEmpty)
-          .toList(growable: false);
+    if (response is! List) return const <ExecutiveTaskMessage>[];
 
-      if (axes.isNotEmpty) sections.add('Оси / участок\n$axes');
-      if (work.isNotEmpty) sections.add('Работа\n$work');
-      if (assigneeNames.isNotEmpty) {
-        sections.add("Исполнители\n${assigneeNames.join('\n')}");
-      }
+    return response
+        .whereType<Map>()
+        .map((raw) {
+          final row = Map<String, dynamic>.from(raw);
+          final id = row['task_id']?.toString().trim() ?? '';
+          if (id.isEmpty) return null;
 
-      final plan = workPlanByTask[id];
-      final withoutVolume = plan?['without_volume'] == true;
-      final planned = (plan?['planned_quantity'] as num?)?.toDouble();
-      final actual = actualVolumeByTask[id];
-      final unit = (plan?['unit']?.toString().trim().isNotEmpty ?? false)
-          ? plan!['unit'].toString().trim()
-          : (actualUnitByTask[id] ?? '');
-      if (withoutVolume) {
-        sections.add('Объём\nБез объёма');
-      } else {
-        if (planned != null && planned.isFinite) {
-          sections.add(
-            'Плановый объём\n'
-            '${_formatTaskQuantity(planned)}'
-            '${unit.isEmpty ? '' : ' $unit'}',
+          final date =
+              DateTime.tryParse(row['task_date']?.toString() ?? '') ?? first;
+          final createdAt =
+              DateTime.tryParse(
+                row['task_created_at']?.toString() ?? '',
+              )?.toLocal() ??
+              date;
+          final creator = row['creator_name']?.toString().trim() ?? '';
+          return ExecutiveTaskMessage(
+            id: id,
+            date: _cleanDate(date),
+            createdAt: createdAt,
+            objectName: row['object_name']?.toString().trim() ?? '',
+            creatorName: creator.isEmpty ? 'Мастер' : creator,
+            status: row['status']?.toString().trim() ?? '',
+            text: row['message_text']?.toString() ?? '',
+            mediaCount: (row['media_count'] as num?)?.toInt() ?? 0,
           );
-        }
-        if (actual != null && actual.isFinite) {
-          sections.add(
-            'Фактический объём\n'
-            '${_formatTaskQuantity(actual)}'
-            '${unit.isEmpty ? '' : ' $unit'}',
-          );
-        }
-        if (actual != null) {
-          final completion = _taskCompletionPercent(planned, actual);
-          if (completion != null) {
-            sections.add(
-              'Выполнение плана\n'
-              '${_formatTaskQuantity(completion)}%',
-            );
-          }
-        }
-      }
+        })
+        .whereType<ExecutiveTaskMessage>()
+        .toList(growable: false);
+  }
 
-      if (status.isNotEmpty) sections.add('Статус\n$status');
-      if (comment.isNotEmpty) sections.add('Комментарий\n$comment');
+  static Future<List<ExecutiveTaskPhoto>> fetchTaskMedia(String taskId) async {
+    final cleanTaskId = taskId.trim();
+    if (cleanTaskId.isEmpty) return const <ExecutiveTaskPhoto>[];
 
-      final creatorName = row['created_by']?.toString().trim() ?? '';
-      return ExecutiveTaskMessage(
-        id: id,
-        date: _cleanDate(date),
-        createdAt: createdAt,
-        objectName: row['object_name']?.toString().trim() ?? '',
-        creatorName: creatorName.isEmpty ? 'Мастер' : creatorName,
-        status: status,
-        text: sections.where((section) => section.isNotEmpty).join('\n\n'),
-        photos:
-            signedPhotosByTask[id] ?? const <ExecutiveTaskPhoto>[],
-      );
-    }).toList(growable: false);
+    final rows = await _client
+        .from('task_photos')
+        .select(
+          'id, task_id, storage_path, original_name, photo_stage, created_at',
+        )
+        .eq('task_id', cleanTaskId)
+        .order('created_at', ascending: true);
+
+    final photos = rows
+        .map<TaskPhotoData>((row) => TaskPhotoData.fromSupabase(row))
+        .where((photo) => photo.storagePath.trim().isNotEmpty)
+        .toList(growable: false);
+    if (photos.isEmpty) return const <ExecutiveTaskPhoto>[];
+
+    final result = await Future.wait<ExecutiveTaskPhoto?>(
+      photos.map((photo) async {
+        try {
+          final url = await TaskPhotoRepository.createSignedUrl(photo);
+          if (url.trim().isEmpty) return null;
+          return ExecutiveTaskPhoto(photo: photo, signedUrl: url);
+        } catch (_) {
+          return null;
+        }
+      }),
+    );
+    return result.whereType<ExecutiveTaskPhoto>().toList(growable: false);
   }
 
   static Future<Map<String, ExecutivePaymentRequisites>>
