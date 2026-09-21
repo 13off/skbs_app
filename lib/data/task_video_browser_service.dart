@@ -1,6 +1,4 @@
 import 'dart:async';
-import 'dart:typed_data';
-
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
@@ -178,7 +176,7 @@ class TaskVideoBrowserService {
       if (duration.isNaN || duration.isInfinite || duration <= 0) {
         throw Exception('Не удалось определить длительность видео.');
       }
-      return duration;
+      return duration.toDouble();
     } finally {
       video.src = '';
       html.Url.revokeObjectUrl(objectUrl);
