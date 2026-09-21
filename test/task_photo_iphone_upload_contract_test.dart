@@ -52,8 +52,8 @@ void main() {
     expect(picker, contains('..multiple = true'));
     expect(picker, contains('prepareConcurrency = 2'));
     expect(picker, contains('Future.wait'));
-    expect(photoActions, contains("'Добавить фотографии'"));
-    expect(photoActions, contains("'Добавить ещё фотографии'"));
+    expect(photoActions, contains("'Добавить фото или видео'"));
+    expect(photoActions, contains("'Добавить ещё фото или видео'"));
     expect(photoActions, contains(r'Добавлено фотографий: $count'));
   });
 
