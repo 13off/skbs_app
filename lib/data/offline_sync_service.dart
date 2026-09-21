@@ -527,6 +527,9 @@ class OfflineSyncService {
           'storage_path': path,
           'original_name': photo['original_name']?.toString() ?? 'Фото',
           'photo_stage': stage,
+          'media_type': 'photo',
+          'content_type': photo['content_type']?.toString(),
+          'size_bytes': bytes.length,
         });
       } catch (error) {
         // Metadata can have committed before the phone lost the response.
@@ -645,6 +648,8 @@ class OfflineSyncService {
       'content_type': contentType,
       'extension': extension,
       'photo_stage': photoStage,
+      'media_type': 'photo',
+      'size_bytes': bytes.length,
       'bytes': base64Encode(bytes),
     };
   }
