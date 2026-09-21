@@ -272,8 +272,8 @@ class TaskVideoBrowserService {
         }
       }
       if (version == 1 && i + 36 <= bytes.length) {
-        final timescale = _readUint32(bytes, i + 28);
-        final duration = _readUint64(bytes, i + 32);
+        final timescale = _readUint32(bytes, i + 24);
+        final duration = _readUint64(bytes, i + 28);
         if (timescale > 0 && duration > 0) {
           return duration / timescale;
         }
