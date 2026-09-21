@@ -49,7 +49,7 @@ extension _TaskDetailsActions on _TaskDetailsScreenState {
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: const Text('Удалить фотографию?'),
+          title: Text(photo.isVideo ? 'Удалить видео?' : 'Удалить фотографию?'),
           content: Text(photo.originalName),
           actions: [
             TextButton(
@@ -80,10 +80,18 @@ extension _TaskDetailsActions on _TaskDetailsScreenState {
       });
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(const SnackBar(content: Text('Фотография удалена')));
+      ).showSnackBar(
+        SnackBar(
+          content: Text(photo.isVideo ? 'Видео удалено' : 'Фотография удалена'),
+        ),
+      );
     } catch (error) {
       if (!mounted) return;
-      setState(() => errorText = 'Ошибка удаления фото: $error');
+      setState(
+        () => errorText = photo.isVideo
+            ? 'Ошибка удаления видео: $error'
+            : 'Ошибка удаления фото: $error',
+      );
     } finally {
       if (mounted) setState(() => deletingPhotoId = null);
     }
