@@ -11,6 +11,7 @@ import '../../data/offline_sync_service.dart';
 import '../../data/task_photo_browser_service.dart';
 import '../../data/task_photo_signed_url_cache.dart';
 import '../../data/task_repository.dart';
+import '../../data/task_video_browser_service.dart';
 import '../../features/developer/data/developer_policy_repository.dart';
 import '../../features/developer/models/task_policy.dart';
 import '../../features/milestones/presentation/task_milestone_picker.dart';
