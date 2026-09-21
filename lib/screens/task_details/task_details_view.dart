@@ -74,18 +74,18 @@ extension _TaskDetailsView on _TaskDetailsScreenState {
                 children: [
                   buildFastPhotosBlock(
                     photoStage: 'before',
-                    title: 'Фото «До»',
+                    title: 'Фото и видео «До»',
                     emptyText: policy.requireBeforePhoto
-                        ? 'Обязательное фото «До» пока не прикреплено'
-                        : 'Фото «До» не прикреплено',
+                        ? 'Обязательное медиа «До» пока не прикреплено'
+                        : 'Фото и видео «До» не прикреплены',
                   ),
                   const SizedBox(height: 14),
                   buildFastPhotosBlock(
                     photoStage: 'after',
-                    title: 'Фото «После»',
+                    title: 'Фото и видео «После»',
                     emptyText: policy.requireAfterPhotoOnComplete
-                        ? 'Без нужного количества фото «После» задачу нельзя выполнить'
-                        : 'Фото «После» не прикреплено',
+                        ? 'Без нужного количества медиа «После» задачу нельзя выполнить'
+                        : 'Фото и видео «После» не прикреплены',
                   ),
                   const SizedBox(height: 18),
                   buildActionButtons(),
