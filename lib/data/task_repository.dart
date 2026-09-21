@@ -1040,6 +1040,10 @@ class TaskRepository {
                 'storage_path': photo.storagePath,
                 'original_name': photo.originalName,
                 'photo_stage': photo.photoStage,
+                'media_type': photo.mediaType,
+                'content_type': photo.contentType,
+                'duration_seconds': photo.durationSeconds,
+                'size_bytes': photo.sizeBytes,
                 'created_at': photo.createdAt.toUtc().toIso8601String(),
               },
             )
@@ -1066,6 +1070,7 @@ class TaskRepository {
     required String taskId,
     required List<TaskPhotoFile> photos,
     required String photoStage,
+    TaskPhotoUploadProgressCallback? onProgress,
   }) async {
     if (photos.isEmpty) return <TaskPhotoData>[];
     try {
@@ -1073,11 +1078,17 @@ class TaskRepository {
         taskId: taskId,
         photos: photos,
         photoStage: photoStage,
+        onProgress: onProgress,
       );
       await OfflineSyncService.markSynced();
       return result;
     } catch (error) {
       if (!OfflineSyncService.isNetworkFailure(error)) rethrow;
+      if (photos.any((photo) => photo.isVideo)) {
+        throw Exception(
+          'Для загрузки видео нужен интернет. Фото по-прежнему можно сохранить офлайн.',
+        );
+      }
       final queued = photos
           .map(
             (photo) => OfflineSyncService.serializePhoto(
