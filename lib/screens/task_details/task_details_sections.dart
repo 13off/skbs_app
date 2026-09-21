@@ -205,7 +205,7 @@ extension _TaskDetailsSections on _TaskDetailsScreenState {
               color: Colors.black.withValues(alpha: 0.68),
               shape: const CircleBorder(),
               child: IconButton(
-                tooltip: 'Удалить фото',
+                tooltip: photo.isVideo ? 'Удалить видео' : 'Удалить фото',
                 visualDensity: VisualDensity.compact,
                 onPressed: deletingPhotoId == null
                     ? () => deletePhotoFromTile(photo)
@@ -232,6 +232,35 @@ extension _TaskDetailsSections on _TaskDetailsScreenState {
   }
 
   Widget buildPhotoPreview(TaskPhotoData photo) {
+    if (photo.isVideo) {
+      final duration = photo.durationSeconds;
+      return Container(
+        color: Colors.black87,
+        alignment: Alignment.center,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            const Icon(
+              Icons.play_circle_fill_rounded,
+              color: Colors.white,
+              size: 48,
+            ),
+            if (duration != null) ...[
+              const SizedBox(height: 6),
+              Text(
+                '${duration}s',
+                style: const TextStyle(
+                  color: Colors.white70,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ],
+          ],
+        ),
+      );
+    }
+
     if (photo.storagePath.trim().isEmpty) {
       return Container(
         color: AppAdaptivePalette.surfaceSoft,
