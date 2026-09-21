@@ -210,6 +210,7 @@ class AppDataSync {
       case 'tasks':
       case 'task_assignees':
       case 'task_photos':
+      case 'executive_task_feed':
       case 'task_milestone_links':
       case 'project_milestones':
       case 'milestone_checklist_items':
