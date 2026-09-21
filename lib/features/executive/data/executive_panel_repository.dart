@@ -1,7 +1,6 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../data/payment_repository.dart';
-import '../../../data/task_assignee_repository.dart';
 import '../../../data/task_photo_models.dart';
 import '../../../data/task_photo_repository.dart';
 
@@ -175,35 +174,6 @@ class ExecutivePanelRepository {
   static String? _cleanObjectName(String? value) {
     final clean = value?.trim();
     return clean == null || clean.isEmpty ? null : clean;
-  }
-
-  static String _formatTaskQuantity(num value) {
-    final fixed = value.toDouble().toStringAsFixed(3);
-    var normalized = fixed;
-    while (normalized.contains('.') && normalized.endsWith('0')) {
-      normalized = normalized.substring(0, normalized.length - 1);
-    }
-    if (normalized.endsWith('.')) {
-      normalized = normalized.substring(0, normalized.length - 1);
-    }
-    final parts = normalized.split('.');
-    final integerPart = parts.first.replaceAllMapped(
-      RegExp(r'\B(?=(\d{3})+(?!\d))'),
-      (_) => ' ',
-    );
-    if (parts.length == 1) return integerPart;
-    return '$integerPart,${parts[1]}';
-  }
-
-  static double? _taskCompletionPercent(double? planned, double actual) {
-    if (planned == null ||
-        !planned.isFinite ||
-        planned <= 0 ||
-        !actual.isFinite ||
-        actual < 0) {
-      return null;
-    }
-    return (actual / planned * 1000).round() / 10;
   }
 
   static Future<List<ExecutiveTaskMessage>> fetchTaskMessages({
