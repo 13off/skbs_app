@@ -64,7 +64,7 @@ void main() {
         'TaskEditPolicy.canDeletePhoto',
         'Future<void> deletePhoto(TaskPhotoData photo)',
         'TaskRepository.deleteTaskPhoto(photo)',
-        "tooltip: 'Удалить фото'",
+        "tooltip: photo.isVideo ? 'Удалить видео' : 'Удалить фото'",
         'if (canDeleteTask)',
         'TaskEditPolicy.operationalToday',
       ]);
