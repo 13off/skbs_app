@@ -31,6 +31,36 @@ void main() {
     expect(migration, contains("'Взять объяснительные'"));
   });
 
+  test('timesheet-excluded employees stay out of absence reports and todos', () {
+    final migration = File(
+      'supabase/migrations/20260921164000_exclude_timesheet_managed_employees_from_absence_reports.sql',
+    ).readAsStringSync();
+    final repository = File(
+      'lib/data/attendance_repository.dart',
+    ).readAsStringSync();
+
+    expect(
+      migration,
+      contains('coalesce(e.timesheet_excluded, false) = false'),
+    );
+    expect(
+      migration,
+      contains(
+        'coalesce(attendance_employee.timesheet_excluded, false) = false',
+      ),
+    );
+    expect(
+      migration,
+      contains('coalesce(employee.timesheet_excluded, false) = false'),
+    );
+    expect(migration, contains("fio = 'Одинцев Илья Александрович'"));
+    expect(migration, contains("status = 'cancelled'"));
+    expect(
+      repository,
+      contains('.where((employee) => !employee.timesheetExcluded)'),
+    );
+  });
+
   test('old report todo about missing attendance is suppressed', () {
     final migration = File(
       'supabase/migrations/20260814124500_attendance_absence_reporting.sql',
