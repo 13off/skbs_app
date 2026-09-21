@@ -8,9 +8,11 @@ extension _TaskDetailsPhotoViewer on _TaskDetailsScreenState {
   Future<void> openPhotoInApp(TaskPhotoData photo) async {
     if (photo.storagePath.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
+        SnackBar(
           content: Text(
-            'Фото сохранено на устройстве и станет доступно после отправки на сервер',
+            photo.isVideo
+                ? 'Видео ещё не отправлено на сервер'
+                : 'Фото сохранено на устройстве и станет доступно после отправки на сервер',
           ),
         ),
       );
@@ -20,6 +22,11 @@ extension _TaskDetailsPhotoViewer on _TaskDetailsScreenState {
     try {
       final url = await TaskPhotoSignedUrlCache.getSignedUrl(photo);
       if (!mounted) return;
+
+      if (photo.isVideo) {
+        TaskPhotoBrowserService.openUrl(url);
+        return;
+      }
 
       await showGeneralDialog<void>(
         context: context,
@@ -125,7 +132,13 @@ extension _TaskDetailsPhotoViewer on _TaskDetailsScreenState {
     } catch (error) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Ошибка открытия фото: $error')),
+        SnackBar(
+          content: Text(
+            photo.isVideo
+                ? 'Ошибка открытия видео: $error'
+                : 'Ошибка открытия фото: $error',
+          ),
+        ),
       );
     }
   }
@@ -148,6 +161,10 @@ extension _TaskDetailsPhotoViewer on _TaskDetailsScreenState {
                   'storage_path': item.storagePath,
                   'original_name': item.originalName,
                   'photo_stage': item.photoStage,
+                  'media_type': item.mediaType,
+                  'content_type': item.contentType,
+                  'duration_seconds': item.durationSeconds,
+                  'size_bytes': item.sizeBytes,
                   'created_at': item.createdAt.toUtc().toIso8601String(),
                 },
               )
