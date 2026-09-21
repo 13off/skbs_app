@@ -151,8 +151,8 @@ void main() {
         "'Сохранить задачу'",
       ]);
       _containsAllText('редактор задачи', taskDetailsEditorSource(), const [
-        "title: 'Фото «До»'",
-        "title: 'Фото «После»'",
+        "title: 'Фото и видео «До»'",
+        "title: 'Фото и видео «После»'",
         "tooltip: 'Удалить'",
         "label: const Text('Сохранить')",
       ]);
