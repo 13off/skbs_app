@@ -160,6 +160,16 @@ void main() {
     expect(screen, contains('_copyAllMessages'));
   });
 
+  test('executive task cards do not capture vertical scrolling', () {
+    final screen = File(
+      'lib/features/executive/presentation/executive_main_screen.dart',
+    ).readAsStringSync();
+
+    expect(screen, contains('softWrap: true'));
+    expect(screen, isNot(contains('SelectableText(')));
+    expect(screen, contains('AlwaysScrollableScrollPhysics'));
+  });
+
   test('executive chat task messages can be copied', () {
     final screen = File(
       'lib/features/executive/presentation/executive_main_screen.dart',
