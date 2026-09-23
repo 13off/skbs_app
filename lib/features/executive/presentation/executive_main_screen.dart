@@ -1521,10 +1521,11 @@ class _ExecutiveTaskMessageCard extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              SelectableText(
+              Text(
                 message.text.trim().isEmpty
                     ? 'Задача без описания'
                     : message.text.trim(),
+                softWrap: true,
                 style: TextStyle(
                   color: AppAdaptivePalette.textPrimary,
                   fontSize: 15,
