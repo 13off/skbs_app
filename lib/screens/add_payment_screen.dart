@@ -763,7 +763,9 @@ class _AddPaymentScreenState extends State<AddPaymentScreen> {
 
           TextField(
             controller: amountController,
-            keyboardType: TextInputType.number,
+            keyboardType: const TextInputType.numberWithOptions(
+              decimal: true,
+            ),
             inputFormatters: AppInputFormatters.groupedNumber,
             decoration: const InputDecoration(
               labelText: 'Сумма выплаты',
