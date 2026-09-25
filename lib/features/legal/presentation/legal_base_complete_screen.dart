@@ -481,7 +481,9 @@ class _LegalObjectCompleteScreenState extends State<LegalObjectCompleteScreen> {
                   const SizedBox(height: 12),
                   TextField(
                     controller: valueController,
-                    keyboardType: TextInputType.number,
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
                     inputFormatters: AppInputFormatters.groupedNumber,
                     decoration: const InputDecoration(
                       labelText: 'Стоимость договора',
