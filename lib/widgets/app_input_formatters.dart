@@ -65,22 +65,28 @@ class AppLeadingCapitalFormatter extends TextInputFormatter {
 class AppGroupedNumberFormatter extends TextInputFormatter {
   const AppGroupedNumberFormatter();
 
-  String format(String value) {
+  String _format(
+    String value, {
+    required String outputSeparator,
+  }) {
     var source = value
         .replaceAll(' ', '')
         .replaceAll('\u00a0', '')
-        .replaceAll('\u202f', '')
-        .replaceAll('.', ',');
+        .replaceAll('\u202f', '');
     final negative = source.startsWith('-');
-    source = source.replaceAll(RegExp(r'[^0-9,]'), '');
+    if (negative) source = source.substring(1);
 
-    final separatorIndex = source.indexOf(',');
+    final dotIndex = source.lastIndexOf('.');
+    final commaIndex = source.lastIndexOf(',');
+    final separatorIndex = dotIndex > commaIndex ? dotIndex : commaIndex;
     final hasSeparator = separatorIndex >= 0;
-    var integerPart = hasSeparator
-        ? source.substring(0, separatorIndex)
-        : source;
+
+    var integerPart = (hasSeparator
+            ? source.substring(0, separatorIndex)
+            : source)
+        .replaceAll(RegExp(r'\D'), '');
     final fractionPart = hasSeparator
-        ? source.substring(separatorIndex + 1).replaceAll(',', '')
+        ? source.substring(separatorIndex + 1).replaceAll(RegExp(r'\D'), '')
         : '';
 
     if (integerPart.isEmpty && hasSeparator) integerPart = '0';
@@ -93,7 +99,14 @@ class AppGroupedNumberFormatter extends TextInputFormatter {
     }
     final groupedInteger = groups.reversed.join(' ');
     return '${negative ? '-' : ''}$groupedInteger'
-        '${hasSeparator ? ',$fractionPart' : ''}';
+        '${hasSeparator ? '$outputSeparator$fractionPart' : ''}';
+  }
+
+  String format(String value) {
+    // Programmatic formatting stays in the existing Russian presentation
+    // format, while interactive editing preserves the separator the user
+    // actually typed.
+    return _format(value, outputSeparator: ',');
   }
 
   @override
@@ -101,7 +114,11 @@ class AppGroupedNumberFormatter extends TextInputFormatter {
     TextEditingValue oldValue,
     TextEditingValue newValue,
   ) {
-    final formatted = format(newValue.text);
+    final source = newValue.text;
+    final dotIndex = source.lastIndexOf('.');
+    final commaIndex = source.lastIndexOf(',');
+    final separator = dotIndex > commaIndex ? '.' : ',';
+    final formatted = _format(source, outputSeparator: separator);
     return TextEditingValue(
       text: formatted,
       selection: TextSelection.collapsed(offset: formatted.length),
