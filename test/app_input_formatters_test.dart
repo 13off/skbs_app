@@ -13,12 +13,15 @@ TextEditingValue edit(TextInputFormatter formatter, String value) {
 }
 
 void main() {
-  test('numbers are grouped by thousands and keep decimal comma', () {
+  test('numbers keep the decimal separator typed by the user', () {
     const formatter = AppGroupedNumberFormatter();
 
     expect(edit(formatter, '3500').text, '3 500');
     expect(edit(formatter, '1250000').text, '1 250 000');
-    expect(edit(formatter, '1234.56').text, '1 234,56');
+    expect(edit(formatter, '1234.56').text, '1 234.56');
+    expect(edit(formatter, '1234,56').text, '1 234,56');
+    expect(AppInputFormatters.formatNumber('1234.56'), '1 234,56');
+    expect(AppInputFormatters.tryParseDouble('1 234.56'), 1234.56);
     expect(AppInputFormatters.tryParseDouble('1 234,56'), 1234.56);
   });
 
