@@ -8,6 +8,7 @@ import '../../../data/app_cache_coordinator.dart';
 import '../../../data/app_data_sync.dart';
 import '../../../data/object_repository.dart';
 import '../../../models/app_user_profile.dart';
+import '../../../widgets/app_input_formatters.dart';
 import '../../../widgets/premium_ui.dart';
 import '../../shell/presentation/persistent_tab_shell.dart';
 import '../data/executive_panel_repository.dart';
@@ -1904,6 +1905,7 @@ class _ExecutivePaymentCard extends StatelessWidget {
                 decimal: true,
                 signed: true,
               ),
+              inputFormatters: AppInputFormatters.groupedNumber,
               onChanged: (_) => onShareAmountChanged?.call(),
               decoration: InputDecoration(
                 labelText: 'Сумма для отправки',
