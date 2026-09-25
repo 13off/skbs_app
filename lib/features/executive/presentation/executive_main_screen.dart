@@ -496,11 +496,7 @@ class _ExecutivePaymentsScreenState extends State<_ExecutivePaymentsScreen> {
   }
 
   double _parseShareAmount(String value) {
-    final clean = value
-        .replaceAll(' ', '')
-        .replaceAll(',', '.')
-        .replaceAll(RegExp(r'[^0-9.\-]'), '');
-    return double.tryParse(clean) ?? 0;
+    return AppInputFormatters.tryParseDouble(value) ?? 0;
   }
 
   double _shareAmountFor(ExecutivePaymentBalance row) {
