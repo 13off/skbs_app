@@ -670,6 +670,7 @@ class _AddDocumentDialogState extends State<_AddDocumentDialog> {
                       controller: vat,
                       keyboardType:
                           const TextInputType.numberWithOptions(decimal: true),
+                      inputFormatters: AppInputFormatters.groupedNumber,
                       decoration: const InputDecoration(labelText: 'НДС'),
                     ),
                   ),
@@ -736,7 +737,7 @@ class _AddDocumentDialogState extends State<_AddDocumentDialog> {
           onPressed: () {
             final parsedAmount = AppInputFormatters.tryParseDouble(amount.text);
             final parsedVat =
-                double.tryParse(vat.text.replaceAll(',', '.')) ?? 0;
+                AppInputFormatters.tryParseDouble(vat.text) ?? 0;
             if (parsedAmount == null ||
                 parsedAmount <= 0 ||
                 counterparty.text.trim().isEmpty) {
