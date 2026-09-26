@@ -459,6 +459,260 @@ class _AdvanceMiniAmount extends StatelessWidget {
   }
 }
 
+class _PaymentSplitScene extends StatelessWidget {
+  final double phase;
+
+  const _PaymentSplitScene({required this.phase});
+
+  @override
+  Widget build(BuildContext context) {
+    final warning = _whatsNewStagger(phase, 0.05, 0.30);
+    final split = _whatsNewStagger(phase, 0.28, 0.70);
+    final receipt = _whatsNewStagger(phase, 0.62, 0.92);
+
+    final augustAmount = 100000 - (5000 * split);
+    final septemberAmount = 5000 * split;
+
+    return Column(
+      children: <Widget>[
+        Row(
+          children: <Widget>[
+            Expanded(
+              child: Container(
+                padding: const EdgeInsets.fromLTRB(13, 11, 13, 11),
+                decoration: _whatsNewGlassDecoration(radius: 18),
+                child: Row(
+                  children: <Widget>[
+                    Transform.scale(
+                      scale: 0.86 + warning * 0.14,
+                      child: const Icon(
+                        Icons.warning_amber_rounded,
+                        color: Color(0xFFFFC66D),
+                        size: 23,
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: <Widget>[
+                          const Text(
+                            'Переплата за август',
+                            style: TextStyle(
+                              color: Color(0xFFAAB7CA),
+                              fontSize: 10,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                          Text(
+                            '${_whatsNewMoney(5000 * warning)} ₽',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 20,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 9,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        color: const Color(0x26FFC66D),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: const Color(0x55FFC66D)),
+                      ),
+                      child: const Text(
+                        'ПЕРЕНЕСТИ',
+                        style: TextStyle(
+                          color: Color(0xFFFFD795),
+                          fontSize: 9,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 0.7,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Expanded(
+          child: Stack(
+            children: <Widget>[
+              Row(
+                children: <Widget>[
+                  Expanded(
+                    child: _SplitPeriodCard(
+                      title: 'Август 2026',
+                      subtitle: 'Было к выплате 95 000 ₽',
+                      amount: '${_whatsNewMoney(augustAmount)} ₽',
+                      highlighted: split > 0.55,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _SplitPeriodCard(
+                      title: 'Сентябрь 2026',
+                      subtitle: 'Осталось выплатить 27 350 ₽',
+                      amount: '${_whatsNewMoney(septemberAmount)} ₽',
+                      highlighted: split > 0.55,
+                    ),
+                  ),
+                ],
+              ),
+              Positioned.fill(
+                child: IgnorePointer(
+                  child: Align(
+                    alignment: Alignment(
+                      -0.55 + split * 1.10,
+                      -0.10,
+                    ),
+                    child: Transform.scale(
+                      scale: 0.82 + split * 0.18,
+                      child: Container(
+                        width: 40,
+                        height: 40,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: const Color(0xFF2F73DB),
+                          border: Border.all(
+                            color: const Color(0xFF8EBBFF),
+                          ),
+                          boxShadow: const <BoxShadow>[
+                            BoxShadow(
+                              color: Color(0x664A8CFF),
+                              blurRadius: 20,
+                            ),
+                          ],
+                        ),
+                        child: const Icon(
+                          Icons.arrow_forward_rounded,
+                          color: Colors.white,
+                          size: 21,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 12),
+        Opacity(
+          opacity: receipt,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 9),
+            decoration: _whatsNewGlassDecoration(radius: 16),
+            child: Row(
+              children: <Widget>[
+                const Icon(
+                  Icons.receipt_long_rounded,
+                  color: Color(0xFF75A9FF),
+                  size: 18,
+                ),
+                const SizedBox(width: 8),
+                const Expanded(
+                  child: Text(
+                    'Один чек для обеих частей выплаты',
+                    style: TextStyle(
+                      color: Color(0xFFD4DCE8),
+                      fontSize: 10.5,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+                Icon(
+                  Icons.link_rounded,
+                  color: Color.lerp(
+                    const Color(0xFF61718A),
+                    const Color(0xFF75A9FF),
+                    receipt,
+                  ),
+                  size: 18,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _SplitPeriodCard extends StatelessWidget {
+  final String title;
+  final String subtitle;
+  final String amount;
+  final bool highlighted;
+
+  const _SplitPeriodCard({
+    required this.title,
+    required this.subtitle,
+    required this.amount,
+    required this.highlighted,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 260),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(19),
+        color: highlighted
+            ? const Color(0x264A8CFF)
+            : const Color(0x13FFFFFF),
+        border: Border.all(
+          color: highlighted
+              ? const Color(0x774A8CFF)
+              : const Color(0x22FFFFFF),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Text(
+            title,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 11,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            subtitle,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              color: Color(0xFF8F9DB2),
+              fontSize: 8.8,
+              height: 1.2,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const Spacer(),
+          Text(
+            amount,
+            style: const TextStyle(
+              color: Color(0xFFCFE0FF),
+              fontSize: 17,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 String _whatsNewMoney(double value) {
   final rounded = value.round().toString();
   final buffer = StringBuffer();
