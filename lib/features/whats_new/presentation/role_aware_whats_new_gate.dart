@@ -8,8 +8,6 @@ import '../../../models/app_user_profile.dart';
 
 part 'whats_new_release_data.dart';
 part 'whats_new_dialog.dart';
-part 'whats_new_preview_manager_legal.dart';
-part 'whats_new_preview_visual_photos.dart';
 part 'whats_new_preview_current_release.dart';
 
 class WhatsNewGate extends StatefulWidget {
