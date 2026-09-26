@@ -22,7 +22,7 @@ void main() {
         'lib/features/auth/presentation/employee_aware_auth_gate.dart',
       ).readAsStringSync();
 
-      expect(gate, contains('mobile-2026-09-26-1.3.10+24-v1'));
+      expect(gate, contains('mobile-2026-09-26-1.3.10+24-v2'));
       expect(gate, contains("'whats_new_seen_release'"));
       expect(gate, contains('widget.profile.id'));
       expect(gate, contains('widget.profile.role'));
@@ -32,6 +32,7 @@ void main() {
       expect(release, contains('Фото и видео в задачах'));
       expect(release, contains('Копейки — через точку или запятую'));
       expect(release, contains('Аванс 30% в «Оплате»'));
+      expect(release, contains('Переплату можно перенести'));
       expect(release, isNot(contains('Дела руководителя')));
       expect(release, isNot(contains('Стабильнее и безопаснее')));
       expect(dialog, contains('С 26 сентября'));
