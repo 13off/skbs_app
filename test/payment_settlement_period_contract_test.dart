@@ -14,8 +14,8 @@ void main() {
     expect(add, contains("label: Text('За период: \$settlementPeriodTitle')"));
     expect(add, contains('periodYear: settlementMonth.year'));
     expect(add, contains('periodMonth: settlementMonth.month'));
-    expect(repository, contains("'period_year': periodYear"));
-    expect(repository, contains("'period_month': periodMonth"));
+    expect(repository, contains("'period_year': allocation.periodYear"));
+    expect(repository, contains("'period_month': allocation.periodMonth"));
     expect(repository, contains("'payment_date': dateKey(paymentDate)"));
     expect(
       history,
