@@ -18,7 +18,7 @@ void main() {
 
     expect(screen, contains('EmployeeRepository.fetchEmployees('));
     expect(screen, contains('ObjectRepository.fetchObjectNames()'));
-    expect(screen, contains('PaymentRepository.addPayment('));
+    expect(screen, contains('PaymentRepository.addPaymentAllocations('));
     expect(screen, contains('PaymentReceiptRepository.pickReceiptFiles()'));
     expect(screen, contains('employeeId: selectedEmployee.id!'));
     expect(screen, contains('paymentType: selectedPaymentType'));
