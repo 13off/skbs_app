@@ -196,7 +196,7 @@ class _DialogHeader extends StatelessWidget {
               ),
               const SizedBox(height: 2),
               Text(
-                'С 12 августа · $roleTitle · $current из $count',
+                'С 26 сентября · $roleTitle · $current из $count',
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: const TextStyle(
@@ -462,12 +462,9 @@ class _SceneArtwork extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return switch (kind) {
-      _UpdatePreviewKind.managerTodos => _ManagerTodosScene(phase: phase),
-      _UpdatePreviewKind.fines => _FinesScene(phase: phase),
-      _UpdatePreviewKind.legal => _LegalScene(phase: phase),
-      _UpdatePreviewKind.glass => _GlassScene(phase: phase),
-      _UpdatePreviewKind.photos => _PhotosScene(phase: phase),
-      _UpdatePreviewKind.stability => _StabilityScene(phase: phase),
+      _UpdatePreviewKind.taskMedia => _TaskMediaScene(phase: phase),
+      _UpdatePreviewKind.decimalMoney => _DecimalMoneyScene(phase: phase),
+      _UpdatePreviewKind.advanceThirty => _AdvanceThirtyScene(phase: phase),
     };
   }
 }
