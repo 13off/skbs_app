@@ -4,6 +4,7 @@ enum _UpdatePreviewKind {
   taskMedia,
   decimalMoney,
   advanceThirty,
+  paymentSplit,
 }
 
 class _UpdateSlide {
@@ -50,6 +51,19 @@ const List<_UpdateSlide> _allSlides = <_UpdateSlide>[
     ],
     preview: _UpdatePreviewKind.decimalMoney,
     roles: <String>{'accountant'},
+  ),
+  _UpdateSlide(
+    icon: Icons.call_split_rounded,
+    title: 'Переплату можно перенести',
+    description:
+        'Если выплата за закрытый месяц больше остатка, AppСтрой предупредит и поможет разнести одну фактическую выплату по нескольким расчётным периодам.',
+    points: <String>[
+      'Сразу видно, какая часть станет переплатой за выбранный месяц.',
+      'При переносе показываются другие периоды и сколько по каждому ещё осталось выплатить.',
+      'Один и тот же чек сохраняется у всех частей разделённой выплаты — загружать его повторно не нужно.',
+    ],
+    preview: _UpdatePreviewKind.paymentSplit,
+    roles: <String>{'admin', 'accountant', 'executive'},
   ),
   _UpdateSlide(
     icon: Icons.percent_rounded,
