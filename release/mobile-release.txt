@@ -2,10 +2,10 @@ AppСтрой mobile release
 version: 1.3.10+24
 previous mobile release: 1.3.9+23
 release date: 2026-09-26
-release attempt: 11
-accepted application commit: d64327342e067595558be2d3ecb774955af10c16
-features: task evidence supports multiple photos and videos; executive chat is precomputed and faster; executive payments have 30 percent advance mode; money inputs accept decimal dot or comma; current role-specific animated What's New cards updated
-web: current PWA accepted and published before mobile release
+release attempt: 12
+accepted application commit: 03fd42b1d44b4734f0573f5835d96e855df212da
+features: task evidence supports multiple photos and videos; executive chat is precomputed and faster; executive payments have 30 percent advance mode; money inputs accept decimal dot or comma; closed-period payment overpayments can be split across other periods with one shared receipt; role-specific animated What's New cards updated to v2
+web: current PWA regression tests, strict analyzer, web build, browser smoke, offline cold-start and post-deploy smoke passed before mobile release
 mobile: build Android release APK and unsigned verification iOS IPA from current main and upload stable release assets
 windows: build Windows installer and portable ZIP from current main and upload stable release assets
-quality gates: regression tests and analyzer passed; web build/browser smoke/offline PWA passed; Windows native build/startup smoke passed before release trigger
+quality gates: accepted application commit verified green before release trigger
