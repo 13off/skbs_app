@@ -304,6 +304,19 @@ void main() {
     expect(screen, contains('groupByObject'));
   });
 
+  test('executive payments can toggle a 30 percent advance view', () {
+    final screen = File(
+      'lib/features/executive/presentation/executive_main_screen.dart',
+    ).readAsStringSync();
+
+    expect(screen, contains('advanceThirtyPercent'));
+    expect(screen, contains('row.balance * 0.30'));
+    expect(screen, contains('30% аванс'));
+    expect(screen, contains('Аванс 30% к выплате'));
+    expect(screen, contains('_toggleAdvanceThirtyPercent'));
+    expect(screen, contains('_paymentAmountFor(row)'));
+  });
+
   test('share editing is local clipboard state only', () {
     final screen = File(
       'lib/features/executive/presentation/executive_main_screen.dart',
