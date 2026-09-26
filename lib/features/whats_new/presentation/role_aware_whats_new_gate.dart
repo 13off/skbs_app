@@ -10,6 +10,7 @@ part 'whats_new_release_data.dart';
 part 'whats_new_dialog.dart';
 part 'whats_new_preview_manager_legal.dart';
 part 'whats_new_preview_visual_photos.dart';
+part 'whats_new_preview_current_release.dart';
 
 class WhatsNewGate extends StatefulWidget {
   final AppUserProfile profile;
@@ -23,7 +24,7 @@ class WhatsNewGate extends StatefulWidget {
 
 class _WhatsNewGateState extends State<WhatsNewGate> {
   static const String releaseId =
-      'mobile-2026-08-18-since-2026-08-12-v1';
+      'mobile-2026-09-26-1.3.10+24-v1';
   static const String _preferencePrefix = 'whats_new_seen_release';
 
   bool _checkStarted = false;
