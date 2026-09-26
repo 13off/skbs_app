@@ -465,6 +465,7 @@ class _SceneArtwork extends StatelessWidget {
       _UpdatePreviewKind.taskMedia => _TaskMediaScene(phase: phase),
       _UpdatePreviewKind.decimalMoney => _DecimalMoneyScene(phase: phase),
       _UpdatePreviewKind.advanceThirty => _AdvanceThirtyScene(phase: phase),
+      _UpdatePreviewKind.paymentSplit => _PaymentSplitScene(phase: phase),
     };
   }
 }
