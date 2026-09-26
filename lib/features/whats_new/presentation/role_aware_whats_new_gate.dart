@@ -22,7 +22,7 @@ class WhatsNewGate extends StatefulWidget {
 
 class _WhatsNewGateState extends State<WhatsNewGate> {
   static const String releaseId =
-      'mobile-2026-09-26-1.3.10+24-v1';
+      'mobile-2026-09-26-1.3.10+24-v2';
   static const String _preferencePrefix = 'whats_new_seen_release';
 
   bool _checkStarted = false;
