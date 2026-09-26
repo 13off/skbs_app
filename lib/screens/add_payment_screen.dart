@@ -368,6 +368,273 @@ class _AddPaymentScreenState extends State<AddPaymentScreen> {
     });
   }
 
+  String formatMoney(double value) {
+    final normalized = value.abs() < 0.005 ? 0.0 : value;
+    final source = normalized % 1 == 0
+        ? normalized.toInt().toString()
+        : normalized.toStringAsFixed(2);
+    return '${AppInputFormatters.formatNumber(source)} ₽';
+  }
+
+  String periodTitle(int year, int month) => '${monthName(month)} $year';
+
+  bool get selectedPeriodIsClosed {
+    final now = DateTime.now();
+    final currentMonth = DateTime(now.year, now.month, 1);
+    final selectedMonth = DateTime(
+      settlementMonth.year,
+      settlementMonth.month,
+      1,
+    );
+    return selectedMonth.isBefore(currentMonth);
+  }
+
+  Future<bool?> showOverpaymentDecision({
+    required double periodBalance,
+    required double amount,
+  }) {
+    final due = periodBalance > 0 ? periodBalance : 0.0;
+    final excess = amount - due;
+    final alreadyOverpaid = periodBalance < 0 ? periodBalance.abs() : 0.0;
+
+    return showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        icon: const Icon(Icons.warning_amber_rounded),
+        title: const Text('Получается переплата'),
+        content: Text(
+          due > 0
+              ? 'За $settlementPeriodTitle осталось выплатить '
+                    '${formatMoney(due)}. Вы указали ${formatMoney(amount)}, '
+                    'поэтому ${formatMoney(excess)} окажутся переплатой.\n\n'
+                    'Перенести лишнюю сумму на другой расчётный период?'
+              : alreadyOverpaid > 0
+              ? 'За $settlementPeriodTitle уже есть переплата '
+                    '${formatMoney(alreadyOverpaid)}. Новая выплата '
+                    '${formatMoney(amount)} увеличит её.\n\n'
+                    'Перенести новую сумму на другой расчётный период?'
+              : 'За $settlementPeriodTitle остатка к выплате уже нет. '
+                    'Новая выплата ${formatMoney(amount)} станет переплатой.\n\n'
+                    'Перенести её на другой расчётный период?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Отмена'),
+          ),
+          OutlinedButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Оставить переплату'),
+          ),
+          FilledButton.icon(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            icon: const Icon(Icons.swap_horiz_rounded),
+            label: const Text('Перенести'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<PaymentPeriodBalance?> pickTransferPeriod({
+    required double amountToMove,
+    required List<PaymentPeriodBalance> balances,
+  }) {
+    return showDialog<PaymentPeriodBalance>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text('Куда перенести ${formatMoney(amountToMove)}'),
+        content: SizedBox(
+          width: 480,
+          child: balances.isEmpty
+              ? const Text(
+                  'Других периодов с остатком к выплате сейчас не найдено.',
+                )
+              : ConstrainedBox(
+                  constraints: const BoxConstraints(maxHeight: 430),
+                  child: ListView.separated(
+                    shrinkWrap: true,
+                    itemCount: balances.length,
+                    separatorBuilder: (_, _) => const Divider(height: 1),
+                    itemBuilder: (context, index) {
+                      final balance = balances[index];
+                      final canCover = balance.balance + 0.005 >= amountToMove;
+                      return ListTile(
+                        leading: const Icon(Icons.calendar_month_outlined),
+                        title: Text(
+                          periodTitle(balance.periodYear, balance.periodMonth),
+                        ),
+                        subtitle: Text(
+                          canCover
+                              ? 'Осталось выплатить ${formatMoney(balance.balance)}'
+                              : 'Осталось ${formatMoney(balance.balance)} · '
+                                    'после выбора останется распределить ещё '
+                                    '${formatMoney(amountToMove - balance.balance)}',
+                        ),
+                        trailing: const Icon(Icons.chevron_right_rounded),
+                        onTap: () => Navigator.pop(dialogContext, balance),
+                      );
+                    },
+                  ),
+                ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Отмена'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<bool?> confirmRemainingOverpayment(double remaining) {
+    return showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Больше долгов по периодам нет'),
+        content: Text(
+          'Осталось распределить ${formatMoney(remaining)}. '
+          'Оставить эту часть переплатой за $settlementPeriodTitle?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Отмена'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('Оставить переплатой'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<List<PaymentAllocationInput>?> resolvePaymentAllocations({
+    required String employeeId,
+    required double amount,
+  }) async {
+    final original = PaymentAllocationInput(
+      periodYear: settlementMonth.year,
+      periodMonth: settlementMonth.month,
+      amount: amount,
+    );
+
+    if (!selectedPeriodIsClosed || selectedPaymentType == 'fine') {
+      return <PaymentAllocationInput>[original];
+    }
+
+    final selectedBalances =
+        await PaymentRepository.fetchPaymentPeriodBalances(
+          employeeId: employeeId,
+          startMonth: settlementMonth,
+          endMonth: settlementMonth,
+        );
+    final selectedBalance = selectedBalances.isEmpty
+        ? 0.0
+        : selectedBalances.first.balance;
+    final due = selectedBalance > 0 ? selectedBalance : 0.0;
+
+    if (amount <= due + 0.005) {
+      return <PaymentAllocationInput>[original];
+    }
+
+    final shouldTransfer = await showOverpaymentDecision(
+      periodBalance: selectedBalance,
+      amount: amount,
+    );
+    if (shouldTransfer == null) return null;
+    if (!shouldTransfer) return <PaymentAllocationInput>[original];
+
+    final now = DateTime.now();
+    final currentMonth = DateTime(now.year, now.month, 1);
+    final rangeStart = DateTime(now.year, now.month - 18, 1);
+    final balances = await PaymentRepository.fetchPaymentPeriodBalances(
+      employeeId: employeeId,
+      startMonth: rangeStart,
+      endMonth: currentMonth,
+    );
+
+    final originalKey = '${settlementMonth.year}-${settlementMonth.month}';
+    final candidates = balances
+        .where(
+          (balance) =>
+              balance.balance > 0.005 &&
+              '${balance.periodYear}-${balance.periodMonth}' != originalKey,
+        )
+        .toList(growable: true);
+
+    final allocations = <PaymentAllocationInput>[];
+    if (due > 0.005) {
+      allocations.add(
+        PaymentAllocationInput(
+          periodYear: settlementMonth.year,
+          periodMonth: settlementMonth.month,
+          amount: due,
+        ),
+      );
+    }
+
+    var remaining = amount - due;
+    while (remaining > 0.005) {
+      candidates.sort((a, b) => b.month.compareTo(a.month));
+      if (candidates.isEmpty) {
+        final keepRemaining = await confirmRemainingOverpayment(remaining);
+        if (keepRemaining != true) return null;
+
+        final originalIndex = allocations.indexWhere(
+          (allocation) =>
+              allocation.periodYear == settlementMonth.year &&
+              allocation.periodMonth == settlementMonth.month,
+        );
+        if (originalIndex == -1) {
+          allocations.add(
+            PaymentAllocationInput(
+              periodYear: settlementMonth.year,
+              periodMonth: settlementMonth.month,
+              amount: remaining,
+            ),
+          );
+        } else {
+          final current = allocations[originalIndex];
+          allocations[originalIndex] = PaymentAllocationInput(
+            periodYear: current.periodYear,
+            periodMonth: current.periodMonth,
+            amount: current.amount + remaining,
+          );
+        }
+        remaining = 0;
+        break;
+      }
+
+      final target = await pickTransferPeriod(
+        amountToMove: remaining,
+        balances: candidates,
+      );
+      if (target == null) return null;
+
+      final targetAmount = target.balance < remaining
+          ? target.balance
+          : remaining;
+      allocations.add(
+        PaymentAllocationInput(
+          periodYear: target.periodYear,
+          periodMonth: target.periodMonth,
+          amount: targetAmount,
+        ),
+      );
+      remaining -= targetAmount;
+      candidates.removeWhere(
+        (balance) =>
+            balance.periodYear == target.periodYear &&
+            balance.periodMonth == target.periodMonth,
+      );
+    }
+
+    return allocations;
+  }
+
   Future<void> savePayment() async {
     final selectedEmployee = findSelectedEmployee();
     final amount = parseAmount();
@@ -399,12 +666,16 @@ class _AddPaymentScreenState extends State<AddPaymentScreen> {
     });
 
     try {
-      await PaymentRepository.addPayment(
+      final allocations = await resolvePaymentAllocations(
         employeeId: selectedEmployee.id!,
-        periodYear: settlementMonth.year,
-        periodMonth: settlementMonth.month,
-        paymentDate: paymentDate,
         amount: amount,
+      );
+      if (!mounted || allocations == null) return;
+
+      await PaymentRepository.addPaymentAllocations(
+        employeeId: selectedEmployee.id!,
+        allocations: allocations,
+        paymentDate: paymentDate,
         paymentType: selectedPaymentType,
         comment: commentController.text.trim(),
         receiptFiles: receiptFiles,
