@@ -351,6 +351,38 @@ class PaymentReceiptRepository {
     }
   }
 
+  static Future<List<PaymentReceipt>> linkExistingReceiptsToPayment({
+    required String paymentId,
+    required String employeeId,
+    required List<PaymentReceipt> sourceReceipts,
+  }) async {
+    final cleanPaymentId = paymentId.trim();
+    final cleanEmployeeId = employeeId.trim();
+    if (cleanPaymentId.isEmpty) throw Exception('Не найден ID выплаты');
+    if (cleanEmployeeId.isEmpty) throw Exception('Не найден ID сотрудника');
+    if (sourceReceipts.isEmpty) return <PaymentReceipt>[];
+
+    final rows = await _client
+        .from('payment_receipts')
+        .insert(
+          sourceReceipts
+              .where((receipt) => receipt.filePath.trim().isNotEmpty)
+              .map(
+                (receipt) => <String, dynamic>{
+                  'payment_id': cleanPaymentId,
+                  'employee_id': cleanEmployeeId,
+                  'file_name': receipt.fileName,
+                  'file_path': receipt.filePath,
+                  'content_type': receipt.contentType,
+                },
+              )
+              .toList(growable: false),
+        )
+        .select();
+
+    return rows.map<PaymentReceipt>(PaymentReceipt.fromMap).toList();
+  }
+
   static Future<Map<String, List<PaymentReceipt>>> fetchReceiptsForPaymentIds(
     List<String> paymentIds,
   ) async {
@@ -495,12 +527,23 @@ class PaymentReceiptRepository {
     final paths = receipts
         .map((receipt) => receipt.filePath.trim())
         .where((path) => path.isNotEmpty)
-        .toList();
-
-    if (paths.isNotEmpty) {
-      await _client.storage.from(bucketName).remove(paths);
-    }
+        .toSet()
+        .toList(growable: false);
 
     await _client.from('payment_receipts').delete().eq('payment_id', paymentId);
+
+    final unreferencedPaths = <String>[];
+    for (final path in paths) {
+      final remaining = await _client
+          .from('payment_receipts')
+          .select('id')
+          .eq('file_path', path)
+          .limit(1);
+      if (remaining.isEmpty) unreferencedPaths.add(path);
+    }
+
+    if (unreferencedPaths.isNotEmpty) {
+      await _client.storage.from(bucketName).remove(unreferencedPaths);
+    }
   }
 }
