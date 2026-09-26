@@ -26,9 +26,11 @@ void main() {
     expect(source, contains('_UpdatePreviewKind.taskMedia'));
     expect(source, contains('_UpdatePreviewKind.decimalMoney'));
     expect(source, contains('_UpdatePreviewKind.advanceThirty'));
+    expect(source, contains('_UpdatePreviewKind.paymentSplit'));
     expect(source, contains('class _TaskMediaScene'));
     expect(source, contains('class _DecimalMoneyScene'));
     expect(source, contains('class _AdvanceThirtyScene'));
-    expect(source, contains('mobile-2026-09-26-1.3.10+24-v1'));
+    expect(source, contains('class _PaymentSplitScene'));
+    expect(source, contains('mobile-2026-09-26-1.3.10+24-v2'));
   });
 }
