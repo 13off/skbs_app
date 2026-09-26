@@ -4,6 +4,36 @@ import 'app_data_sync.dart';
 import 'attendance_repository.dart';
 import 'payment_receipt_repository.dart';
 
+class PaymentAllocationInput {
+  final int periodYear;
+  final int periodMonth;
+  final double amount;
+
+  const PaymentAllocationInput({
+    required this.periodYear,
+    required this.periodMonth,
+    required this.amount,
+  });
+}
+
+class PaymentPeriodBalance {
+  final int periodYear;
+  final int periodMonth;
+  final double accrued;
+  final double paid;
+  final double balance;
+
+  const PaymentPeriodBalance({
+    required this.periodYear,
+    required this.periodMonth,
+    required this.accrued,
+    required this.paid,
+    required this.balance,
+  });
+
+  DateTime get month => DateTime(periodYear, periodMonth, 1);
+}
+
 class PaymentRepository {
   static final _client = Supabase.instance.client;
 
@@ -93,57 +123,184 @@ class PaymentRepository {
     required String comment,
     List<PickedPaymentReceiptFile> receiptFiles = const [],
   }) async {
-    final row = await _client
+    final ids = await addPaymentAllocations(
+      employeeId: employeeId,
+      allocations: <PaymentAllocationInput>[
+        PaymentAllocationInput(
+          periodYear: periodYear,
+          periodMonth: periodMonth,
+          amount: amount,
+        ),
+      ],
+      paymentDate: paymentDate,
+      paymentType: paymentType,
+      comment: comment,
+      receiptFiles: receiptFiles,
+    );
+    return ids.isEmpty ? null : ids.first;
+  }
+
+  static Future<List<String>> addPaymentAllocations({
+    required String employeeId,
+    required List<PaymentAllocationInput> allocations,
+    required DateTime paymentDate,
+    required String paymentType,
+    required String comment,
+    List<PickedPaymentReceiptFile> receiptFiles = const [],
+  }) async {
+    final cleanEmployeeId = employeeId.trim();
+    final cleanAllocations = allocations
+        .where(
+          (allocation) =>
+              allocation.periodYear > 0 &&
+              allocation.periodMonth >= 1 &&
+              allocation.periodMonth <= 12 &&
+              allocation.amount > 0,
+        )
+        .toList(growable: false);
+
+    if (cleanEmployeeId.isEmpty) {
+      throw Exception('Не найден ID сотрудника');
+    }
+    if (cleanAllocations.isEmpty) {
+      throw Exception('Не указаны суммы выплаты');
+    }
+
+    final rows = await _client
         .from('payments')
-        .insert({
-          'employee_id': employeeId,
-          'period_year': periodYear,
-          'period_month': periodMonth,
-          'payment_date': dateKey(paymentDate),
-          'amount': amount,
-          'payment_type': paymentType,
-          'comment': comment,
-          'updated_at': DateTime.now().toUtc().toIso8601String(),
-        })
-        .select('id')
-        .single();
+        .insert(
+          cleanAllocations
+              .map(
+                (allocation) => <String, dynamic>{
+                  'employee_id': cleanEmployeeId,
+                  'period_year': allocation.periodYear,
+                  'period_month': allocation.periodMonth,
+                  'payment_date': dateKey(paymentDate),
+                  'amount': allocation.amount,
+                  'payment_type': paymentType,
+                  'comment': comment,
+                  'updated_at': DateTime.now().toUtc().toIso8601String(),
+                },
+              )
+              .toList(growable: false),
+        )
+        .select('id');
 
-    final paymentId = row['id']?.toString();
+    final paymentIds = rows
+        .map((row) => row['id']?.toString().trim() ?? '')
+        .where((id) => id.isNotEmpty)
+        .toList(growable: false);
 
-    if (paymentId != null && paymentId.isNotEmpty && receiptFiles.isNotEmpty) {
-      try {
-        await PaymentReceiptRepository.uploadReceiptFiles(
-          paymentId: paymentId,
-          employeeId: employeeId,
-          files: receiptFiles,
-        );
-      } catch (_) {
-        // Не оставляем «успешную» выплату без выбранного пользователем чека.
-        // Иначе повторное нажатие после ошибки создаёт дубликаты выплат.
+    if (paymentIds.length != cleanAllocations.length) {
+      for (final paymentId in paymentIds) {
         try {
           await _client.from('payments').delete().eq('id', paymentId);
         } catch (_) {
-          // Исходная ошибка загрузки важнее ошибки компенсационной очистки.
+          // Best-effort rollback; the original insert mismatch is more useful.
         }
-        clearEmployeePaymentsCache(employeeId);
-        AttendanceRepository.clearCache();
-        rethrow;
       }
+      throw Exception('Не удалось создать все части выплаты');
     }
 
-    clearEmployeePaymentsCache(employeeId);
+    try {
+      if (receiptFiles.isNotEmpty) {
+        final primaryReceipts =
+            await PaymentReceiptRepository.uploadReceiptFiles(
+              paymentId: paymentIds.first,
+              employeeId: cleanEmployeeId,
+              files: receiptFiles,
+            );
+
+        for (final paymentId in paymentIds.skip(1)) {
+          await PaymentReceiptRepository.linkExistingReceiptsToPayment(
+            paymentId: paymentId,
+            employeeId: cleanEmployeeId,
+            sourceReceipts: primaryReceipts,
+          );
+        }
+      }
+    } catch (_) {
+      for (final paymentId in paymentIds) {
+        try {
+          await PaymentReceiptRepository.deleteReceiptsForPayment(paymentId);
+        } catch (_) {
+          // Continue rollback for the remaining payment rows.
+        }
+      }
+      for (final paymentId in paymentIds) {
+        try {
+          await _client.from('payments').delete().eq('id', paymentId);
+        } catch (_) {
+          // The receipt/upload error remains the primary failure.
+        }
+      }
+      clearEmployeePaymentsCache(cleanEmployeeId);
+      AttendanceRepository.clearCache();
+      rethrow;
+    }
+
+    clearEmployeePaymentsCache(cleanEmployeeId);
     AttendanceRepository.clearCache();
     AppDataSync.notifyLocal(
       const <AppDataDomain>{AppDataDomain.payments},
       context: <String, dynamic>{
         'table': 'payments',
-        'employee_id': employeeId,
-        'period_year': periodYear,
-        'period_month': periodMonth,
+        'employee_id': cleanEmployeeId,
+        'periods': cleanAllocations
+            .map(
+              (allocation) =>
+                  '${allocation.periodYear}-'
+                  '${allocation.periodMonth.toString().padLeft(2, '0')}',
+            )
+            .toList(growable: false),
       },
     );
 
-    return paymentId;
+    return paymentIds;
+  }
+
+  static Future<List<PaymentPeriodBalance>> fetchPaymentPeriodBalances({
+    required String employeeId,
+    required DateTime startMonth,
+    required DateTime endMonth,
+  }) async {
+    final cleanEmployeeId = employeeId.trim();
+    if (cleanEmployeeId.isEmpty) return const <PaymentPeriodBalance>[];
+
+    final response = await _client.rpc<dynamic>(
+      'get_employee_payment_period_balances',
+      params: <String, dynamic>{
+        'p_employee_id': cleanEmployeeId,
+        'p_start_month': dateKey(
+          DateTime(startMonth.year, startMonth.month, 1),
+        ),
+        'p_end_month': dateKey(
+          DateTime(endMonth.year, endMonth.month, 1),
+        ),
+      },
+    );
+
+    if (response is! List) return const <PaymentPeriodBalance>[];
+
+    return response
+        .whereType<Map>()
+        .map((raw) {
+          final row = Map<String, dynamic>.from(raw);
+          return PaymentPeriodBalance(
+            periodYear: _toInt(row['period_year']),
+            periodMonth: _toInt(row['period_month']),
+            accrued: _toDouble(row['accrued']),
+            paid: _toDouble(row['paid']),
+            balance: _toDouble(row['balance']),
+          );
+        })
+        .where(
+          (row) =>
+              row.periodYear > 0 &&
+              row.periodMonth >= 1 &&
+              row.periodMonth <= 12,
+        )
+        .toList(growable: false);
   }
 
   static Future<List<PaymentRecord>> fetchPaymentsForEmployee(
