@@ -523,27 +523,36 @@ class PaymentReceiptRepository {
   }
 
   static Future<void> deleteReceiptsForPayment(String paymentId) async {
-    final receipts = await fetchReceiptsForPayment(paymentId);
+    final cleanPaymentId = paymentId.trim();
+    if (cleanPaymentId.isEmpty) return;
+
+    final receipts = await fetchReceiptsForPayment(cleanPaymentId);
     final paths = receipts
         .map((receipt) => receipt.filePath.trim())
         .where((path) => path.isNotEmpty)
         .toSet()
         .toList(growable: false);
 
-    await _client.from('payment_receipts').delete().eq('payment_id', paymentId);
-
-    final unreferencedPaths = <String>[];
+    final pathsToDelete = <String>[];
     for (final path in paths) {
-      final remaining = await _client
+      final otherReferences = await _client
           .from('payment_receipts')
           .select('id')
           .eq('file_path', path)
+          .neq('payment_id', cleanPaymentId)
           .limit(1);
-      if (remaining.isEmpty) unreferencedPaths.add(path);
+      if (otherReferences.isEmpty) pathsToDelete.add(path);
     }
 
-    if (unreferencedPaths.isNotEmpty) {
-      await _client.storage.from(bucketName).remove(unreferencedPaths);
+    // Remove a physical object while its last receipt row still exists.
+    // Storage RLS can therefore prove that the current company owns the file.
+    if (pathsToDelete.isNotEmpty) {
+      await _client.storage.from(bucketName).remove(pathsToDelete);
     }
+
+    await _client
+        .from('payment_receipts')
+        .delete()
+        .eq('payment_id', cleanPaymentId);
   }
 }
