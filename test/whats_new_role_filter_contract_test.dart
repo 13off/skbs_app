@@ -3,33 +3,24 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  test('leader sees all while other roles see common and own updates', () {
+  test('current updates are shown only to roles that use each feature', () {
     final source = File(
       'lib/features/whats_new/presentation/whats_new_release_data.dart',
     ).readAsStringSync();
 
+    expect(source, contains("roles: <String>{'foreman', 'employee'}"));
+    expect(source, contains("roles: <String>{'accountant'}"));
+    expect(source, contains("roles: <String>{'executive'}"));
+    expect(source, contains('slide.roles.contains(profile.role)'));
+
     expect(
       source,
-      contains("profile.role == 'admin' || profile.role == 'developer'"),
+      isNot(contains("profile.role == 'admin' || profile.role == 'developer'")),
     );
-    expect(source, contains('List<_UpdateSlide>.unmodifiable(_allSlides)'));
-    expect(
-      source,
-      contains('slide.common || slide.roles.contains(profile.role)'),
-    );
-    expect(source, contains("roles: <String>{'admin'}"));
-    expect(source, contains("roles: <String>{'admin', 'lawyer'}"));
-    expect(source, contains("roles: <String>{'lawyer'}"));
-    expect(source, contains("roles: <String>{'employee', 'foreman'}"));
-    expect(source, contains('common: true'));
+    expect(source, isNot(contains('common: true')));
 
-    final commonCount = RegExp('common: true').allMatches(source).length;
-    expect(commonCount, 2);
-
-    expect(source, contains('Дела руководителя'));
-    expect(source, contains('Полноценная платформа юриста'));
-    expect(source, contains('Единый стеклянный интерфейс'));
-    expect(source, contains('Новые фото «До» и «После»'));
-    expect(source, contains('Стабильнее и безопаснее'));
+    expect(source, contains('Фото и видео в задачах'));
+    expect(source, contains('Копейки — через точку или запятую'));
+    expect(source, contains('Аванс 30% в «Оплате»'));
   });
 }
