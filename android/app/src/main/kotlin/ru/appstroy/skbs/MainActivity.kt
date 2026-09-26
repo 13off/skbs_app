@@ -59,8 +59,6 @@ class MainActivity : FlutterActivity() {
     private var videoPickerResult: MethodChannel.Result? = null
     private var videoMaxDurationMs = 60_000L
     private var videoTargetBytes = 6L * 1024L * 1024L
-    private var videoMaxWidth = 960
-    private var videoMaxHeight = 960
 
     override fun onCreate(savedInstanceState: Bundle?) {
         val dark = storedThemeIsDark()
@@ -120,15 +118,9 @@ class MainActivity : FlutterActivity() {
                     (call.argument<Number>("targetBytes")?.toLong()
                         ?: 6L * 1024L * 1024L)
                         .coerceIn(1L * 1024L * 1024L, 8L * 1024L * 1024L)
-                val maxWidth = (call.argument<Int>("maxWidth") ?: 960)
-                    .coerceIn(320, 1920)
-                val maxHeight = (call.argument<Int>("maxHeight") ?: 960)
-                    .coerceIn(320, 1920)
                 requestTaskVideos(
                     maxDurationMs,
                     targetBytes,
-                    maxWidth,
-                    maxHeight,
                     result,
                 )
             }
@@ -162,8 +154,6 @@ class MainActivity : FlutterActivity() {
     private fun requestTaskVideos(
         maxDurationMs: Long,
         targetBytes: Long,
-        maxWidth: Int,
-        maxHeight: Int,
         result: MethodChannel.Result,
     ) {
         if (photoPickerResult != null || videoPickerResult != null) {
@@ -174,8 +164,6 @@ class MainActivity : FlutterActivity() {
         videoPickerResult = result
         videoMaxDurationMs = maxDurationMs
         videoTargetBytes = targetBytes
-        videoMaxWidth = maxWidth
-        videoMaxHeight = maxHeight
 
         val intent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
             addCategory(Intent.CATEGORY_OPENABLE)
@@ -341,11 +329,7 @@ class MainActivity : FlutterActivity() {
         )
         if (outputFile.exists()) outputFile.delete()
 
-        val presentation = Presentation.createForWidthAndHeight(
-            videoMaxWidth,
-            videoMaxHeight,
-            Presentation.LAYOUT_SCALE_TO_FIT,
-        )
+        val presentation = Presentation.createForHeight(720)
         val mediaItem = MediaItem.fromUri(uri)
         val editedMediaItem = EditedMediaItem.Builder(mediaItem)
             .setEffects(Effects(emptyList(), listOf(presentation)))
