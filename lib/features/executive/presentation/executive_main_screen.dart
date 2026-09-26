@@ -416,6 +416,7 @@ class _ExecutivePaymentsScreenState extends State<_ExecutivePaymentsScreen> {
   _ExecutiveEmploymentFilter employmentFilter =
       _ExecutiveEmploymentFilter.all;
   bool onlyDue = true;
+  bool advanceThirtyPercent = false;
   bool editingForShare = false;
   bool isLoading = false;
   String? errorText;
@@ -488,11 +489,23 @@ class _ExecutivePaymentsScreenState extends State<_ExecutivePaymentsScreen> {
     return rows;
   }
 
+  double _paymentAmountFor(ExecutivePaymentBalance row) {
+    if (row.balance <= 0) return 0.0;
+    return advanceThirtyPercent ? row.balance * 0.30 : row.balance;
+  }
+
   double _actualTotal(Iterable<ExecutivePaymentBalance> rows) {
     return rows.fold<double>(
       0,
-      (sum, row) => sum + (row.balance > 0 ? row.balance : 0.0),
+      (sum, row) => sum + _paymentAmountFor(row),
     );
+  }
+
+  void _toggleAdvanceThirtyPercent() {
+    setState(() {
+      advanceThirtyPercent = !advanceThirtyPercent;
+      _resetShareDraft();
+    });
   }
 
   double _parseShareAmount(String value) {
@@ -501,7 +514,7 @@ class _ExecutivePaymentsScreenState extends State<_ExecutivePaymentsScreen> {
 
   double _shareAmountFor(ExecutivePaymentBalance row) {
     final controller = shareAmountControllers[_rowKey(row)];
-    if (controller == null) return row.balance > 0 ? row.balance : 0.0;
+    if (controller == null) return _paymentAmountFor(row);
     return _parseShareAmount(controller.text);
   }
 
@@ -517,9 +530,13 @@ class _ExecutivePaymentsScreenState extends State<_ExecutivePaymentsScreen> {
     if (current == null || current.rows.isEmpty) return;
     _disposeShareControllers();
     for (final row in current.rows) {
-      final initial = row.balance > 0 ? row.balance.round() : 0;
+      final initial = _paymentAmountFor(row);
       shareAmountControllers[_rowKey(row)] = TextEditingController(
-        text: initial.toString(),
+        text: AppInputFormatters.formatNumber(
+          initial % 1 == 0
+              ? initial.toInt().toString()
+              : initial.toStringAsFixed(2),
+        ),
       );
     }
     setState(() => editingForShare = true);
@@ -544,7 +561,7 @@ class _ExecutivePaymentsScreenState extends State<_ExecutivePaymentsScreen> {
     for (final row in rows) {
       final amount = editingForShare
           ? _shareAmountFor(row)
-          : (row.balance > 0 ? row.balance : 0.0);
+          : _paymentAmountFor(row);
       if (amount <= 0.005) continue;
       total += amount;
       entries.add((row: row, amount: amount));
@@ -558,7 +575,8 @@ class _ExecutivePaymentsScreenState extends State<_ExecutivePaymentsScreen> {
     }
 
     final header =
-        'Остатки · ${selectedObjectName ?? 'Все объекты'} · '
+        '${advanceThirtyPercent ? 'Аванс 30%' : 'Остатки'} · '
+        '${selectedObjectName ?? 'Все объекты'} · '
         '$_employmentTitle · ${_formatRange(period)}';
     final lines = <String>[header, ''];
 
@@ -687,7 +705,7 @@ class _ExecutivePaymentsScreenState extends State<_ExecutivePaymentsScreen> {
       );
       final amount = editingForShare
           ? _shareAmountFor(row)
-          : (row.balance > 0 ? row.balance : 0.0);
+          : _paymentAmountFor(row);
       return ExecutiveExpressSummaryRow(
         employeeName: row.employeeName,
         objectTitle: row.objectTitle,
@@ -1162,6 +1180,18 @@ class _ExecutivePaymentsScreenState extends State<_ExecutivePaymentsScreen> {
                 ),
               ] else if (current != null) ...[
                 const SizedBox(height: 14),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: FilterChip(
+                    avatar: const Icon(Icons.percent_rounded, size: 18),
+                    label: Text(
+                      advanceThirtyPercent ? '30% аванс включён' : '30% аванс',
+                    ),
+                    selected: advanceThirtyPercent,
+                    onSelected: (_) => _toggleAdvanceThirtyPercent(),
+                  ),
+                ),
+                const SizedBox(height: 10),
                 _shareActions(rows),
                 if (rows.isNotEmpty) ...[
                   const SizedBox(height: 8),
@@ -1202,6 +1232,7 @@ class _ExecutivePaymentsScreenState extends State<_ExecutivePaymentsScreen> {
                   total: total,
                   count: rows.length,
                   edited: editingForShare,
+                  advanceThirtyPercent: advanceThirtyPercent,
                 ),
                 const SizedBox(height: 14),
                 if (!isLoading && rows.isEmpty)
@@ -1216,6 +1247,8 @@ class _ExecutivePaymentsScreenState extends State<_ExecutivePaymentsScreen> {
                       period: period,
                       onInfo: () => _openDetails(row),
                       onCopyRequisites: () => _copyPaymentRequisites(row),
+                      paymentAmount: _paymentAmountFor(row),
+                      advanceThirtyPercent: advanceThirtyPercent,
                       shareAmountController: editingForShare
                           ? shareAmountControllers[_rowKey(row)]
                           : null,
@@ -1753,11 +1786,13 @@ class _ExecutivePaymentTotal extends StatelessWidget {
   final double total;
   final int count;
   final bool edited;
+  final bool advanceThirtyPercent;
 
   const _ExecutivePaymentTotal({
     required this.total,
     required this.count,
     required this.edited,
+    required this.advanceThirtyPercent,
   });
 
   @override
@@ -1769,7 +1804,11 @@ class _ExecutivePaymentTotal extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            edited ? 'Итого для отправки' : 'Всего к выплате',
+            edited
+                ? 'Итого для отправки'
+                : advanceThirtyPercent
+                    ? 'Аванс 30% к выплате'
+                    : 'Всего к выплате',
             style: TextStyle(
               color: AppAdaptivePalette.textMuted,
               fontSize: 13,
@@ -1806,6 +1845,8 @@ class _ExecutivePaymentCard extends StatelessWidget {
   final DateTimeRange period;
   final VoidCallback onInfo;
   final VoidCallback onCopyRequisites;
+  final double paymentAmount;
+  final bool advanceThirtyPercent;
   final TextEditingController? shareAmountController;
   final VoidCallback? onShareAmountChanged;
 
@@ -1814,6 +1855,8 @@ class _ExecutivePaymentCard extends StatelessWidget {
     required this.period,
     required this.onInfo,
     required this.onCopyRequisites,
+    required this.paymentAmount,
+    required this.advanceThirtyPercent,
     this.shareAmountController,
     this.onShareAmountChanged,
   });
@@ -1927,7 +1970,11 @@ class _ExecutivePaymentCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    balanceIsOverpayment ? 'Переплата' : 'Остаток к выплате',
+                    balanceIsOverpayment
+                        ? 'Переплата'
+                        : advanceThirtyPercent
+                            ? 'Аванс 30% к выплате'
+                            : 'Остаток к выплате',
                     style: TextStyle(
                       color: AppAdaptivePalette.textMuted,
                       fontSize: 12,
@@ -1936,7 +1983,11 @@ class _ExecutivePaymentCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 3),
                   Text(
-                    _formatMoney(row.balance.abs()),
+                    _formatMoney(
+                      balanceIsOverpayment
+                          ? row.balance.abs()
+                          : paymentAmount,
+                    ),
                     style: TextStyle(
                       color: AppAdaptivePalette.textPrimary,
                       fontSize: 24,
