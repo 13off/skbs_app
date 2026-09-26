@@ -11,6 +11,10 @@ void main() {
     expect(source, contains("roles: <String>{'foreman', 'employee'}"));
     expect(source, contains("roles: <String>{'accountant'}"));
     expect(source, contains("roles: <String>{'executive'}"));
+    expect(
+      source,
+      contains("roles: <String>{'admin', 'accountant', 'executive'}"),
+    );
     expect(source, contains('slide.roles.contains(profile.role)'));
 
     expect(
@@ -22,5 +26,6 @@ void main() {
     expect(source, contains('Фото и видео в задачах'));
     expect(source, contains('Копейки — через точку или запятую'));
     expect(source, contains('Аванс 30% в «Оплате»'));
+    expect(source, contains('Переплату можно перенести'));
   });
 }
