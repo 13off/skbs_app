@@ -97,6 +97,11 @@ class Win32Window {
 
   // window handle for hosted content.
   HWND child_content_ = nullptr;
+
+  // Used only to recover from a hidden native modal that disables the main
+  // AppStroy window during startup. Legitimate dialogs appearing later are
+  // never affected by the startup guard.
+  ULONGLONG created_at_tick_ = 0;
 };
 
 #endif  // RUNNER_WIN32_WINDOW_H_
