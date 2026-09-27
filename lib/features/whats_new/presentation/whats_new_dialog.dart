@@ -53,101 +53,102 @@ class _WhatsNewDialogState extends State<_WhatsNewDialog> {
         autofocus: true,
         child: Dialog(
           insetPadding: const EdgeInsets.all(9),
-      backgroundColor: Colors.transparent,
-      child: SizedBox(
-        width: width,
-        height: height,
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(32),
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 22, sigmaY: 22),
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: <Color>[
-                    Color(0xF51A202B),
-                    Color(0xF20D1119),
-                    Color(0xF70A0D12),
-                  ],
-                ),
-                borderRadius: BorderRadius.circular(32),
-                border: Border.all(color: const Color(0x334A8CFF)),
-                boxShadow: const <BoxShadow>[
-                  BoxShadow(
-                    color: Color(0x66000000),
-                    blurRadius: 52,
-                    offset: Offset(0, 24),
-                  ),
-                ],
-              ),
-              child: Stack(
-                children: <Widget>[
-                  const Positioned(
-                    top: -80,
-                    right: -90,
-                    child: _AmbientGlow(
-                      size: 260,
-                      color: Color(0x334A8CFF),
-                    ),
-                  ),
-                  const Positioned(
-                    bottom: -100,
-                    left: -80,
-                    child: _AmbientGlow(
-                      size: 240,
-                      color: Color(0x222FC9FF),
-                    ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(18, 16, 18, 16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: <Widget>[
-                        _DialogHeader(
-                          roleTitle: widget.profile.roleTitle,
-                          current: _currentIndex + 1,
-                          count: widget.slides.length,
-                          onClose: _finish,
-                        ),
-                        const SizedBox(height: 12),
-                        Expanded(
-                          child: PageView.builder(
-                            controller: _pageController,
-                            itemCount: widget.slides.length,
-                            onPageChanged: (index) {
-                              setState(() => _currentIndex = index);
-                            },
-                            itemBuilder: (context, index) {
-                              return _UpdateSlideView(
-                                slide: widget.slides[index],
-                                active: index == _currentIndex,
-                              );
-                            },
-                          ),
-                        ),
-                        const SizedBox(height: 10),
-                        _DialogNavigation(
-                          currentIndex: _currentIndex,
-                          count: widget.slides.length,
-                          isLast: _isLast,
-                          onBack: _currentIndex == 0
-                              ? null
-                              : () => _goTo(_currentIndex - 1),
-                          onNext: _isLast
-                              ? _finish
-                              : () => _goTo(_currentIndex + 1),
-                          onSelected: _goTo,
-                        ),
+          backgroundColor: Colors.transparent,
+          child: SizedBox(
+            width: width,
+            height: height,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(32),
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 22, sigmaY: 22),
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: <Color>[
+                        Color(0xF51A202B),
+                        Color(0xF20D1119),
+                        Color(0xF70A0D12),
                       ],
                     ),
+                    borderRadius: BorderRadius.circular(32),
+                    border: Border.all(color: const Color(0x334A8CFF)),
+                    boxShadow: const <BoxShadow>[
+                      BoxShadow(
+                        color: Color(0x66000000),
+                        blurRadius: 52,
+                        offset: Offset(0, 24),
+                      ),
+                    ],
                   ),
-                ],
+                  child: Stack(
+                    children: <Widget>[
+                      const Positioned(
+                        top: -80,
+                        right: -90,
+                        child: _AmbientGlow(
+                          size: 260,
+                          color: Color(0x334A8CFF),
+                        ),
+                      ),
+                      const Positioned(
+                        bottom: -100,
+                        left: -80,
+                        child: _AmbientGlow(
+                          size: 240,
+                          color: Color(0x222FC9FF),
+                        ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(18, 16, 18, 16),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: <Widget>[
+                            _DialogHeader(
+                              roleTitle: widget.profile.roleTitle,
+                              current: _currentIndex + 1,
+                              count: widget.slides.length,
+                              onClose: _finish,
+                            ),
+                            const SizedBox(height: 12),
+                            Expanded(
+                              child: PageView.builder(
+                                controller: _pageController,
+                                itemCount: widget.slides.length,
+                                onPageChanged: (index) {
+                                  setState(() => _currentIndex = index);
+                                },
+                                itemBuilder: (context, index) {
+                                  return _UpdateSlideView(
+                                    slide: widget.slides[index],
+                                    active: index == _currentIndex,
+                                  );
+                                },
+                              ),
+                            ),
+                            const SizedBox(height: 10),
+                            _DialogNavigation(
+                              currentIndex: _currentIndex,
+                              count: widget.slides.length,
+                              isLast: _isLast,
+                              onBack: _currentIndex == 0
+                                  ? null
+                                  : () => _goTo(_currentIndex - 1),
+                              onNext: _isLast
+                                  ? _finish
+                                  : () => _goTo(_currentIndex + 1),
+                              onSelected: _goTo,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ),
             ),
           ),
-        ),
         ),
       ),
     );
