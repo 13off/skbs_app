@@ -45,8 +45,14 @@ class _WhatsNewDialogState extends State<_WhatsNewDialog> {
     final width = math.min(690.0, math.max(0.0, size.width - 18));
     final height = math.min(790.0, math.max(0.0, size.height * 0.96));
 
-    return Dialog(
-      insetPadding: const EdgeInsets.all(9),
+    return CallbackShortcuts(
+      bindings: <ShortcutActivator, VoidCallback>{
+        const SingleActivator(LogicalKeyboardKey.escape): _finish,
+      },
+      child: Focus(
+        autofocus: true,
+        child: Dialog(
+          insetPadding: const EdgeInsets.all(9),
       backgroundColor: Colors.transparent,
       child: SizedBox(
         width: width,
@@ -141,6 +147,7 @@ class _WhatsNewDialogState extends State<_WhatsNewDialog> {
               ),
             ),
           ),
+        ),
         ),
       ),
     );
