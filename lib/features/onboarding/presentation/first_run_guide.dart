@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../models/app_user_profile.dart';
+import '../../../navigation/app_modal_overlay_coordinator.dart';
 import '../../role_preview/role_preview_controller.dart';
 
 class FirstRunGuide {
@@ -31,8 +32,20 @@ class FirstRunGuide {
     if (preferences?.getBool(key) == true) return false;
     if (!context.mounted) return false;
 
+    await AppModalOverlayCoordinator.waitUntilUnblocked();
+    if (!context.mounted) return false;
+
     await WidgetsBinding.instance.endOfFrame;
     if (!context.mounted) return false;
+
+    // A modal such as "Что нового" has priority over the onboarding
+    // spotlight. Never insert the full-screen gesture barrier above it.
+    if (AppModalOverlayCoordinator.hasBlockingOverlay) {
+      await AppModalOverlayCoordinator.waitUntilUnblocked();
+      if (!context.mounted) return false;
+      await WidgetsBinding.instance.endOfFrame;
+      if (!context.mounted) return false;
+    }
 
     final shown = await _GuideOverlay.show(
       context: context,
