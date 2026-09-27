@@ -22,7 +22,7 @@ void main() {
         'lib/features/auth/presentation/employee_aware_auth_gate.dart',
       ).readAsStringSync();
 
-      expect(gate, contains('mobile-2026-09-26-1.3.10+24-v2'));
+      expect(gate, contains('mobile-2026-09-27-1.3.11+25-v3'));
       expect(gate, contains("'whats_new_seen_release'"));
       expect(gate, contains('widget.profile.id'));
       expect(gate, contains('widget.profile.role'));
