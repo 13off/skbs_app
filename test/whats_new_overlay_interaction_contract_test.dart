@@ -23,6 +23,9 @@ void main() {
     expect(coordinator, contains('waitUntilUnblocked'));
     expect(whatsNew, contains('AppModalOverlayCoordinator.begin'));
     expect(whatsNew, contains('AppModalOverlayCoordinator.end'));
+    expect(whatsNew, contains('Positioned.fill('));
+    expect(whatsNew, contains('_WhatsNewDialog('));
+    expect(whatsNew, isNot(contains('showDialog<void>(')));
     expect(
       guide,
       contains('AppModalOverlayCoordinator.waitUntilUnblocked()'),
@@ -35,5 +38,6 @@ void main() {
       dialog,
       contains('SingleActivator(LogicalKeyboardKey.escape)'),
     );
+    expect(dialog, contains('widget.onClose()'));
   });
 }
