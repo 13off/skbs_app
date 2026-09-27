@@ -163,6 +163,11 @@ bool Win32Window::Create(const std::wstring& title,
   }
 
   created_at_tick_ = GetTickCount64();
+  SetTimer(
+      window,
+      kStartupInputRecoveryTimer,
+      kStartupInputRecoveryDelayMs,
+      nullptr);
   UpdateTheme(window);
 
   return OnCreate();
@@ -186,6 +191,29 @@ LRESULT CALLBACK Win32Window::WndProc(HWND const window,
     EnableFullDpiSupportIfAvailable(window);
     that->window_handle_ = window;
   } else if (Win32Window* that = GetThisFromHandle(window)) {
+    if (message == WM_TIMER && wparam == kStartupInputRecoveryTimer) {
+      const ULONGLONG elapsed =
+          that->created_at_tick_ == 0
+              ? kStartupInputRecoveryWindowMs + 1
+              : GetTickCount64() - that->created_at_tick_;
+
+      if (elapsed > kStartupInputRecoveryWindowMs) {
+        KillTimer(window, kStartupInputRecoveryTimer);
+        return 0;
+      }
+
+      if (!IsWindowEnabled(window) && !HasVisibleOwnedWindow(window)) {
+        OutputDebugStringW(
+            L"AppStroy: recovering disabled startup window without visible native modal.\n");
+        EnableWindow(window, TRUE);
+        SetActiveWindow(window);
+        if (that->child_content_ != nullptr) {
+          SetFocus(that->child_content_);
+        }
+      }
+      return 0;
+    }
+
     return that->MessageHandler(window, message, wparam, lparam);
   }
 
@@ -198,43 +226,6 @@ Win32Window::MessageHandler(HWND hwnd,
                             WPARAM const wparam,
                             LPARAM const lparam) noexcept {
   switch (message) {
-    case WM_ENABLE:
-      if (wparam == FALSE &&
-          created_at_tick_ != 0 &&
-          GetTickCount64() - created_at_tick_ <=
-              kStartupInputRecoveryWindowMs) {
-        SetTimer(
-            hwnd,
-            kStartupInputRecoveryTimer,
-            kStartupInputRecoveryDelayMs,
-            nullptr);
-        OutputDebugStringW(
-            L"AppStroy: main window disabled during startup; input recovery armed.\n");
-      }
-      break;
-
-    case WM_TIMER:
-      if (wparam == kStartupInputRecoveryTimer) {
-        KillTimer(hwnd, kStartupInputRecoveryTimer);
-        const bool still_in_startup_window =
-            created_at_tick_ != 0 &&
-            GetTickCount64() - created_at_tick_ <=
-                kStartupInputRecoveryWindowMs;
-        if (still_in_startup_window &&
-            !IsWindowEnabled(hwnd) &&
-            !HasVisibleOwnedWindow(hwnd)) {
-          OutputDebugStringW(
-              L"AppStroy: recovering disabled startup window without visible native modal.\n");
-          EnableWindow(hwnd, TRUE);
-          SetActiveWindow(hwnd);
-          if (child_content_ != nullptr) {
-            SetFocus(child_content_);
-          }
-        }
-        return 0;
-      }
-      break;
-
     case WM_DESTROY:
       window_handle_ = nullptr;
       Destroy();
