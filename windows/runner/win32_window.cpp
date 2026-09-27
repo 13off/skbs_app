@@ -17,6 +17,24 @@ namespace {
 #endif
 
 constexpr const wchar_t kWindowClassName[] = L"FLUTTER_RUNNER_WIN32_WINDOW";
+constexpr UINT_PTR kStartupInputRecoveryTimer = 0xA551;
+constexpr ULONGLONG kStartupInputRecoveryWindowMs = 20000;
+constexpr UINT kStartupInputRecoveryDelayMs = 700;
+
+bool HasVisibleOwnedWindow(HWND owner) {
+  for (HWND candidate = GetWindow(owner, GW_HWNDFIRST);
+       candidate != nullptr;
+       candidate = GetWindow(candidate, GW_HWNDNEXT)) {
+    if (candidate == owner) {
+      continue;
+    }
+    if (GetWindow(candidate, GW_OWNER) == owner &&
+        IsWindowVisible(candidate)) {
+      return true;
+    }
+  }
+  return false;
+}
 
 /// Registry key for app theme preference.
 ///
@@ -144,6 +162,7 @@ bool Win32Window::Create(const std::wstring& title,
     return false;
   }
 
+  created_at_tick_ = GetTickCount64();
   UpdateTheme(window);
 
   return OnCreate();
@@ -179,6 +198,43 @@ Win32Window::MessageHandler(HWND hwnd,
                             WPARAM const wparam,
                             LPARAM const lparam) noexcept {
   switch (message) {
+    case WM_ENABLE:
+      if (wparam == FALSE &&
+          created_at_tick_ != 0 &&
+          GetTickCount64() - created_at_tick_ <=
+              kStartupInputRecoveryWindowMs) {
+        SetTimer(
+            hwnd,
+            kStartupInputRecoveryTimer,
+            kStartupInputRecoveryDelayMs,
+            nullptr);
+        OutputDebugStringW(
+            L"AppStroy: main window disabled during startup; input recovery armed.\n");
+      }
+      break;
+
+    case WM_TIMER:
+      if (wparam == kStartupInputRecoveryTimer) {
+        KillTimer(hwnd, kStartupInputRecoveryTimer);
+        const bool still_in_startup_window =
+            created_at_tick_ != 0 &&
+            GetTickCount64() - created_at_tick_ <=
+                kStartupInputRecoveryWindowMs;
+        if (still_in_startup_window &&
+            !IsWindowEnabled(hwnd) &&
+            !HasVisibleOwnedWindow(hwnd)) {
+          OutputDebugStringW(
+              L"AppStroy: recovering disabled startup window without visible native modal.\n");
+          EnableWindow(hwnd, TRUE);
+          SetActiveWindow(hwnd);
+          if (child_content_ != nullptr) {
+            SetFocus(child_content_);
+          }
+        }
+        return 0;
+      }
+      break;
+
     case WM_DESTROY:
       window_handle_ = nullptr;
       Destroy();
