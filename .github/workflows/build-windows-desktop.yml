@@ -107,15 +107,73 @@ jobs:
       - name: Native startup smoke test
         shell: pwsh
         run: |
+          Add-Type @'
+          using System;
+          using System.Runtime.InteropServices;
+          public static class AppStroyWindowSmoke {
+            [DllImport("user32.dll")]
+            [return: MarshalAs(UnmanagedType.Bool)]
+            public static extern bool IsWindowEnabled(IntPtr hWnd);
+
+            [DllImport("user32.dll")]
+            [return: MarshalAs(UnmanagedType.Bool)]
+            public static extern bool IsHungAppWindow(IntPtr hWnd);
+
+            [DllImport("user32.dll", SetLastError = true)]
+            public static extern IntPtr SendMessageTimeout(
+              IntPtr hWnd,
+              uint Msg,
+              IntPtr wParam,
+              IntPtr lParam,
+              uint fuFlags,
+              uint uTimeout,
+              out IntPtr lpdwResult);
+          }
+          '@
+
           $exe = (Resolve-Path 'build/windows/x64/runner/Release/AppStroy.exe').Path
           $process = Start-Process -FilePath $exe -WorkingDirectory (Split-Path $exe) -PassThru
-          Start-Sleep -Seconds 8
+          Start-Sleep -Seconds 10
           $process.Refresh()
           if ($process.HasExited) {
             throw "AppStroy.exe exited during startup smoke test with code $($process.ExitCode)"
           }
+
+          $handle = [IntPtr]::Zero
+          for ($attempt = 0; $attempt -lt 10; $attempt++) {
+            $process.Refresh()
+            $handle = $process.MainWindowHandle
+            if ($handle -ne [IntPtr]::Zero) { break }
+            Start-Sleep -Milliseconds 500
+          }
+
+          if ($handle -eq [IntPtr]::Zero) {
+            throw 'AppStroy main window handle was not available after startup.'
+          }
+          if (-not [AppStroyWindowSmoke]::IsWindowEnabled($handle)) {
+            throw 'AppStroy main window became disabled during startup.'
+          }
+          if ([AppStroyWindowSmoke]::IsHungAppWindow($handle)) {
+            throw 'AppStroy main window is reported as hung.'
+          }
+
+          $result = [IntPtr]::Zero
+          $SMTO_ABORTIFHUNG = 0x0002
+          $response = [AppStroyWindowSmoke]::SendMessageTimeout(
+            $handle,
+            0,
+            [IntPtr]::Zero,
+            [IntPtr]::Zero,
+            $SMTO_ABORTIFHUNG,
+            1500,
+            [ref]$result
+          )
+          if ($response -eq [IntPtr]::Zero) {
+            throw 'AppStroy main window did not respond to WM_NULL.'
+          }
+
           Stop-Process -Id $process.Id -Force
-          Write-Host 'AppStroy.exe stayed alive for startup smoke window.'
+          Write-Host 'AppStroy window stayed alive, enabled and responsive for startup smoke window.'
 
       - name: Prepare portable package
         shell: pwsh
