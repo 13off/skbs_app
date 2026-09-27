@@ -3,8 +3,13 @@ part of 'role_aware_whats_new_gate.dart';
 class _WhatsNewDialog extends StatefulWidget {
   final AppUserProfile profile;
   final List<_UpdateSlide> slides;
+  final VoidCallback onClose;
 
-  const _WhatsNewDialog({required this.profile, required this.slides});
+  const _WhatsNewDialog({
+    required this.profile,
+    required this.slides,
+    required this.onClose,
+  });
 
   @override
   State<_WhatsNewDialog> createState() => _WhatsNewDialogState();
@@ -37,7 +42,7 @@ class _WhatsNewDialogState extends State<_WhatsNewDialog> {
     );
   }
 
-  void _finish() => Navigator.of(context).pop();
+  void _finish() => widget.onClose();
 
   @override
   Widget build(BuildContext context) {
