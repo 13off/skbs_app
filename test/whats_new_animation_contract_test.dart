@@ -31,6 +31,6 @@ void main() {
     expect(source, contains('class _DecimalMoneyScene'));
     expect(source, contains('class _AdvanceThirtyScene'));
     expect(source, contains('class _PaymentSplitScene'));
-    expect(source, contains('mobile-2026-09-26-1.3.10+24-v2'));
+    expect(source, contains('mobile-2026-09-27-1.3.11+25-v3'));
   });
 }
