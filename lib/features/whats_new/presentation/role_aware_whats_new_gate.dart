@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' as math;
 import 'dart:ui';
 
@@ -24,12 +25,14 @@ class WhatsNewGate extends StatefulWidget {
 
 class _WhatsNewGateState extends State<WhatsNewGate> {
   static const String releaseId =
-      'mobile-2026-09-26-1.3.10+24-v2';
+      'mobile-2026-09-27-1.3.11+25-v3';
   static const String _preferencePrefix = 'whats_new_seen_release';
 
   bool _checkStarted = false;
   final Object _overlayToken = Object();
   bool _overlayBlocked = false;
+  List<_UpdateSlide> _visibleSlides = const <_UpdateSlide>[];
+  Completer<void>? _dismissCompleter;
 
   String get _preferenceKey =>
       '$_preferencePrefix:${widget.profile.id}:${widget.profile.role}';
@@ -83,27 +86,57 @@ class _WhatsNewGateState extends State<WhatsNewGate> {
       return;
     }
 
-    try {
-      await showDialog<void>(
-        context: context,
-        barrierDismissible: false,
-        barrierColor: const Color(0xD905070B),
-        builder: (context) => _WhatsNewDialog(
-          profile: widget.profile,
-          slides: slides,
-        ),
-      );
+    final completer = Completer<void>();
+    _dismissCompleter = completer;
+    setState(() => _visibleSlides = slides);
 
+    try {
+      await completer.future;
       try {
         await preferences?.setString(_preferenceKey, releaseId);
       } catch (_) {
         // В текущем запуске выпуск уже просмотрен.
       }
     } finally {
+      _dismissCompleter = null;
       _releaseOverlayBlock();
     }
   }
 
+  void _dismissWhatsNew() {
+    if (_visibleSlides.isEmpty) return;
+    setState(() => _visibleSlides = const <_UpdateSlide>[]);
+    final completer = _dismissCompleter;
+    if (completer != null && !completer.isCompleted) completer.complete();
+  }
+
   @override
-  Widget build(BuildContext context) => widget.child;
+  Widget build(BuildContext context) {
+    final slides = _visibleSlides;
+    if (slides.isEmpty) return widget.child;
+
+    return Stack(
+      fit: StackFit.expand,
+      children: <Widget>[
+        widget.child,
+        const Positioned.fill(
+          child: ColoredBox(color: Color(0xD905070B)),
+        ),
+        Positioned.fill(
+          child: Material(
+            type: MaterialType.transparency,
+            child: SafeArea(
+              child: Center(
+                child: _WhatsNewDialog(
+                  profile: widget.profile,
+                  slides: slides,
+                  onClose: _dismissWhatsNew,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
 }
