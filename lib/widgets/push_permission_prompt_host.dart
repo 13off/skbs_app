@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../navigation/app_modal_overlay_coordinator.dart';
 import '../services/push_permission_prompt_store.dart';
 import '../services/push_notification_service.dart';
 import '../services/web_push_bridge.dart';
@@ -98,6 +99,11 @@ class _PushPermissionPromptHostState extends State<PushPermissionPromptHost> {
       _handledForSession = true;
       final persisted = await PushPermissionPromptStore.markShown(user.id);
       if (!persisted || !mounted) return;
+
+      await AppModalOverlayCoordinator.waitUntilUnblocked();
+      if (!mounted || Supabase.instance.client.auth.currentUser?.id != user.id) {
+        return;
+      }
 
       _dialogOpen = true;
       await showDialog<void>(
