@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:math' as math;
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -22,6 +23,9 @@ class FirstRunGuide {
     required AppUserProfile profile,
     required SharedPreferences? preferences,
   }) async {
+    if (!kIsWeb && defaultTargetPlatform == TargetPlatform.windows) {
+      return false;
+    }
     if (profile.isRolePreview) return false;
     if (profile.canPreviewRoles &&
         !RolePreviewController.state.value.isAdminMode) {
