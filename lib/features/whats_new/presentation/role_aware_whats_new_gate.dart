@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math' as math;
 import 'dart:ui';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -37,9 +38,13 @@ class _WhatsNewGateState extends State<WhatsNewGate> {
   String get _preferenceKey =>
       '$_preferencePrefix:${widget.profile.id}:${widget.profile.role}';
 
+  bool get _skipOnWindowsDesktop =>
+      !kIsWeb && defaultTargetPlatform == TargetPlatform.windows;
+
   @override
   void initState() {
     super.initState();
+    if (_skipOnWindowsDesktop) return;
     if (!widget.profile.isRolePreview && _slidesFor(widget.profile).isNotEmpty) {
       AppModalOverlayCoordinator.begin(_overlayToken);
       _overlayBlocked = true;
@@ -60,6 +65,10 @@ class _WhatsNewGateState extends State<WhatsNewGate> {
   }
 
   Future<void> _showIfNeeded() async {
+    if (_skipOnWindowsDesktop) {
+      _releaseOverlayBlock();
+      return;
+    }
     if (_checkStarted || !mounted || widget.profile.isRolePreview) {
       _releaseOverlayBlock();
       return;
